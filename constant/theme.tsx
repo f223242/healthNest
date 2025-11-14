@@ -45,6 +45,7 @@ export const appStyles = StyleSheet.create({
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: colors.black,
+    lineHeight: 28,
   },
   // bottomTextStyle: {
   //   fontSize: 16,
@@ -53,7 +54,7 @@ export const appStyles = StyleSheet.create({
   //   textAlign: "center",
   // },
   errorStyle: {
-    color: "red",
+    color: colors.primary,
     fontSize: 12,
     marginTop: 4,
     fontFamily: Fonts.regular,
