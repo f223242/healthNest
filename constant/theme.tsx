@@ -12,6 +12,8 @@ export const colors = {
   primary: "#009963",
   white: "#FFFFFF",
   black: "#000000",
+  colors: ["#167738", "#246BFD"] as const,
+  green: "#167738",
 };
 
 export const useAppFonts = () =>
@@ -63,5 +65,11 @@ export const appStyles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: "#0D1C17",
+  },
+  body2: {
+    fontSize: 12,
+    color: "#666",
+    fontFamily: Fonts.regular,
+    lineHeight: 16,
   },
 });
