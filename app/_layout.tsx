@@ -1,10 +1,10 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AuthProvider, useAuthContext } from "@/hooks/useContext";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import { Text } from "react-native";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
-
-// SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -17,11 +17,45 @@ export default function RootLayout() {
   });
 
   if (!fontsLoaded) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
+
   return (
-    <Stack>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
+  );
+}
+
+function RootNavigator() {
+  const { user } = useAuthContext();
+  const segments = useSegments();
+  const router = useRouter();
+
+  // useEffect(() => {
+  //   const inAuthGroup = segments[0] === "(auth)";
+
+  //   console.log("User:", user);
+  //   console.log("Current segment:", segments[0]);
+  //   console.log("Will show:", user ? "(protected) screens" : "(auth) screens");
+
+  //   if (user && inAuthGroup) {
+  //     // User logged in - redirect to protected
+  //     router.replace("/(protected)/(tabs)");
+  //   } else if (!user && !inAuthGroup) {
+  //     // User logged out - redirect to auth
+  //     router.replace("/(auth)");
+  //   }
+  // }, [user]);
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* <Stack.Screen name="(auth)" /> */}
+      <Stack.Screen name="(protected)" />
     </Stack>
   );
 }

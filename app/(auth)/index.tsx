@@ -5,6 +5,7 @@ import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import React from "react";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
+import { useAuthContext } from "@/hooks/useContext";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -12,19 +13,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { object, string } from "yup";
 
 let email_schema = object({
-  email: string().required("email is required").email("Invalid email"),
+  email: string().required("Email is required").email("Invalid email"),
   password: string()
     .required("Password is required")
     .min(6, "Password must be at least 6 characters"),
 });
 
 const index = () => {
+  const { login } = useAuthContext();
+  const router = useRouter();
+
   const formik = useFormik({
     initialValues: { email: "", password: "" },
-    onSubmit: (value) => console.log(" value", value),
+    onSubmit: (value) => login(value),
     validationSchema: email_schema,
   });
-  const router = useRouter();
+
   const {
     handleBlur,
     handleChange,
@@ -35,6 +39,7 @@ const index = () => {
     dirty,
     handleSubmit,
   } = formik;
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <KeyboardAwareScrollView
@@ -68,6 +73,7 @@ const index = () => {
             value={values.email}
             containerStyle={{ marginTop: 12 }}
             error={touched.email && errors.email ? errors.email : undefined}
+            // editable={!isLoading}
           />
           <FormInput
             LeftIcon={Lock}
@@ -80,21 +86,31 @@ const index = () => {
             error={
               touched.password && errors.password ? errors.password : undefined
             }
+            // editable={!isLoading}
           />
           <TouchableOpacity
             onPress={() => router.push("/(auth)/forgot-password")}
             style={[styles.forgotPasswordStyle]}
+            // disabled={isLoading}
           >
             <Text style={{ color: colors.primary }}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
         <View>
-          <AppButton title="Login" disabled={!isValid || !dirty} />
+          <AppButton
+            title="Login"
+            disabled={!isValid || !dirty}
+            onPress={handleSubmit}
+            // loading={isLoading}
+          />
           <View style={styles.bottomTextStyle}>
             <Text style={appStyles.body1}>
-              Do you have no account ?<Text>{`  `}</Text>
+              Don't have an account?<Text>{`  `}</Text>
             </Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/sign-up")}
+              // disabled={isLoading}
+            >
               <Text
                 style={{
                   fontWeight: "bold",
@@ -112,13 +128,13 @@ const index = () => {
 };
 
 export default index;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   headingStyle: {
     textAlign: "center",
-
     marginTop: 20,
   },
   bottomTextStyle: {
@@ -138,5 +154,4 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: colors.white,
   },
-  logoStyle: {},
 });
