@@ -14,6 +14,7 @@ type Props = {
   textStyle?: TextStyle;
   onPress?: () => void;
   disabled?: boolean;
+  loading?: boolean;
 };
 
 const AppButton = ({
@@ -22,7 +23,8 @@ const AppButton = ({
   textStyle,
   onPress,
   disabled,
-}: Props) => {
+}: // loading,
+Props) => {
   return (
     <View style={containerStyle}>
       <TouchableOpacity
