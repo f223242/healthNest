@@ -2,12 +2,15 @@ import { BellIcon, ChangePassword, EditProfileIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import ProfileOptions from "@/component/ProfileOptions";
 import { appStyles, colors, sizes } from "@/constant/theme";
+import { useRouter } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
+  const router = useRouter();
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <View style={styles.cardStyle}>
@@ -34,15 +37,24 @@ const Profile = () => {
             leftIcon={<EditProfileIcon />}
             title="Edit Profile"
             containerStyle={{ marginTop: 16 }}
+            onPress={() => router.push("/(protected)/edit-profile")}
           />
           <ProfileOptions
             leftIcon={<ChangePassword />}
             title="Change Password"
+            onPress={() => router.push("/(protected)/change-password")}
           />
-          <ProfileOptions leftIcon={<EditProfileIcon />} title="Privacy" />
-          <ProfileOptions leftIcon={<BellIcon />} title="Notice" />
-          <ProfileOptions leftIcon={<BellIcon />} title="Notice" />
-          <ProfileOptions leftIcon={<BellIcon />} title="Notice" />
+          <ProfileOptions
+            leftIcon={<EditProfileIcon />}
+            title="Privacy"
+            onPress={() => router.push("/(protected)/privacy")}
+          />
+          <ProfileOptions
+            leftIcon={<BellIcon />}
+            title="Notifications"
+            onPress={() => router.push("/(protected)/notifications")}
+          />
+  
         </View>
 
         <AppButton title="LogOut" containerStyle={{ marginTop: 16 }} />

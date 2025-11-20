@@ -3,6 +3,7 @@ import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import LabCard from "@/component/LabCard";
 import { appStyles, colors, sizes } from "@/constant/theme";
+import { useRouter } from "expo-router";
 import React from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -44,6 +45,12 @@ const data = [
 ];
 
 const index = () => {
+  const router = useRouter();
+
+  const handleLabPress = () => {
+    router.push("/(protected)/select-labs");
+  };
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <KeyboardAwareScrollView
@@ -62,7 +69,9 @@ const index = () => {
         <FlatList
           data={data}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <LabCard {...item} />}
+          renderItem={({ item }) => (
+            <LabCard {...item} onPress={handleLabPress} />
+          )}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.flatListContent}

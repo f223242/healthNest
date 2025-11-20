@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"my-mcp-server-fbcd6e0b": {
+			"type": "stdio",
+			"command": "npx",
+			"args": []
+		}
+	},
+	"inputs": []
+}

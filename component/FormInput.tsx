@@ -1,4 +1,4 @@
-import { colors, Fonts } from "@/constant/theme";
+import { appStyles, colors, Fonts } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -70,7 +70,7 @@ const FormInput: React.FC<FormInputProps> = ({
           )}
         </View>
       </View>
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text style={appStyles.errorStyle}>{error}</Text>}
     </>
   );
 };
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
   },
-  error: {
-    color: "red",
-    marginTop: 4,
-  },
+  // error: {
+  //   color: "red",
+  //   marginTop: 4,
+  // },
 });
