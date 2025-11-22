@@ -1,15 +1,15 @@
 import DeliveryPersonCard, {
-    DeliveryPerson,
+  DeliveryPerson,
 } from "@/component/DeliveryPersonCard";
 import { appStyles, colors, sizes } from "@/constant/theme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -101,8 +101,17 @@ const RequestMedicine = () => {
     });
   };
 
+  const handleToraChat = () => {
+    router.push({
+      pathname: "/(protected)/medicine-chat",
+      params: { useTora: 'true' }
+    });
+  };
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
+     
+
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[
@@ -212,4 +221,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
   },
+ 
 });

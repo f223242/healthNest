@@ -1,4 +1,4 @@
-import { NurseIcon, SearchIcon } from "@/assets/svg";
+import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
 import LabCard from "@/component/LabCard";
 import ServiceCard from "@/component/ServiceCard";
@@ -6,7 +6,8 @@ import StatCard from "@/component/StatCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const data = [
@@ -56,6 +57,10 @@ const index = () => {
     router.push("/(protected)/request-medicine");
   };
 
+  const handleAIAssistant = () => {
+    router.push("/(protected)/general-chat");
+  };
+
   const services = [
     {
       id: 1,
@@ -75,19 +80,11 @@ const index = () => {
     },
     {
       id: 3,
-      title: "Nurse",
-      description: "Request home care",
-      icon: <NurseIcon width={28}height={28} />,
-      color: "#F0E6FF",
-      onPress: () => {},
-    },
-    {
-      id: 4,
       title: "AI Assistant",
-      description: "Chat with AI bot",
+      description: "Chat with Tora",
       icon: "🤖",
       color: "#E6F3FF",
-      onPress: () => {},
+      onPress: handleAIAssistant,
     },
   ];
 
@@ -98,7 +95,7 @@ const index = () => {
   ];
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
+    <SafeAreaView edges={[]} style={styles.container}>
       
         {/* Search Bar */}
         <FormInput
@@ -108,9 +105,11 @@ const index = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
       >
         
 
@@ -185,7 +184,7 @@ const index = () => {
         </View>
 
         <View style={{ height: 20 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };
@@ -199,7 +198,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   headerSection: {
     flexDirection: "row",

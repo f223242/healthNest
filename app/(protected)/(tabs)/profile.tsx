@@ -3,11 +3,11 @@ import AppButton from "@/component/AppButton";
 import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
@@ -15,7 +15,7 @@ const Profile = () => {
   const router = useRouter();
   const {logout} =  useAuthContext()  // <- Example of using a custom hook for authentication 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.container}>
       <LinearGradient
         colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
@@ -44,11 +44,9 @@ const Profile = () => {
         </View>
       </LinearGradient>
 
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[styles.scrollContainer]}
-        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
@@ -72,6 +70,13 @@ const Profile = () => {
           <Text style={styles.sectionTitle}>Preferences</Text>
 
           <ProfileOptions
+            leftIcon={<Ionicons name="chatbubbles" size={20} color={colors.primary} />}
+            title="AI Assistant"
+            onPress={() => router.push("/(protected)/general-chat")}
+              containerStyle={{marginTop:8}}
+          />
+
+          <ProfileOptions
             leftIcon={<BellIcon />}
             title="Notifications"
             onPress={() => router.push("/(protected)/notifications")}
@@ -89,7 +94,7 @@ const Profile = () => {
        
           <AppButton title="Log Out" containerStyle={{backgroundColor:"red"}} onPress={logout}  />
      
-      </KeyboardAwareScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
     paddingTop: 24,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   section: {
     marginBottom: 24,
