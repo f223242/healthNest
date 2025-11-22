@@ -2,7 +2,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuthContext } from "@/hooks/useContext";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
@@ -54,8 +53,9 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* <Stack.Screen name="(auth)" /> */}
-      <Stack.Screen name="(protected)" />
+      {user?<Stack.Screen name="(protected)" />:<Stack.Screen name="(auth)" />}
+      {/* <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(protected)" /> */}
     </Stack>
   );
 }

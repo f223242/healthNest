@@ -75,8 +75,17 @@ const SelectLabs = () => {
   );
 
   const handleContinue = () => {
-    // Navigate to next screen
-    console.log("Selected Lab:", selectedLab);
+    const lab = labsData.find((l) => l.id === selectedLab);
+    if (lab) {
+      router.push({
+        pathname: "/(protected)/lab-services",
+        params: {
+          labId: lab.id,
+          labName: lab.name,
+          labImage: JSON.stringify(lab.image),
+        },
+      });
+    }
   };
 
   return (

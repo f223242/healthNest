@@ -51,6 +51,10 @@ const index = () => {
     router.push("/(protected)/select-labs");
   };
 
+  const handleRequestMedicine = () => {
+    router.push("/(protected)/request-medicine");
+  };
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <KeyboardAwareScrollView
@@ -83,8 +87,8 @@ const index = () => {
 
         <Text style={[appStyles.h3]}>Quick Actions</Text>
         <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
-          <AppButton title="Book Lab Test" containerStyle={{ flex: 1 }} />
-          <AppButton title="Request Medicine" containerStyle={{ flex: 1 }} />
+          <AppButton title="Book Lab Test" containerStyle={{ flex: 1 }} onPress={handleLabPress} />
+          <AppButton title="Request Medicine" containerStyle={{ flex: 1 }} onPress={handleRequestMedicine} />
         </View>
         <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
           <AppButton title="Request nurse" containerStyle={{ flex: 1 }} />

@@ -19,6 +19,9 @@ export const colors = {
   lightGray: "#F8F8F8",
   borderGray: "#E5E5E5",
   danger: "#FF4444",
+  yellow: "#FFA500",
+  success: "#4CAF50",
+  warning: "#FF9800",
 };
 
 export const useAppFonts = () =>
@@ -97,5 +100,20 @@ export const appStyles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
+  },
+  badge: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: colors.white,
+  },
+  caption: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  h2: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.black,
   },
 });
