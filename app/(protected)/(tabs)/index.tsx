@@ -1,4 +1,4 @@
-import { SearchIcon } from "@/assets/svg";
+import { NurseIcon, SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
 import LabCard from "@/component/LabCard";
 import ServiceCard from "@/component/ServiceCard";
@@ -79,7 +79,15 @@ const index = () => {
       onPress: handleRequestMedicine,
     },
     {
-      id: 3,
+     id: 3,
+     title:"Nursing Services",
+     description:"Book nursing care",
+     icon:<NurseIcon width={28} height={28} />,
+     color:"#F3E8FF",
+     onPress:()=>{}
+    },
+    {
+      id: 4,
       title: "AI Assistant",
       description: "Chat with Tora",
       icon: "🤖",
