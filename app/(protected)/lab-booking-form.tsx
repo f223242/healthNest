@@ -1,3 +1,4 @@
+import { CalendarIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
@@ -14,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
+
 
 const bookingSchema = Yup.object().shape({
   fullName: Yup.string()
@@ -239,6 +241,7 @@ const LabBookingForm = () => {
                   onChangeText={handleChange("preferredDate")}
                   onBlur={handleBlur("preferredDate")}
                   error={touched.preferredDate ? errors.preferredDate : undefined}
+                  RightIcon={CalendarIcon}
                 />
                 <FormInput
                   placeholder="Preferred Time (HH:MM AM/PM)"
