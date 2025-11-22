@@ -1,4 +1,4 @@
-import { SearchIcon } from "@/assets/svg";
+import { NurseIcon, SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
 import LabCard from "@/component/LabCard";
 import ServiceCard from "@/component/ServiceCard";
@@ -77,7 +77,7 @@ const index = () => {
       id: 3,
       title: "Nurse",
       description: "Request home care",
-      icon: "👩‍⚕️",
+      icon: <NurseIcon width={28}height={28} />,
       color: "#F0E6FF",
       onPress: () => {},
     },

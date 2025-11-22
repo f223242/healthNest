@@ -1,7 +1,9 @@
 import { Email } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
-import { appStyles, colors, sizes } from "@/constant/theme";
+import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React from "react";
@@ -40,27 +42,48 @@ const ForgotPassword = () => {
         enableOnAndroid={true}
       >
         <View>
-          <Text style={appStyles.h3}>Enter your email</Text>
-          <Text style={appStyles.body1}>
-            We'll send you a verification code to reset your password.
+          {/* Icon with gradient background */}
+          <View style={styles.iconContainer}>
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientCircle}
+            >
+              <Ionicons name="lock-closed-outline" size={56} color={colors.white} />
+            </LinearGradient>
+          </View>
+
+          <Text style={[appStyles.h3, { marginTop: 32, textAlign: "center" }]}>
+            Forgot Password?
           </Text>
-          <FormInput
-            LeftIcon={Email}
-            placeholder="Email"
-            keyboardType="email-address"
-            onBlur={handleBlur("email")}
-            onChangeText={handleChange("email")}
-            value={values.email}
-            containerStyle={{ marginTop: 16 }}
-            error={touched.email && errors.email ? errors.email : undefined}
-          />
+          <Text style={[appStyles.body1, { marginTop: 12, textAlign: "center", color: colors.gray, paddingHorizontal: 20 }]}>
+            Don't worry! Enter your email address and we'll send you a verification code to reset your password.
+          </Text>
+          
+          <View style={styles.inputContainer}>
+            <FormInput
+              LeftIcon={Email}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              onBlur={handleBlur("email")}
+              onChangeText={handleChange("email")}
+              value={values.email}
+              error={touched.email && errors.email ? errors.email : undefined}
+              autoCapitalize="none"
+            />
+          </View>
         </View>
         <View>
           <AppButton
-            title="Submit"
+            title="Send Code"
             disabled={!isValid || !dirty}
             onPress={handleSubmit}
           />
+          <Text style={styles.infoText}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.gray} />
+            {"  "}You will receive a 4-digit code
+          </Text>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
@@ -79,5 +102,35 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: colors.white,
     marginBottom: 20,
+  },
+  iconContainer: {
+    alignSelf: "center",
+    marginTop: 40,
+  },
+  gradientCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  inputContainer: {
+    marginTop: 32,
+  },
+  infoText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    textAlign: "center",
+    marginTop: 16,
+    alignItems: "center",
   },
 });

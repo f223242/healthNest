@@ -6,6 +6,8 @@ import React from "react";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { useAuthContext } from "@/hooks/useContext";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -49,76 +51,92 @@ const index = () => {
         enableOnAndroid={true}
       >
         <View>
-          <Image
-            source={require("@/assets/png/logo.png")}
-            style={{
-              width: 150,
-              height: 150,
-              alignSelf: "center",
-              marginVertical: 20,
-            }}
-          />
-          <Text style={[appStyles.h3, styles.headingStyle]}>Welcome Back</Text>
-          <Text
-            style={{ textAlign: "center", ...appStyles.body1, marginTop: 8 }}
-          >
-            Please enter your credentials to access your account.
+          {/* Logo with gradient background */}
+          <View style={styles.logoContainer}>
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientBackground}
+            >
+              <Image
+                source={require("@/assets/png/logo.png")}
+                style={styles.logoImage}
+              />
+            </LinearGradient>
+          </View>
+
+          <Text style={[appStyles.h3, styles.headingStyle]}>Welcome Back!</Text>
+          <Text style={styles.subheadingStyle}>
+            Login to continue your health journey
           </Text>
-          <FormInput
-            LeftIcon={Email}
-            placeholder="Email"
-            keyboardType="email-address"
-            onBlur={handleBlur("email")}
-            onChangeText={handleChange("email")}
-            value={values.email}
-            containerStyle={{ marginTop: 12 }}
-            error={touched.email && errors.email ? errors.email : undefined}
-            // editable={!isLoading}
-          />
-          <FormInput
-            LeftIcon={Lock}
-            placeholder="Password"
-            isPassword
-            onBlur={handleBlur("password")}
-            onChangeText={handleChange("password")}
-            value={values.password}
-            containerStyle={{ marginTop: 12 }}
-            error={
-              touched.password && errors.password ? errors.password : undefined
-            }
-            // editable={!isLoading}
-          />
-          <TouchableOpacity
-            onPress={() => router.push("/(auth)/forgot-password")}
-            style={[styles.forgotPasswordStyle]}
-            // disabled={isLoading}
-          >
-            <Text style={{ color: colors.primary }}>Forgot Password?</Text>
-          </TouchableOpacity>
+
+          <View style={styles.formContainer}>
+            <FormInput
+              LeftIcon={Email}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              onBlur={handleBlur("email")}
+              onChangeText={handleChange("email")}
+              value={values.email}
+              containerStyle={{ marginTop: 12 }}
+              error={touched.email && errors.email ? errors.email : undefined}
+              autoCapitalize="none"
+            />
+            <FormInput
+              LeftIcon={Lock}
+              placeholder="Enter your password"
+              isPassword
+              onBlur={handleBlur("password")}
+              onChangeText={handleChange("password")}
+              value={values.password}
+              containerStyle={{ marginTop: 12 }}
+              error={
+                touched.password && errors.password ? errors.password : undefined
+              }
+            />
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/forgot-password")}
+              style={styles.forgotPasswordStyle}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
         <View>
           <AppButton
             title="Login"
             disabled={!isValid || !dirty}
             onPress={handleSubmit}
-            // loading={isLoading}
           />
+
+          {/* Divider with OR */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>Or continue with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Social Login Buttons */}
+          <View style={styles.socialContainer}>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-google" size={24} color="#DB4437" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-facebook" size={24} color="#4267B2" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-apple" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.bottomTextStyle}>
             <Text style={appStyles.body1}>
-              Don't have an account?<Text>{`  `}</Text>
+              Don't have an account?{" "}
             </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/(auth)/sign-up")}
-              // disabled={isLoading}
-            >
-              <Text
-                style={{
-                  fontWeight: "bold",
-                  color: colors.primary,
-                }}
-              >
-                Sign Up
-              </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
+              <Text style={styles.signUpText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -133,20 +151,105 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  logoContainer: {
+    alignSelf: "center",
+    marginTop: 20,
+    marginBottom: 24,
+  },
+  gradientBackground: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    tintColor: colors.white,
+  },
   headingStyle: {
     textAlign: "center",
-    marginTop: 20,
+    marginBottom: 8,
+  },
+  subheadingStyle: {
+    textAlign: "center",
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: colors.gray,
+    marginBottom: 8,
+  },
+  formContainer: {
+    marginTop: 16,
+  },
+  forgotPasswordStyle: {
+    alignSelf: "flex-end",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  forgotPasswordText: {
+    color: colors.primary,
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderGray,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: colors.gray,
+  },
+  socialContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 16,
+    marginBottom: 8,
+  },
+  socialButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderGray,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   bottomTextStyle: {
     marginVertical: 20,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
   },
-  forgotPasswordStyle: {
-    alignSelf: "flex-end",
-    marginVertical: 10,
+  signUpText: {
     fontFamily: Fonts.semiBold,
-    fontSize: 14,
+    color: colors.primary,
+    fontSize: 15,
   },
   scrollContainer: {
     flexGrow: 1,

@@ -10,7 +10,9 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { Dropdown } from "react-native-element-dropdown";
 import { SvgProps } from "react-native-svg";
+
 interface FormInputProps extends TextInputProps {
   value?: string;
   label?: string;
@@ -18,6 +20,11 @@ interface FormInputProps extends TextInputProps {
   LeftIcon?: React.FC<SvgProps>;
   RightIcon?: React.FC<SvgProps>;
   isPassword?: boolean;
+  isDropdown?: boolean;
+  data?: Array<{ label: string; value: string }>;
+  onDropdownChange?: (item: { label: string; value: string }) => void;
+  labelField?: string;
+  valueField?: string;
   containerStyle?: ViewStyle;
   textStyle?: ViewStyle;
 }
@@ -32,9 +39,15 @@ const FormInput: React.FC<FormInputProps> = ({
   textStyle,
   isPassword,
   multiline,
+  isDropdown,
+  data,
+  onDropdownChange,
+  labelField = "label",
+  valueField = "value",
   ...rest
 }) => {
   const [showPassword, setShowPassword] = React.useState(false);
+  
   return (
     <>
       <View
@@ -51,31 +64,65 @@ const FormInput: React.FC<FormInputProps> = ({
       >
         <View style={[styles.inputStyle, multiline && styles.multilineInputStyle]}>
           {LeftIcon && <LeftIcon />}
-          <TextInput
-            style={{
-              flex: 1,
-              marginLeft: LeftIcon ? 8 : 0,
-              color: colors.primary,
-              fontFamily: Fonts.regular,
-              textAlignVertical: multiline ? "top" : "center",
-              paddingTop: multiline ? 8 : 0,
-              paddingBottom: multiline ? 8 : 0,
-            }}
-            secureTextEntry={isPassword && !showPassword}
-            value={value}
-            multiline={multiline}
-            {...rest}
-          />
-          {isPassword ? (
-            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-              <Ionicons
-                name={showPassword ? "eye-outline" : "eye-off-outline"}
-                size={20}
-                color="#555"
-              />
-            </TouchableOpacity>
+          {isDropdown ? (
+            <Dropdown
+              data={data || []}
+              labelField={labelField}
+              valueField={valueField}
+              placeholder={rest.placeholder}
+              value={value}
+              onChange={onDropdownChange || (() => {})}
+              style={{ 
+                flex: 1,
+                marginLeft: LeftIcon ? 8 : 0,
+              }}
+              placeholderStyle={{
+                fontFamily: Fonts.regular,
+                fontSize: 16,
+                color: "#9CA3AF",
+              }}
+              selectedTextStyle={{
+                fontFamily: Fonts.regular,
+                fontSize: 16,
+                color: colors.primary,
+              }}
+              itemTextStyle={{
+                fontFamily: Fonts.regular,
+                fontSize: 16,
+                color: colors.black,
+              }}
+              activeColor={colors.lightGreen}
+              renderRightIcon={() => RightIcon ? <RightIcon width={20} height={20} /> : null}
+            />
           ) : (
-            RightIcon && <RightIcon />
+            <TextInput
+              style={{
+                flex: 1,
+                marginLeft: LeftIcon ? 8 : 0,
+                color: colors.primary,
+                fontFamily: Fonts.regular,
+                textAlignVertical: multiline ? "top" : "center",
+                paddingTop: multiline ? 8 : 0,
+                paddingBottom: multiline ? 8 : 0,
+              }}
+              secureTextEntry={isPassword && !showPassword}
+              value={value}
+              multiline={multiline}
+              {...rest}
+            />
+          )}
+          {!isDropdown && (
+            isPassword ? (
+              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+                <Ionicons
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
+                  size={20}
+                  color="#555"
+                />
+              </TouchableOpacity>
+            ) : (
+              RightIcon && <RightIcon />
+            )
           )}
         </View>
       </View>
