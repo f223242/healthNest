@@ -1,27 +1,46 @@
 import { BellIcon, ChangePassword, EditProfileIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import ProfileOptions from "@/component/ProfileOptions";
-import { appStyles, colors, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
+  const router = useRouter();
+
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <View style={styles.cardStyle}>
-        <Image
-          source={{
-            uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-          }}
-          style={styles.imageStyle}
-          resizeMode="cover"
-        />
-        <Text style={[appStyles.h4, { color: colors.white, marginTop: 10 }]}>
-          Qasim Ali
-        </Text>
-      </View>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+      <LinearGradient
+        colors={[colors.primary, "#00B976", "#00D68F"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.profileHeader}>
+          <View style={styles.imageContainer}>
+            <Image
+              source={{
+                uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
+              }}
+              style={styles.imageStyle}
+              resizeMode="cover"
+            />
+            <TouchableOpacity 
+              style={styles.editIconButton}
+              onPress={() => router.push("/(protected)/edit-profile")}
+            >
+              <EditProfileIcon width={16} height={16} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.userName}>Qasim Ali</Text>
+          <Text style={styles.userEmail}>qasim.ali@example.com</Text>
+        </View>
+      </LinearGradient>
 
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.scrollContainer]}
@@ -29,23 +48,48 @@ const Profile = () => {
         showsVerticalScrollIndicator={false}
         enableOnAndroid={true}
       >
-        <View style={{ gap: 12 }}>
-          <ProfileOptions
-            leftIcon={<EditProfileIcon />}
-            title="Edit Profile"
-            containerStyle={{ marginTop: 16 }}
-          />
-          <ProfileOptions
-            leftIcon={<ChangePassword />}
-            title="Change Password"
-          />
-          <ProfileOptions leftIcon={<EditProfileIcon />} title="Privacy" />
-          <ProfileOptions leftIcon={<BellIcon />} title="Notice" />
-          <ProfileOptions leftIcon={<BellIcon />} title="Notice" />
-          <ProfileOptions leftIcon={<BellIcon />} title="Notice" />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <View style={styles.optionsContainer}>
+            <ProfileOptions
+              leftIcon={<EditProfileIcon />}
+              title="Edit Profile"
+              onPress={() => router.push("/(protected)/edit-profile")}
+            />
+            <View style={styles.divider} />
+            <ProfileOptions
+              leftIcon={<ChangePassword />}
+              title="Change Password"
+              onPress={() => router.push("/(protected)/change-password")}
+            />
+          </View>
         </View>
 
-        <AppButton title="LogOut" containerStyle={{ marginTop: 16 }} />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          <View style={styles.optionsContainer}>
+            <ProfileOptions
+              leftIcon={<BellIcon />}
+              title="Notifications"
+              onPress={() => router.push("/(protected)/notifications")}
+            />
+            <View style={styles.divider} />
+            <ProfileOptions
+              leftIcon={<EditProfileIcon />}
+              title="Privacy & Security"
+              onPress={() => router.push("/(protected)/privacy")}
+            />
+          </View>
+        </View>
+
+        <View style={{backgroundColor:"red"}}>        <AppButton 
+          title="Log Out" 
+          containerStyle={styles.logoutButton}
+          
+         
+        />
+        </View>
+
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
@@ -56,26 +100,101 @@ export default Profile;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  headerGradient: {
+    paddingBottom: 30,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  profileHeader: {
+    alignItems: "center",
+    paddingTop: 12,
+  },
+  imageContainer: {
+    position: "relative",
+    marginBottom: 16,
+  },
+  imageStyle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 4,
+    borderColor: colors.white,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  editIconButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  userName: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  userEmail: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: "rgba(255, 255, 255, 0.9)",
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
-    backgroundColor: colors.white,
+    paddingTop: 24,
     paddingBottom: 40,
   },
-  cardStyle: {
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    padding: 20,
-    alignItems: "center",
-    backgroundColor: colors.primary,
+  section: {
+    marginBottom: 24,
   },
-  imageStyle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: colors.white,
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  optionsContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  divider: {
+    height: 8,
+  },
+  logoutButton: {
+    marginTop: 16,
+    backgroundColor: "#FF3B30",
   },
 });

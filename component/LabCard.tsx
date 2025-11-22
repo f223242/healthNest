@@ -1,6 +1,6 @@
 import { appStyles, colors, sizes } from "@/constant/theme";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface LabCardProps {
   name: string;
@@ -8,6 +8,7 @@ interface LabCardProps {
   image: any;
   rating: number;
   review: string;
+  onPress?: () => void;
 }
 
 const LabCard: React.FC<LabCardProps> = ({
@@ -16,9 +17,14 @@ const LabCard: React.FC<LabCardProps> = ({
   image,
   rating,
   review,
+  onPress,
 }) => {
   return (
-    <View style={styles.labItem}>
+    <TouchableOpacity
+      style={styles.labItem}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       <Image source={image} style={styles.labImage} resizeMode="cover" />
       <View style={styles.labInfo}>
         <Text style={[appStyles.h4, styles.labName]} numberOfLines={1}>
@@ -32,7 +38,7 @@ const LabCard: React.FC<LabCardProps> = ({
           <Text style={styles.review}>({review})</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
