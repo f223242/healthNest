@@ -1,7 +1,6 @@
 import {
   AppointmentFilled,
   AppointmentUnfilled,
-  BellIcon,
   HomeFilled,
   HomeUnfilled,
   MedicalRecordFilled,
@@ -9,6 +8,7 @@ import {
   ProfileFilled,
   ProfileUnfilled,
 } from "@/assets/svg";
+import HomeHeader from "@/component/HomeHeader";
 import { colors, Fonts } from "@/constant/theme";
 import { Tabs } from "expo-router";
 import React from "react";
@@ -28,9 +28,7 @@ const _layout = () => {
         name="index"
         options={{
           headerShown: true,
-          headerShadowVisible: false,
-          headerTitle: "",
-          headerRight: () => <BellIcon style={{ marginRight: 16 }} />,
+          header: () => <HomeHeader notificationCount={5} />,
           tabBarLabel: "Home",
           tabBarIcon: ({ focused }) =>
             focused ? <HomeFilled /> : <HomeUnfilled />,
@@ -61,21 +59,10 @@ const _layout = () => {
       <Tabs.Screen
         name="profile"
         options={{
+          headerShown: false,
           tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) =>
             focused ? <ProfileFilled /> : <ProfileUnfilled />,
-
-          // Header
-          headerTitleStyle: {
-            fontFamily: Fonts.medium,
-            color: colors.white,
-          },
-          headerShadowVisible: false,
-          headerTitle: "Profile",
-
-          headerStyle: {
-            backgroundColor: colors.primary,
-          },
         }}
       />
     </Tabs>

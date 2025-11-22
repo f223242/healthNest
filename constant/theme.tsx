@@ -14,6 +14,14 @@ export const colors = {
   black: "#000000",
   colors: ["#167738", "#246BFD"] as const,
   green: "#167738",
+  lightGreen: "#E5F5F0",
+  gray: "#666",
+  lightGray: "#F8F8F8",
+  borderGray: "#E5E5E5",
+  danger: "#FF4444",
+  yellow: "#FFA500",
+  success: "#4CAF50",
+  warning: "#FF9800",
 };
 
 export const useAppFonts = () =>
@@ -71,5 +79,41 @@ export const appStyles = StyleSheet.create({
     color: "#666",
     fontFamily: Fonts.regular,
     lineHeight: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+  },
+  bodyText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    lineHeight: 20,
+  },
+  linkText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
+  badge: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: colors.white,
+  },
+  caption: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  h2: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.black,
   },
 });
