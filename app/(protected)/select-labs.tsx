@@ -1,18 +1,22 @@
 import { SearchIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
+import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
+import LabCard from "@/component/LabCard";
+import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+type FilterType = "All" | "Nearby" | "Rated" | "Popular";
 
 const labsData = [
   {
@@ -22,6 +26,11 @@ const labsData = [
     image: require("@/assets/png/labcorp.png"),
     rating: 4.5,
     reviews: 120,
+    distance: "2.3 km",
+    openTime: "8:00 AM - 8:00 PM",
+    testsAvailable: 250,
+    accredited: true,
+    homeCollection: true,
   },
   {
     id: 2,
@@ -30,6 +39,11 @@ const labsData = [
     image: require("@/assets/png/quest.png"),
     rating: 4.2,
     reviews: 98,
+    distance: "3.5 km",
+    openTime: "7:00 AM - 6:00 PM",
+    testsAvailable: 180,
+    accredited: true,
+    homeCollection: false,
   },
   {
     id: 3,
@@ -38,6 +52,11 @@ const labsData = [
     image: require("@/assets/png/labcorp.png"),
     rating: 4.0,
     reviews: 75,
+    distance: "5.1 km",
+    openTime: "9:00 AM - 5:00 PM",
+    testsAvailable: 150,
+    accredited: false,
+    homeCollection: true,
   },
   {
     id: 4,
@@ -46,6 +65,11 @@ const labsData = [
     image: require("@/assets/png/quest.png"),
     rating: 4.7,
     reviews: 150,
+    distance: "1.8 km",
+    openTime: "6:00 AM - 9:00 PM",
+    testsAvailable: 320,
+    accredited: true,
+    homeCollection: true,
   },
   {
     id: 5,
@@ -54,6 +78,11 @@ const labsData = [
     image: require("@/assets/png/labcorp.png"),
     rating: 4.6,
     reviews: 88,
+    distance: "4.2 km",
+    openTime: "8:00 AM - 7:00 PM",
+    testsAvailable: 200,
+    accredited: true,
+    homeCollection: false,
   },
   {
     id: 6,
@@ -62,6 +91,11 @@ const labsData = [
     image: require("@/assets/png/quest.png"),
     rating: 4.8,
     reviews: 200,
+    distance: "2.9 km",
+    openTime: "24 Hours",
+    testsAvailable: 280,
+    accredited: true,
+    homeCollection: true,
   },
 ];
 
@@ -69,10 +103,29 @@ const SelectLabs = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLab, setSelectedLab] = useState<number | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>("All");
 
-  const filteredLabs = labsData.filter((lab) =>
-    lab.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filterOptions: Array<{ label: FilterType; icon: keyof typeof Ionicons.glyphMap }> = [
+    { label: "All", icon: "grid" },
+    { label: "Nearby", icon: "location" },
+    { label: "Rated", icon: "star" },
+    { label: "Popular", icon: "trending-up" },
+  ];
+
+  const filteredLabs = labsData
+    .filter((lab) => lab.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((lab) => {
+      if (selectedFilter === "Nearby") return parseFloat(lab.distance) < 3;
+      if (selectedFilter === "Rated") return lab.rating >= 4.5;
+      if (selectedFilter === "Popular") return lab.reviews > 100;
+      return true;
+    })
+    .sort((a, b) => {
+      if (selectedFilter === "Nearby") return parseFloat(a.distance) - parseFloat(b.distance);
+      if (selectedFilter === "Rated") return b.rating - a.rating;
+      if (selectedFilter === "Popular") return b.reviews - a.reviews;
+      return 0;
+    });
 
   const handleContinue = () => {
     const lab = labsData.find((l) => l.id === selectedLab);
@@ -90,18 +143,75 @@ const SelectLabs = () => {
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
+         <FormInput
+          LeftIcon={SearchIcon}
+          placeholder="Search for labs..."
+          containerStyle={{...styles.searchInput}}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+         
+        />
+       
+      {/* Header Stats */}
+      <View style={styles.headerStats}>
+        
 
+        <StatCard
+          icon="flask"
+          value={labsData.length}
+          label="Labs"
+          color={colors.primary}
+        />
+        <StatCard
+          icon="checkmark-circle"
+          value={labsData.filter((l) => l.accredited).length}
+          label="Accredited"
+          color={colors.success}
+        />
+        <StatCard
+          icon="home"
+          value={labsData.filter((l) => l.homeCollection).length}
+          label="Home Service"
+          color="#FF9800"
+        />
+      </View>
 
       {/* Content */}
       <View style={styles.content}>
         {/* Search Input */}
-        <FormInput
-          LeftIcon={SearchIcon}
-          placeholder="Search for labs"
-          containerStyle={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      
+
+        {/* Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContainer}
+        >
+          {filterOptions.map((filter) => (
+            <FilterChip
+              key={filter.label}
+              label={filter.label}
+              icon={filter.icon}
+              isActive={selectedFilter === filter.label}
+              onPress={() => setSelectedFilter(filter.label)}
+              containerStyle={{ paddingVertical: 6 }}
+            />
+          ))}
+        </ScrollView>
+      
+
+        {/* Results Count */}
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsText}>
+            {filteredLabs.length} {filteredLabs.length === 1 ? "Lab" : "Labs"} Found
+          </Text>
+          {selectedLab && (
+            <View style={styles.selectedBadgeSmall}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+              <Text style={styles.selectedText}>1 Selected</Text>
+            </View>
+          )}
+        </View>
 
         {/* Labs Grid */}
         <ScrollView
@@ -110,51 +220,21 @@ const SelectLabs = () => {
         >
           <View style={styles.labsGrid}>
             {filteredLabs.map((lab) => (
-              <TouchableOpacity
+              <LabCard
                 key={lab.id}
-                activeOpacity={0.8}
+                name={lab.name}
+                description={lab.description}
+                image={lab.image}
+                rating={lab.rating}
+                review={`${lab.reviews}+`}
+                distance={lab.distance}
+                openTime={lab.openTime}
+                testsAvailable={lab.testsAvailable}
+                accredited={lab.accredited}
+                homeCollection={lab.homeCollection}
+                isSelected={selectedLab === lab.id}
                 onPress={() => setSelectedLab(lab.id)}
-                style={styles.labCardContainer}
-              >
-                <View
-                  style={[
-                    styles.labCard,
-                    selectedLab === lab.id && styles.selectedLabCard,
-                  ]}
-                >
-                  {/* Lab Image */}
-                  <Image
-                    source={lab.image}
-                    style={styles.labImage}
-                    resizeMode="cover"
-                  />
-
-                  {/* Lab Info */}
-                  <View style={styles.labInfo}>
-                    <Text style={styles.labName} numberOfLines={1}>
-                      {lab.name}
-                    </Text>
-                    <Text style={styles.labDescription} numberOfLines={2}>
-                      {lab.description}
-                    </Text>
-
-                    {/* Rating */}
-                    <View style={styles.ratingContainer}>
-                      <Text style={styles.rating}>⭐ {lab.rating}</Text>
-                      <Text style={styles.reviews}>
-                        ({lab.reviews}+ reviews)
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Selected Badge */}
-                  {selectedLab === lab.id && (
-                    <View style={styles.selectedBadge}>
-                      <Text style={styles.selectedBadgeText}>✓</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
+              />
             ))}
           </View>
         </ScrollView>
@@ -179,11 +259,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+    paddingHorizontal: sizes.paddingHorizontal,
+
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
+   
     paddingVertical: 12,
     backgroundColor: colors.white,
   },
@@ -193,23 +275,50 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: "center",
-    marginRight: 40,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: colors.black,
+  headerStats: {
+    flexDirection: "row",
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 12,
   },
   content: {
     flex: 1,
-    paddingHorizontal: sizes.paddingHorizontal,
+    
   },
   searchInput: {
     marginTop: 16,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  filtersContainer: {
+    paddingVertical: 8,
+    gap: 8,
+    marginBottom: 30,
+  },
+  resultsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    // paddingHorizontal: sizes.paddingHorizontal,
+  },
+  resultsText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+  },
+  selectedBadgeSmall: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  selectedText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
   },
   scrollContent: {
     paddingBottom: 20,
@@ -218,74 +327,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-  },
-  labCardContainer: {
-    width: "48%",
-    marginBottom: 16,
-  },
-  labCard: {
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  selectedLabCard: {
-    borderColor: colors.primary,
-    backgroundColor: "#E8F5F0",
-  },
-  labImage: {
-    width: "100%",
-    height: 100,
-    borderRadius: 8,
-    backgroundColor: colors.white,
-    marginBottom: 10,
-  },
-  labInfo: {
-    gap: 4,
-  },
-  labName: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-  },
-  labDescription: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: "#666",
-    lineHeight: 16,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  rating: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
-    marginRight: 6,
-  },
-  reviews: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: "#666",
-  },
-  selectedBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: colors.primary,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedBadgeText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: Fonts.bold,
   },
   bottomContainer: {
     paddingHorizontal: sizes.paddingHorizontal,

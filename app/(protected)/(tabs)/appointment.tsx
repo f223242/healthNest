@@ -1,10 +1,12 @@
-import { View, Text } from "react-native";
+import { CalendarIconBlack } from "@/assets/svg";
 import React from "react";
+import { Text, View } from "react-native";
 
 const Appointment = () => {
   return (
     <View>
       <Text>A</Text>
+      <CalendarIconBlack/>
     </View>
   );
 };

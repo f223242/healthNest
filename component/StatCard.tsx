@@ -1,18 +1,32 @@
 import { colors, Fonts } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface StatCardProps {
   label: string;
-  value: string;
+  value: string | number;
   color: string;
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, color }) => {
+const StatCard: React.FC<StatCardProps> = ({ label, value, color, icon }) => {
   return (
     <View style={styles.container}>
-      <Text style={[styles.value, { color }]}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
+      {icon ? (
+        <>
+          <Text style={styles.value}>{value}</Text>
+          <View style={[styles.iconContainer, { backgroundColor: color + "20" }]}>
+            <Ionicons name={icon} size={20} color={color} />
+          </View>
+          <Text style={styles.label} numberOfLines={1}>{label}</Text>
+        </>
+      ) : (
+        <>
+          <Text style={[styles.value, { color }]}>{value}</Text>
+          <Text style={styles.label} numberOfLines={1}>{label}</Text>
+        </>
+      )}
     </View>
   );
 };
@@ -22,25 +36,31 @@ export default StatCard;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary + "09",
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
+    paddingHorizontal: 8,
     alignItems: "center",
-    elevation: 2,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    justifyContent: "center",
+    gap: 4,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 2,
   },
   value: {
-    fontSize: 28,
+    fontSize: 20,
     fontFamily: Fonts.bold,
-    marginBottom: 4,
+    color: colors.black,
   },
   label: {
     fontSize: 11,
     fontFamily: Fonts.regular,
-    color: colors.gray,
+    color: "#666",
     textAlign: "center",
   },
 });
