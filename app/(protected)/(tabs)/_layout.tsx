@@ -1,12 +1,12 @@
 import {
-    AppointmentFilled,
-    AppointmentUnfilled,
-    HomeFilled,
-    HomeUnfilled,
-    MedicalRecordFilled,
-    MedicalRecordUnfilled,
-    ProfileFilled,
-    ProfileUnfilled,
+  AppointmentFilled,
+  AppointmentUnfilled,
+  HomeFilled,
+  HomeUnfilled,
+  MedicalRecordFilled,
+  MedicalRecordUnfilled,
+  ProfileFilled,
+  ProfileUnfilled,
 } from "@/assets/svg";
 import HomeHeader from "@/component/HomeHeader";
 import { colors, Fonts } from "@/constant/theme";
@@ -63,6 +63,7 @@ const _layout = () => {
         name="appointment"
         options={{
           headerShown: true,
+          headerShadowVisible: false,
           headerTitle: "Appointments",
           headerTitleStyle: {
             fontFamily: Fonts.bold,

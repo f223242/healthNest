@@ -1,18 +1,16 @@
 import { SearchIcon } from "@/assets/svg";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
+import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -199,10 +197,11 @@ const Appointment = () => {
       </View>
 
       {/* Filter Chips */}
-      <ScrollView
+      <View >      
+        <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContainer}
+       
       >
         {filterOptions.map((filter) => (
           <FilterChip
@@ -214,6 +213,8 @@ const Appointment = () => {
           />
         ))}
       </ScrollView>
+      </View>
+
 
       {/* Results Count */}
       <View style={styles.resultsHeader}>
@@ -229,109 +230,47 @@ const Appointment = () => {
       >
         {filteredAppointments.length > 0 ? (
           filteredAppointments.map((appointment) => (
-            <TouchableOpacity
+            <NurseCard
               key={appointment.id}
-              style={styles.appointmentCard}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={["#ffffff", "#f8f9fa"]}
-                style={styles.cardGradient}
-              >
-                {/* Card Header */}
-                <View style={styles.cardHeader}>
-                  <View style={styles.typeContainer}>
-                    <Ionicons
-                      name={getTypeIcon(appointment.type)}
-                      size={16}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.typeText}>{appointment.type}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(appointment.status) + "20" },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        { color: getStatusColor(appointment.status) },
-                      ]}
-                    >
-                      {appointment.status}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Card Body */}
-                <View style={styles.cardBody}>
-                  <Image
-                    source={{ uri: appointment.image }}
-                    style={styles.appointmentImage}
-                  />
-                  <View style={styles.appointmentInfo}>
-                    <Text style={styles.appointmentTitle} numberOfLines={1}>
-                      {appointment.title}
-                    </Text>
-                    <View style={styles.providerRow}>
-                      <Ionicons name="person-circle" size={14} color={colors.gray} />
-                      <Text style={styles.providerText} numberOfLines={1}>
-                        {appointment.provider}
-                      </Text>
-                    </View>
-
-                    <View style={styles.detailsRow}>
-                      <View style={styles.detailItem}>
-                        <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-                        <Text style={styles.detailText}>{appointment.date}</Text>
-                      </View>
-                      <View style={styles.detailItem}>
-                        <Ionicons name="time-outline" size={14} color={colors.primary} />
-                        <Text style={styles.detailText}>{appointment.time}</Text>
-                      </View>
-                    </View>
-
-                    {appointment.location && (
-                      <View style={styles.locationRow}>
-                        <Ionicons name="location" size={14} color={colors.gray} />
-                        <Text style={styles.locationText} numberOfLines={1}>
-                          {appointment.location}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                {/* Card Footer */}
-                <View style={styles.cardFooter}>
-                  {appointment.price && (
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.priceLabel}>Total:</Text>
-                      <Text style={styles.priceText}>{appointment.price}</Text>
-                    </View>
-                  )}
-                  <View style={styles.actionsContainer}>
-                    {appointment.status === "Approved" && (
-                      <TouchableOpacity style={styles.actionButton}>
-                        <Ionicons name="call" size={16} color={colors.primary} />
-                        <Text style={styles.actionText}>Contact</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={[
-                        styles.actionButton,
-                        styles.viewDetailsButton,
-                      ]}
-                    >
-                      <Text style={styles.viewDetailsText}>View Details</Text>
-                      <Ionicons name="chevron-forward" size={16} color={colors.white} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+              name={appointment.title}
+              specialization={appointment.provider}
+              image={appointment.image}
+              statusBadge={{
+                label: appointment.status,
+                color: getStatusColor(appointment.status),
+              }}
+              details={[
+                {
+                  icon: "calendar-outline",
+                  text: appointment.date,
+                  color: colors.primary,
+                },
+                {
+                  icon: "time-outline",
+                  text: appointment.time,
+                  color: colors.primary,
+                },
+              ]}
+              location={appointment.location}
+              price={appointment.price}
+              actions={[
+                ...(appointment.status === "Approved"
+                  ? [
+                      {
+                        label: "Contact",
+                        icon: "call" as const,
+                        onPress: () => console.log("Contact", appointment.id),
+                      },
+                    ]
+                  : []),
+                {
+                  label: "View Details",
+                  icon: "chevron-forward" as const,
+                  onPress: () => console.log("View Details", appointment.id),
+                  isPrimary: true,
+                },
+              ]}
+            />
           ))
         ) : (
           <View style={styles.emptyState}>
@@ -366,9 +305,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  filtersContainer: {
-    paddingBottom: 30,
-  },
   resultsHeader: {
     paddingVertical: 12,
   },
@@ -379,151 +315,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 100,
-  },
-  appointmentCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: "hidden",
-    elevation: 2,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardGradient: {
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  typeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  typeText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.primary,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontFamily: Fonts.semiBold,
-  },
-  cardBody: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
-  },
-  appointmentImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    backgroundColor: colors.lightGray,
-  },
-  appointmentInfo: {
-    flex: 1,
-    gap: 6,
-  },
-  appointmentTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-  },
-  providerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  providerText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: colors.gray,
-    flex: 1,
-  },
-  detailsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  detailText: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.black,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-    flex: 1,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderGray,
-  },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  priceLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  priceText: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: colors.primary,
-  },
-  actionsContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  actionText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.primary,
-  },
-  viewDetailsButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  viewDetailsText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.white,
   },
   emptyState: {
     alignItems: "center",

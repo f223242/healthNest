@@ -91,6 +91,17 @@ const Profile = () => {
           />
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Support</Text>
+
+          <ProfileOptions
+            leftIcon={<Ionicons name="chatbox-ellipses" size={20} color={colors.primary} />}
+            title="Complain to Admin"
+            onPress={() => router.push("/(protected)/complain")}
+            containerStyle={{marginTop:8}}
+          />
+        </View>
+
        
           <AppButton title="Log Out" containerStyle={{backgroundColor:"red"}} onPress={logout}  />
      
