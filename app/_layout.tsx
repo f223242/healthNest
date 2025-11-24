@@ -46,17 +46,14 @@ function RootNavigator() {
     console.log("Current segment:", segments[0]);
     console.log("Will show:", user ? "(protected) screens" : "(auth) screens");
 
-    // Small delay to ensure navigation is ready
-    setTimeout(() => {
-      if (user && !inProtectedGroup) {
-        // User logged in but not in protected screens - redirect to protected
-        router.replace("/(protected)/(tabs)");
-      } else if (!user && !inAuthGroup) {
-        // User not logged in and not in auth screens - redirect to auth
-        router.replace("/(auth)");
-      }
-    }, 100);
-  }, [user, isLoading, segments]);
+    if (user && !inProtectedGroup) {
+      // User logged in but not in protected screens - redirect to protected
+      router.replace("/(protected)/(tabs)");
+    } else if (!user && !inAuthGroup) {
+      // User not logged in and not in auth screens - redirect to auth
+      router.replace("/(auth)");
+    }
+  }, [user, isLoading]);
 
   // Show loading screen while checking authentication
   if (isLoading) {

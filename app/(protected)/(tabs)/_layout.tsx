@@ -18,8 +18,31 @@ const _layout = () => {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: "gray",
-        tabBarLabelStyle: { fontSize: 12, fontFamily: Fonts.medium },
+        tabBarInactiveTintColor: colors.gray,
+        tabBarLabelStyle: { 
+          fontSize: 12, 
+          fontFamily: Fonts.semiBold,
+          marginBottom: 5,
+        },
+        tabBarStyle: {
+         height:110,
+          backgroundColor: colors.white,
+          borderTopLeftRadius: 25,
+          borderTopRightRadius: 25,
+          borderTopWidth: 0,
+          elevation: 20,
+          shadowColor: colors.black,
+          shadowOffset: {
+            width: 0,
+            height: -5,
+          },
+          shadowOpacity: 0.15,
+          shadowRadius: 15,
+          position: 'absolute',
+        },
+        tabBarItemStyle: {
+          paddingVertical: 5,
+        },
         headerTitleAlign: "center",
       }}
     >

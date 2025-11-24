@@ -1,11 +1,11 @@
 import { colors, Fonts, sizes } from "@/constant/theme";
-import React from "react";
+import React, { ReactNode } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ServiceCardProps {
   title: string;
   description: string;
-  icon: string;
+  icon?: string | ReactNode;
   backgroundColor: string;
   onPress: () => void;
 }
@@ -24,7 +24,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       activeOpacity={0.7}
     >
       <View style={styles.iconContainer}>
-        <Text style={styles.icon}>{icon}</Text>
+        {typeof icon === "string" ? (
+          <Text style={styles.icon}>{icon}</Text>
+        ) : (
+          icon
+        )}
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>

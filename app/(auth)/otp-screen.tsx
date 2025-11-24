@@ -1,10 +1,11 @@
 import AppButton from "@/component/AppButton";
 import OtpCompnent from "@/component/OtpCompnent";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { OtpInput } from "react-native-otp-entry";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +15,11 @@ let otp_schema = object({
 });
 
 const OtpScreen = () => {
+  const router = useRouter();
+  const [seconds, setSeconds] = useState(59);
+  const [minutes, setMinutes] = useState(0);
+  const [canResend, setCanResend] = useState(false);
+
   const formik = useFormik({
     initialValues: { otp: "" },
     validationSchema: otp_schema,
@@ -21,8 +27,33 @@ const OtpScreen = () => {
       router.push("/(auth)/reset-password");
     },
   });
-  const router = useRouter();
-  const { handleSubmit, isValid, dirty, setFieldValue, values } = formik;
+  const { handleSubmit, isValid, setFieldValue, values } = formik;
+
+  // Countdown timer logic
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (seconds > 0) {
+        setSeconds(seconds - 1);
+      } else if (minutes > 0) {
+        setMinutes(minutes - 1);
+        setSeconds(59);
+      } else {
+        setCanResend(true);
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [seconds, minutes]);
+
+  const handleResend = () => {
+    setSeconds(59);
+    setMinutes(0);
+    setCanResend(false);
+    setFieldValue("otp", "");
+    // Add your resend OTP API call here
+    console.log("Resend OTP");
+  };
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <KeyboardAwareScrollView
@@ -32,11 +63,16 @@ const OtpScreen = () => {
         enableOnAndroid={true}
       >
         <View>
-          <Text style={[appStyles.h3, { textAlign: "center", marginTop: 20 }]}>
-            Enter the code
+          {/* Icon */}
+          <View style={styles.iconContainer}>
+            <Ionicons name="mail-outline" size={64} color={colors.primary} />
+          </View>
+
+          <Text style={[appStyles.h3, { textAlign: "center", marginTop: 24 }]}>
+            Verify your email
           </Text>
           <Text
-            style={[appStyles.body1, { textAlign: "center", marginTop: 8 }]}
+            style={[appStyles.body1, { textAlign: "center", marginTop: 8, color: colors.gray, paddingHorizontal: 16 }]}
           >
             We sent a verification code to your email address. Please enter it
             below.
@@ -58,16 +94,19 @@ const OtpScreen = () => {
               console.log("OTP Filled:", code);
             }}
           />
-          <>
+          {/* Timer */}
+          <View style={styles.timerSection}>
+            <Text style={[appStyles.body1, { color: colors.gray, marginBottom: 8 }]}>
+              Code expires in
+            </Text>
             <View style={styles.otpCardContainer}>
-              <OtpCompnent text="00" />
-              <OtpCompnent text="59" />
+              <OtpCompnent text={minutes.toString().padStart(2, "0")} label="Minutes" />
+              <View style={styles.colonContainer}>
+                <Text style={styles.colonText}>:</Text>
+              </View>
+              <OtpCompnent text={seconds.toString().padStart(2, "0")} label="Seconds" />
             </View>
-            <View style={styles.timelabelContainer}>
-              <Text style={appStyles.body1}>Seconds</Text>
-              <Text style={appStyles.body1}>Minutes</Text>
-            </View>
-          </>
+          </View>
         </View>
 
         <View>
@@ -76,14 +115,28 @@ const OtpScreen = () => {
             disabled={!isValid || values.otp.length < 4}
             onPress={handleSubmit}
           />
-          <Text
-            style={[appStyles.body1, { textAlign: "center", marginTop: 20 }]}
-          >
-            Didn't receive the code?{" "}
-            <Text style={{ color: colors.primary, fontFamily: Fonts.semiBold }}>
-              Send again
+          <View style={styles.resendContainer}>
+            <Text style={[appStyles.body1, { color: colors.gray }]}>
+              Didn't receive the code?
             </Text>
-          </Text>
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={!canResend}
+              style={{ marginTop: 8 }}
+            >
+              <Text
+                style={[
+                  appStyles.body1,
+                  {
+                    color: canResend ? colors.primary : colors.lightGreen,
+                    fontFamily: Fonts.semiBold,
+                  },
+                ]}
+              >
+                {canResend ? "Resend Code" : `Resend in ${minutes}:${seconds.toString().padStart(2, "0")}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
@@ -95,6 +148,16 @@ export default OtpScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  iconContainer: {
+    alignSelf: "center",
+    marginTop: 32,
+    backgroundColor: colors.lightGreen,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
   },
   otpContainerStyle: {
     width: "80%",
@@ -135,17 +198,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 60,
   },
-  timelabelContainer: {
-    flex: 1,
-    justifyContent: "space-between",
-    flexDirection: "row",
-    marginTop: 8,
-    marginHorizontal: sizes.paddingHorizontal + 45,
+  timerSection: {
+    alignItems: "center",
+    marginTop: 32,
   },
   otpCardContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
-    gap: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  colonContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 24,
+  },
+  colonText: {
+    fontSize: 32,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+  },
+  resendContainer: {
+    alignItems: "center",
+    marginTop: 20,
   },
 });

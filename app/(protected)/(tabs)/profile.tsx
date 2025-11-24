@@ -2,18 +2,20 @@ import { BellIcon, ChangePassword, EditProfileIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useContext";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 
 const Profile = () => {
   const router = useRouter();
-
+  const {logout} =  useAuthContext()  // <- Example of using a custom hook for authentication 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.container}>
       <LinearGradient
         colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
@@ -29,68 +31,70 @@ const Profile = () => {
               style={styles.imageStyle}
               resizeMode="cover"
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.editIconButton}
               onPress={() => router.push("/(protected)/edit-profile")}
             >
               <EditProfileIcon width={16} height={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
-          
+
           <Text style={styles.userName}>Qasim Ali</Text>
           <Text style={styles.userEmail}>qasim.ali@example.com</Text>
         </View>
       </LinearGradient>
 
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[styles.scrollContainer]}
-        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
-          <View style={styles.optionsContainer}>
-            <ProfileOptions
-              leftIcon={<EditProfileIcon />}
-              title="Edit Profile"
-              onPress={() => router.push("/(protected)/edit-profile")}
-            />
-            <View style={styles.divider} />
-            <ProfileOptions
-              leftIcon={<ChangePassword />}
-              title="Change Password"
-              onPress={() => router.push("/(protected)/change-password")}
-            />
-          </View>
+
+          <ProfileOptions
+            leftIcon={<EditProfileIcon />}
+            title="Edit Profile"
+            onPress={() => router.push("/(protected)/edit-profile")}
+          
+          />
+
+          <ProfileOptions
+            leftIcon={<ChangePassword />}
+            title="Change Password"
+            onPress={() => router.push("/(protected)/change-password")}
+              containerStyle={{marginTop:8}}
+          />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.optionsContainer}>
-            <ProfileOptions
-              leftIcon={<BellIcon />}
-              title="Notifications"
-              onPress={() => router.push("/(protected)/notifications")}
-            />
-            <View style={styles.divider} />
-            <ProfileOptions
-              leftIcon={<EditProfileIcon />}
-              title="Privacy & Security"
-              onPress={() => router.push("/(protected)/privacy")}
-            />
-          </View>
+
+          <ProfileOptions
+            leftIcon={<Ionicons name="chatbubbles" size={20} color={colors.primary} />}
+            title="AI Assistant"
+            onPress={() => router.push("/(protected)/general-chat")}
+              containerStyle={{marginTop:8}}
+          />
+
+          <ProfileOptions
+            leftIcon={<BellIcon />}
+            title="Notifications"
+            onPress={() => router.push("/(protected)/notifications")}
+              containerStyle={{marginTop:8}}
+          />
+
+          <ProfileOptions
+            leftIcon={<EditProfileIcon />}
+            title="Privacy & Security"
+            onPress={() => router.push("/(protected)/privacy")}
+              containerStyle={{marginTop:8}}
+          />
         </View>
 
-        <View style={{backgroundColor:"red"}}>        <AppButton 
-          title="Log Out" 
-          containerStyle={styles.logoutButton}
-          
-         
-        />
-        </View>
-
-      </KeyboardAwareScrollView>
+       
+          <AppButton title="Log Out" containerStyle={{backgroundColor:"red"}} onPress={logout}  />
+     
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -165,7 +169,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
     paddingTop: 24,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   section: {
     marginBottom: 24,
@@ -176,25 +180,5 @@ const styles = StyleSheet.create({
     color: colors.black,
     marginBottom: 12,
     paddingHorizontal: 4,
-  },
-  optionsContainer: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  divider: {
-    height: 8,
-  },
-  logoutButton: {
-    marginTop: 16,
-    backgroundColor: "#FF3B30",
   },
 });

@@ -5,8 +5,7 @@ import {
   Text,
   TextStyle,
   TouchableOpacity,
-  View,
-  ViewStyle,
+  ViewStyle
 } from "react-native";
 type Props = {
   title: string;
@@ -26,16 +25,16 @@ const AppButton = ({
 }: // loading,
 Props) => {
   return (
-    <View style={containerStyle}>
+   
       <TouchableOpacity
-        style={[styles.buttonStyle, disabled && styles.disableButtonStyle]}
+        style={[styles.buttonStyle, disabled && styles.disableButtonStyle, containerStyle]}
         onPress={onPress}
         disabled={disabled}
         activeOpacity={0.7}
       >
         <Text style={[styles.buttonTextStyle, styles.buttonText]}>{title}</Text>
       </TouchableOpacity>
-    </View>
+   
   );
 };
 
@@ -43,7 +42,7 @@ export default AppButton;
 const styles = StyleSheet.create({
   buttonStyle: {
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius:12,
     backgroundColor: colors.primary,
   },
   buttonText: {

@@ -1,18 +1,19 @@
-import { CalendarIcon } from "@/assets/svg";
+import { CalendarIcon, ClockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Formik } from "formik";
+import { useFormik } from "formik";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
 
@@ -50,46 +51,74 @@ const LabBookingForm = () => {
 
   const services = selectedServices ? JSON.parse(selectedServices as string) : [];
   const [selectedTestType, setSelectedTestType] = useState<"Home" | "Lab">("Lab");
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
 
-  const handleSubmit = (values: any) => {
-    Alert.alert(
-      "Booking Confirmed!",
-      `Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`,
-      [
-        {
-          text: "OK",
-          onPress: () => router.push("/(protected)/(tabs)"),
-        },
-      ]
-    );
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    });
   };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const handleDateConfirm = (date: Date, setFieldValue: any) => {
+    setSelectedDate(date);
+    setFieldValue("preferredDate", formatDate(date));
+    setDatePickerVisible(false);
+  };
+
+  const handleTimeConfirm = (time: Date, setFieldValue: any) => {
+    setSelectedTime(time);
+    setFieldValue("preferredTime", formatTime(time));
+    setTimePickerVisible(false);
+  };
+
+  const formik = useFormik({
+    initialValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      age: "",
+      address: "",
+      city: "",
+      zipCode: "",
+      preferredDate: "",
+      preferredTime: "",
+      notes: "",
+    },
+    validationSchema: bookingSchema,
+    onSubmit: (values) => {
+      Alert.alert(
+        "Booking Confirmed!",
+        `Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`,
+        [
+          {
+            text: "OK",
+            onPress: () => router.push("/(protected)/(tabs)"),
+          },
+        ]
+      );
+    },
+  });
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
-
-      <Formik
-        initialValues={{
-          fullName: "",
-          email: "",
-          phone: "",
-          age: "",
-          address: "",
-          city: "",
-          zipCode: "",
-          preferredDate: "",
-          preferredTime: "",
-          notes: "",
-        }}
-        validationSchema={bookingSchema}
-        onSubmit={handleSubmit}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {({ handleChange, handleBlur, handleSubmit, values, errors, touched,isValid,dirty }) => (
-          <>
-            <ScrollView
-              style={styles.content}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
               {/* Selected Services Summary */}
               <View style={styles.section}>
                 <Text style={appStyles.sectionTitle}>Selected Tests</Text>
@@ -163,35 +192,35 @@ const LabBookingForm = () => {
                 <Text style={appStyles.sectionTitle}>Personal Information</Text>
                 <FormInput
                   placeholder="Full Name"
-                  value={values.fullName}
-                  onChangeText={handleChange("fullName")}
-                  onBlur={handleBlur("fullName")}
-                  error={touched.fullName ? errors.fullName : undefined}
+                  value={formik.values.fullName}
+                  onChangeText={formik.handleChange("fullName")}
+                  onBlur={formik.handleBlur("fullName")}
+                  error={formik.touched.fullName ? formik.errors.fullName : undefined}
                 />
                 <FormInput
                   placeholder="Email Address"
-                  value={values.email}
-                  onChangeText={handleChange("email")}
-                  onBlur={handleBlur("email")}
-                  error={touched.email ? errors.email : undefined}
+                  value={formik.values.email}
+                  onChangeText={formik.handleChange("email")}
+                  onBlur={formik.handleBlur("email")}
+                  error={formik.touched.email ? formik.errors.email : undefined}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
                 <FormInput
                   placeholder="Phone Number"
-                  value={values.phone}
-                  onChangeText={handleChange("phone")}
-                  onBlur={handleBlur("phone")}
-                  error={touched.phone ? errors.phone : undefined}
+                  value={formik.values.phone}
+                  onChangeText={formik.handleChange("phone")}
+                  onBlur={formik.handleBlur("phone")}
+                  error={formik.touched.phone ? formik.errors.phone : undefined}
                   keyboardType="phone-pad"
                   maxLength={10}
                 />
                 <FormInput
                   placeholder="Age"
-                  value={values.age}
-                  onChangeText={handleChange("age")}
-                  onBlur={handleBlur("age")}
-                  error={touched.age ? errors.age : undefined}
+                  value={formik.values.age}
+                  onChangeText={formik.handleChange("age")}
+                  onBlur={formik.handleBlur("age")}
+                  error={formik.touched.age ? formik.errors.age : undefined}
                   keyboardType="number-pad"
                   maxLength={3}
                 />
@@ -203,27 +232,27 @@ const LabBookingForm = () => {
                   <Text style={appStyles.sectionTitle}>Home Address</Text>
                   <FormInput
                     placeholder="Street Address"
-                    value={values.address}
-                    onChangeText={handleChange("address")}
-                    onBlur={handleBlur("address")}
-                    error={touched.address ? errors.address : undefined}
+                    value={formik.values.address}
+                    onChangeText={formik.handleChange("address")}
+                    onBlur={formik.handleBlur("address")}
+                    error={formik.touched.address ? formik.errors.address : undefined}
                     multiline
                   />
                   <View style={styles.row}>
                     <FormInput
                       placeholder="City"
-                      value={values.city}
-                      onChangeText={handleChange("city")}
-                      onBlur={handleBlur("city")}
-                      error={touched.city ? errors.city : undefined}
+                      value={formik.values.city}
+                      onChangeText={formik.handleChange("city")}
+                      onBlur={formik.handleBlur("city")}
+                      error={formik.touched.city ? formik.errors.city : undefined}
                       containerStyle={styles.halfInput}
                     />
                     <FormInput
                       placeholder="Zip Code"
-                      value={values.zipCode}
-                      onChangeText={handleChange("zipCode")}
-                      onBlur={handleBlur("zipCode")}
-                      error={touched.zipCode ? errors.zipCode : undefined}
+                      value={formik.values.zipCode}
+                      onChangeText={formik.handleChange("zipCode")}
+                      onBlur={formik.handleBlur("zipCode")}
+                      error={formik.touched.zipCode ? formik.errors.zipCode : undefined}
                       keyboardType="number-pad"
                       containerStyle={styles.halfInput}
                       maxLength={6}
@@ -235,21 +264,28 @@ const LabBookingForm = () => {
               {/* Appointment Schedule */}
               <View style={[styles.section, {gap: 8}]}>
                 <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
-                <FormInput
-                  placeholder="Preferred Date (MM/DD/YYYY)"
-                  value={values.preferredDate}
-                  onChangeText={handleChange("preferredDate")}
-                  onBlur={handleBlur("preferredDate")}
-                  error={touched.preferredDate ? errors.preferredDate : undefined}
-                  RightIcon={CalendarIcon}
-                />
-                <FormInput
-                  placeholder="Preferred Time (HH:MM AM/PM)"
-                  value={values.preferredTime}
-                  onChangeText={handleChange("preferredTime")}
-                  onBlur={handleBlur("preferredTime")}
-                  error={touched.preferredTime ? errors.preferredTime : undefined}
-                />
+                <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
+                  <FormInput
+                    placeholder="Preferred Date (MM/DD/YYYY)"
+                    value={formik.values.preferredDate}
+                    editable={false}
+                    pointerEvents="none"
+                    error={formik.touched.preferredDate ? formik.errors.preferredDate : undefined}
+                    RightIcon={CalendarIcon}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
+                  <FormInput
+                    placeholder="Preferred Time (HH:MM AM/PM)"
+                    value={formik.values.preferredTime}
+                    editable={false}
+                    pointerEvents="none"
+                    error={formik.touched.preferredTime ? formik.errors.preferredTime : undefined}
+                    RightIcon={ClockIcon}
+                  />
+                </TouchableOpacity>
+
+            
               </View>
 
               {/* Additional Notes */}
@@ -257,9 +293,9 @@ const LabBookingForm = () => {
                 <Text style={appStyles.sectionTitle}>Additional Notes (Optional)</Text>
                 <FormInput
                   placeholder="Any special instructions or medical conditions..."
-                  value={values.notes}
-                  onChangeText={handleChange("notes")}
-                  onBlur={handleBlur("notes")}
+                  value={formik.values.notes}
+                  onChangeText={formik.handleChange("notes")}
+                  onBlur={formik.handleBlur("notes")}
                   multiline
                   numberOfLines={20}
                   containerStyle={styles.notesInput}
@@ -288,14 +324,27 @@ const LabBookingForm = () => {
             <View style={styles.bottomContainer}>
               <AppButton
                 title="Confirm Booking"
-                onPress={() => handleSubmit()
-        
-                }
-              disabled={!isValid || !dirty}/>
+                onPress={formik.handleSubmit}
+                disabled={!formik.isValid || !formik.dirty}
+              />
             </View>
-          </>
-        )}
-      </Formik>
+
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="date"
+              onConfirm={(date) => handleDateConfirm(date, formik.setFieldValue)}
+              onCancel={() => setDatePickerVisible(false)}
+              minimumDate={new Date()}
+              date={selectedDate || new Date()}
+            />
+
+            <DateTimePickerModal
+              isVisible={isTimePickerVisible}
+              mode="time"
+              onConfirm={(time) => handleTimeConfirm(time, formik.setFieldValue)}
+              onCancel={() => setTimePickerVisible(false)}
+              date={selectedTime || new Date()}
+            />
     </SafeAreaView>
   );
 };
