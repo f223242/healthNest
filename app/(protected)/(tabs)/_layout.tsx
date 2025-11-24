@@ -1,12 +1,12 @@
 import {
-  AppointmentFilled,
-  AppointmentUnfilled,
-  HomeFilled,
-  HomeUnfilled,
-  MedicalRecordFilled,
-  MedicalRecordUnfilled,
-  ProfileFilled,
-  ProfileUnfilled,
+    AppointmentFilled,
+    AppointmentUnfilled,
+    HomeFilled,
+    HomeUnfilled,
+    MedicalRecordFilled,
+    MedicalRecordUnfilled,
+    ProfileFilled,
+    ProfileUnfilled,
 } from "@/assets/svg";
 import HomeHeader from "@/component/HomeHeader";
 import { colors, Fonts } from "@/constant/theme";
@@ -62,6 +62,16 @@ const _layout = () => {
       <Tabs.Screen
         name="appointment"
         options={{
+          headerShown: true,
+          headerTitle: "Appointments",
+          headerTitleStyle: {
+            fontFamily: Fonts.bold,
+            fontSize: 20,
+            color: colors.black,
+          },
+          headerStyle: {
+            backgroundColor: colors.white,
+          },
           tabBarLabel: "Appointments",
           tabBarIcon: ({ focused }) =>
             focused ? <AppointmentFilled /> : <AppointmentUnfilled />,
