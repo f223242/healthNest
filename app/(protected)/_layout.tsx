@@ -29,6 +29,8 @@ const _layout = () => {
       <Stack.Screen name="privacy" options={{headerTitle:"Privacy"}} />
       <Stack.Screen name="notifications" options={{headerTitle:"Notifications"}}  />
       <Stack.Screen name="request-medicine" options={{headerTitle:"Request Medicine"}}  />
+      <Stack.Screen name="nursing-services" options={{headerTitle:"Nursing Services"}}  />
+      <Stack.Screen name="nurse-profile" options={{headerTitle:"Nurse Profile"}}  />
       <Stack.Screen name="medicine-chat" options={{
         headerShown: true,
         headerStyle: {
