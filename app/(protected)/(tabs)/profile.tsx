@@ -1,4 +1,3 @@
-import { BellIcon, ChangePassword, EditProfileIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
@@ -35,7 +34,7 @@ const Profile = () => {
               style={styles.editIconButton}
               onPress={() => router.push("/(protected)/edit-profile")}
             >
-              <EditProfileIcon width={16} height={16} color={colors.primary} />
+              <Ionicons name="pencil" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -52,14 +51,14 @@ const Profile = () => {
           <Text style={styles.sectionTitle}>Account Settings</Text>
 
           <ProfileOptions
-            leftIcon={<EditProfileIcon />}
+            leftIcon={<Ionicons name="person-outline" size={20} color={colors.primary} />}
             title="Edit Profile"
             onPress={() => router.push("/(protected)/edit-profile")}
           
           />
 
           <ProfileOptions
-            leftIcon={<ChangePassword />}
+            leftIcon={<Ionicons name="lock-closed-outline" size={20} color={colors.primary} />}
             title="Change Password"
             onPress={() => router.push("/(protected)/change-password")}
               containerStyle={{marginTop:8}}
@@ -70,29 +69,44 @@ const Profile = () => {
           <Text style={styles.sectionTitle}>Preferences</Text>
 
           <ProfileOptions
-            leftIcon={<Ionicons name="chatbubbles" size={20} color={colors.primary} />}
+            leftIcon={<Ionicons name="chatbubbles-outline" size={20} color={colors.primary} />}
             title="AI Assistant"
             onPress={() => router.push("/(protected)/general-chat")}
               containerStyle={{marginTop:8}}
           />
 
           <ProfileOptions
-            leftIcon={<BellIcon />}
+            leftIcon={<Ionicons name="notifications-outline" size={20} color={colors.primary} />}
             title="Notifications"
             onPress={() => router.push("/(protected)/notifications")}
               containerStyle={{marginTop:8}}
           />
 
           <ProfileOptions
-            leftIcon={<EditProfileIcon />}
+            leftIcon={<Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />}
             title="Privacy & Security"
             onPress={() => router.push("/(protected)/privacy")}
               containerStyle={{marginTop:8}}
           />
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Support</Text>
+
+          <ProfileOptions
+            leftIcon={<Ionicons name="chatbox-ellipses-outline" size={20} color={colors.primary} />}
+            title="Complain to Admin"
+            onPress={() => router.push("/(protected)/complain")}
+            containerStyle={{marginTop:8}}
+          />
+        </View>
+
        
-          <AppButton title="Log Out" containerStyle={{backgroundColor:"red"}} onPress={logout}  />
+          <AppButton 
+            title="Log Out" 
+            containerStyle={{backgroundColor: "#FF3B30"}} 
+            onPress={logout}  
+          />
      
       </ScrollView>
     </SafeAreaView>
