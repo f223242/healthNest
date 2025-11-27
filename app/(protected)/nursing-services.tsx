@@ -148,6 +148,15 @@ const NursingServices = () => {
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
+      {/* Search Bar */}
+      <FormInput
+        LeftIcon={SearchIcon}
+        placeholder="Search nurses by name or specialization..."
+        containerStyle={styles.searchInput}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+      
       {/* Header Stats */}
       <View style={styles.headerStats}>
         <StatCard
@@ -170,15 +179,6 @@ const NursingServices = () => {
         />
       </View>
 
-      {/* Search Bar */}
-      <FormInput
-        LeftIcon={SearchIcon}
-        placeholder="Search nurses by name or specialization..."
-        containerStyle={styles.searchInput}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-
       {/* Filter Chips */}
       <ScrollView
         horizontal
@@ -192,6 +192,7 @@ const NursingServices = () => {
             icon={filter.icon}
             isActive={selectedFilter === filter.label}
             onPress={() => setSelectedFilter(filter.label)}
+          
           />
         ))}
       </ScrollView>
@@ -243,28 +244,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+  searchInput: {
+    marginTop: 16,
+    marginBottom: 16,
   },
   headerStats: {
     flexDirection: "row",
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 16,
+    paddingBottom: 16,
     gap: 12,
   },
-  searchInput: {
-    marginHorizontal: sizes.paddingHorizontal,
-    marginBottom: 16,
-  },
   filtersContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingBottom: 40,
+    paddingBottom: 35,
+    // backgroundColor:"red",
   },
   resultsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 12,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.white,
   },
   resultsText: {
     fontSize: 14,
@@ -282,8 +282,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   scrollContent: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 100,
   },
   emptyState: {

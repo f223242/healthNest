@@ -62,6 +62,17 @@ const _layout = () => {
       <Tabs.Screen
         name="appointment"
         options={{
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTitle: "Appointments",
+          headerTitleStyle: {
+            fontFamily: Fonts.bold,
+            fontSize: 20,
+            color: colors.black,
+          },
+          headerStyle: {
+            backgroundColor: colors.white,
+          },
           tabBarLabel: "Appointments",
           tabBarIcon: ({ focused }) =>
             focused ? <AppointmentFilled /> : <AppointmentUnfilled />,
