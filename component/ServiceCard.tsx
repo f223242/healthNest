@@ -1,11 +1,12 @@
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
 import React, { ReactNode } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ServiceCardProps {
   title: string;
   description: string;
-  icon?: string | ReactNode;
+  icon?: string | ReactNode| keyof typeof Ionicons.glyphMap;
   backgroundColor: string;
   onPress: () => void;
 }

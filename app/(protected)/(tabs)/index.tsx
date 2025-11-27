@@ -101,9 +101,9 @@ const index = () => {
   ];
 
   const stats = [
-    { label: "Active Tests", value: "3", color: colors.primary, icon: "flask-outline" as const },
-    { label: "Appointments", value: "2", color: "#FF9800", icon: "calendar-outline" as const },
-    { label: "Reports Ready", value: "5", color: "#4CAF50", icon: "document-text-outline" as const },
+    { label: "Active Tests", value: "3", color: colors.primary, icon: "flask" as const },
+    { label: "Appointments", value: "2", color: "#FF9800", icon: "calendar" as const },
+    { label: "Reports Ready", value: "5", color: "#4CAF50", icon: "document-text" as const },
   ];
 
   return (

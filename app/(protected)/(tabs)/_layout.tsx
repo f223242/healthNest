@@ -63,7 +63,7 @@ const _layout = () => {
         name="appointment"
         options={{
           headerShown: true,
-          headerShadowVisible: false,
+          headerShadowVisible: false, 
           headerTitle: "Appointments",
           headerTitleStyle: {
             fontFamily: Fonts.bold,

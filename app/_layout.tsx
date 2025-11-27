@@ -41,14 +41,24 @@ function RootNavigator() {
 
     const inAuthGroup = segments[0] === "(auth)";
     const inProtectedGroup = segments[0] === "(protected)";
+    const inAdminGroup = segments[0] === "(admin)" as any;
 
     console.log("User:", user);
     console.log("Current segment:", segments[0]);
-    console.log("Will show:", user ? "(protected) screens" : "(auth) screens");
+    console.log("User role:", user?.role);
 
-    if (user && !inProtectedGroup) {
-      // User logged in but not in protected screens - redirect to protected
-      router.replace("/(protected)/(tabs)");
+    if (user) {
+      // Check if user is admin
+      if (user.role === "admin" && !inAdminGroup) {
+        // Admin logged in but not in admin screens - redirect to admin
+        router.replace("/(admin)/(dashboard)" as any);
+      } else if (user.role === "user" && !inProtectedGroup) {
+        // Regular user logged in but not in protected screens - redirect to protected
+        router.replace("/(protected)/(tabs)");
+      } else if (!user.role && !inProtectedGroup) {
+        // User without role (backward compatibility) - redirect to protected
+        router.replace("/(protected)/(tabs)");
+      }
     } else if (!user && !inAuthGroup) {
       // User not logged in and not in auth screens - redirect to auth
       router.replace("/(auth)");
@@ -68,6 +78,7 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(protected)" />
+      <Stack.Screen name="(admin)" />
     </Stack>
   );
 }

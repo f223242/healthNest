@@ -21,7 +21,6 @@ interface PrivacyOption {
 const Privacy = () => {
   const [privacySettings, setPrivacySettings] = useState<PrivacyOption[]>([
     
-  
     {
       id: "location_access",
       title: "Location Access",
