@@ -1,7 +1,8 @@
 import { appStyles, colors, Fonts } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  Animated,
   StyleSheet,
   Text,
   TextInput,
@@ -47,16 +48,61 @@ const FormInput: React.FC<FormInputProps> = ({
   ...rest
 }) => {
   const [showPassword, setShowPassword] = React.useState(false);
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const fadeAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (error) {
+      // Shake animation
+      Animated.sequence([
+        Animated.timing(shakeAnimation, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: -10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Fade in animation
+      Animated.timing(fadeAnimation, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Fade out animation
+      Animated.timing(fadeAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [error]);
   
   return (
     <>
-      <View
+      <Animated.View
         style={[
           styles.container,
           containerStyle,
           {
-            borderColor: value ? colors.primary : colors.white,
+            borderColor: error ? colors.danger : (value ? colors.primary : colors.white),
             borderWidth: 1,
+            transform: [{ translateX: shakeAnimation }],
           },
           multiline && styles.multilineContainer,
           textStyle,
@@ -125,8 +171,12 @@ const FormInput: React.FC<FormInputProps> = ({
             )
           )}
         </View>
-      </View>
-      {error && <Text style={appStyles.errorStyle}>{error}</Text>}
+      </Animated.View>
+      {error && (
+        <Animated.View style={{ opacity: fadeAnimation }}>
+          <Text style={[appStyles.errorStyle, styles.errorText]}>{error}</Text>
+        </Animated.View>
+      )}
     </>
   );
 };
@@ -160,6 +210,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
+  },
+  errorText: {
+    marginTop: 4,
   },
   // error: {
   //   color: "red",

@@ -6,7 +6,7 @@ const index = () => {
   return (
     <View>
       <Text>index</Text>
-      <CalendarIconBlack />
+   
     </View>
   );
 };

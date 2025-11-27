@@ -18,6 +18,7 @@ const _layout = () => {
       headerStyle: {
         backgroundColor: colors.white,
       },
+      animation: "slide_from_right",
       // headerTintColor: colors.primary,
     }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
