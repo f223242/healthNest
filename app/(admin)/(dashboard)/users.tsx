@@ -17,15 +17,14 @@ interface User {
   name: string;
   email: string;
   phone: string;
-  type: "User" | "Lab" | "Nurse";
+  type: "User" | "Lab" | "Nurse" | "Medicine Delivery";
   location?: string;
-  specialty?: string;
   registeredDate: string;
 }
 
 const UsersManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"All" | "User" | "Lab" | "Nurse">("All");
+  const [filterType, setFilterType] = useState<"All" | "User" | "Lab" | "Nurse" | "Medicine Delivery">("All");
 
   // Sample data with different user types
   const allUsers: User[] = [
@@ -34,96 +33,130 @@ const UsersManagement = () => {
       id: 1,
       name: "John Doe",
       email: "john.doe@example.com",
-      phone: "+1 234-567-8901",
+      phone: "+92 300 1234567",
       type: "User",
+      location: "Karachi, Pakistan",
       registeredDate: "Nov 15, 2025",
     },
     {
       id: 2,
       name: "Sarah Johnson",
       email: "sarah.j@example.com",
-      phone: "+1 234-567-8902",
+      phone: "+92 301 2345678",
       type: "User",
+      location: "Lahore, Pakistan",
       registeredDate: "Nov 18, 2025",
     },
     {
       id: 3,
       name: "Michael Chen",
       email: "michael.c@example.com",
-      phone: "+1 234-567-8903",
+      phone: "+92 302 3456789",
       type: "User",
+      location: "Islamabad, Pakistan",
       registeredDate: "Nov 20, 2025",
+    },
+    {
+      id: 4,
+      name: "Emma Wilson",
+      email: "emma.w@example.com",
+      phone: "+92 303 4567890",
+      type: "User",
+      location: "Multan, Pakistan",
+      registeredDate: "Nov 22, 2025",
     },
     // Labs
     {
-      id: 4,
-      name: "City Lab Center",
-      email: "contact@citylab.com",
-      phone: "+1 234-567-8904",
+      id: 5,
+      name: "Chughtai Lab",
+      email: "contact@chughtai.com",
+      phone: "+92 304 5678901",
       type: "Lab",
-      location: "Downtown, NY",
-      specialty: "Blood Tests, X-Ray",
+      location: "Gulberg, Lahore",
       registeredDate: "Oct 25, 2025",
     },
     {
-      id: 5,
-      name: "Metro Diagnostics",
-      email: "info@metrodiag.com",
-      phone: "+1 234-567-8905",
+      id: 6,
+      name: "IDC Diagnostic Center",
+      email: "info@idc.com",
+      phone: "+92 305 6789012",
       type: "Lab",
-      location: "Brooklyn, NY",
-      specialty: "MRI, CT Scan, Ultrasound",
+      location: "Clifton, Karachi",
       registeredDate: "Nov 5, 2025",
     },
     {
-      id: 6,
-      name: "Heart Care Lab",
-      email: "heartcare@lab.com",
-      phone: "+1 234-567-8906",
+      id: 7,
+      name: "Excel Labs",
+      email: "excel@labs.com",
+      phone: "+92 306 7890123",
       type: "Lab",
-      location: "Manhattan, NY",
-      specialty: "ECG, Cardiac Tests",
+      location: "F-8, Islamabad",
       registeredDate: "Nov 10, 2025",
     },
     // Nurses
     {
-      id: 7,
+      id: 8,
       name: "Emily Williams",
       email: "emily.w@nurse.com",
-      phone: "+1 234-567-8907",
+      phone: "+92 307 8901234",
       type: "Nurse",
-      location: "Queens, NY",
-      specialty: "Home Care, Wound Dressing",
+      location: "DHA, Karachi",
       registeredDate: "Oct 30, 2025",
     },
     {
-      id: 8,
-      name: "David Martinez",
-      email: "david.m@nurse.com",
-      phone: "+1 234-567-8908",
+      id: 9,
+      name: "Fatima Khan",
+      email: "fatima.k@nurse.com",
+      phone: "+92 308 9012345",
       type: "Nurse",
-      location: "Bronx, NY",
-      specialty: "Physiotherapy, Elderly Care",
+      location: "Model Town, Lahore",
       registeredDate: "Nov 8, 2025",
     },
     {
-      id: 9,
-      name: "Jessica Taylor",
-      email: "jessica.t@nurse.com",
-      phone: "+1 234-567-8909",
+      id: 10,
+      name: "Ayesha Ahmed",
+      email: "ayesha.a@nurse.com",
+      phone: "+92 309 0123456",
       type: "Nurse",
-      location: "Staten Island, NY",
-      specialty: "Pediatric Care, IV Therapy",
+      location: "G-11, Islamabad",
       registeredDate: "Nov 12, 2025",
     },
-    // More Users
+    // Medicine Delivery Persons
     {
-      id: 10,
-      name: "Emma Wilson",
-      email: "emma.w@example.com",
-      phone: "+1 234-567-8910",
-      type: "User",
-      registeredDate: "Nov 22, 2025",
+      id: 11,
+      name: "Ali Hassan",
+      email: "ali.h@delivery.com",
+      phone: "+92 310 1234567",
+      type: "Medicine Delivery",
+      location: "Saddar, Karachi",
+      registeredDate: "Nov 1, 2025",
+    },
+    {
+      id: 12,
+      name: "Usman Malik",
+      email: "usman.m@delivery.com",
+      phone: "+92 311 2345678",
+      type: "Medicine Delivery",
+      location: "Johar Town, Lahore",
+      registeredDate: "Oct 28, 2025",
+    },
+    {
+      id: 13,
+      name: "Bilal Ahmed",
+      email: "bilal.a@delivery.com",
+      phone: "+92 312 3456789",
+      type: "Medicine Delivery",
+      location: "Blue Area, Islamabad",
+      registeredDate: "Nov 14, 2025",
+    },
+    {
+      id: 14,
+      name: "Zain Abbas",
+      email: "zain.a@delivery.com",
+      phone: "+92 313 4567890",
+      type: "Medicine Delivery",
+      location: "Bahadurabad, Karachi",
+      registeredDate: "Nov 17, 2025",
     },
   ];
 
@@ -134,7 +167,9 @@ const UsersManagement = () => {
       case "Lab":
         return "#2196F3";
       case "Nurse":
-        return "#FF9800";
+        return "#9C27B0";
+      case "Medicine Delivery":
+        return "#FF5722";
       default:
         return colors.gray;
     }
@@ -154,7 +189,7 @@ const UsersManagement = () => {
     {
       key: "email",
       title: "Email",
-      width: 200,
+      width: 220,
     },
     {
       key: "phone",
@@ -163,8 +198,8 @@ const UsersManagement = () => {
     },
     {
       key: "type",
-      title: "Type",
-      width: 100,
+      title: "Registered As",
+      width: 150,
       render: (value) => (
         <View
           style={[
@@ -181,14 +216,6 @@ const UsersManagement = () => {
     {
       key: "location",
       title: "Location",
-      width: 150,
-      render: (value) => (
-        <Text style={styles.cellText}>{value || "-"}</Text>
-      ),
-    },
-    {
-      key: "specialty",
-      title: "Specialty",
       width: 180,
       render: (value) => (
         <Text style={styles.cellText}>{value || "-"}</Text>
@@ -196,7 +223,7 @@ const UsersManagement = () => {
     },
     {
       key: "registeredDate",
-      title: "Registered",
+      title: "Registered Date",
       width: 140,
     },
   ];
@@ -230,7 +257,12 @@ const UsersManagement = () => {
     {
       label: "Nurses",
       value: allUsers.filter((u) => u.type === "Nurse").length,
-      color: "#FF9800",
+      color: "#9C27B0",
+    },
+    {
+      label: "Delivery Persons",
+      value: allUsers.filter((u) => u.type === "Medicine Delivery").length,
+      color: "#FF5722",
     },
   ];
 
@@ -271,7 +303,7 @@ const UsersManagement = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filtersContainer}
           >
-            {(["All", "User", "Lab", "Nurse"] as const).map((type) => (
+            {(["All", "User", "Lab", "Nurse", "Medicine Delivery"] as const).map((type) => (
               <TouchableOpacity
                 key={type}
                 style={[
@@ -398,7 +430,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
   },
   cellText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.regular,
     color: colors.black,
   },
