@@ -1,10 +1,11 @@
+import LogoutModal from "@/component/ModalComponent/LogoutModal";
 import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,6 +13,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const Profile = () => {
   const router = useRouter();
   const {logout} =  useAuthContext()  // <- Example of using a custom hook for authentication 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
+  }; 
   return (
     <SafeAreaView edges={["top"]} style={styles.container}>
       <LinearGradient
@@ -107,11 +118,18 @@ const Profile = () => {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out" size={20} color={colors.white} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Logout Modal */}
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </SafeAreaView>
   );
 };

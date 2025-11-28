@@ -48,13 +48,6 @@ const AdminDashboard = () => {
       color: "#FFF4E6",
       onPress: () => router.push("/(admin)/(dashboard)/complaints" as any),
     },
-    {
-      title: "Reports",
-      description: "View analytics & reports",
-      icon: "stats-chart-outline" as const,
-      color: "#E6F3FF",
-      onPress: () => {},
-    },
   ];
 
   const recentActivity = [
