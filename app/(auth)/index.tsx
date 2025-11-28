@@ -187,6 +187,36 @@ const styles = StyleSheet.create({
     color: colors.gray,
     marginBottom: 8,
   },
+  adminInfoCard: {
+    backgroundColor: colors.lightGreen,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  adminInfoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  adminInfoTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  adminInfoText: {
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: colors.black,
+    marginBottom: 4,
+  },
+  adminInfoBold: {
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
   formContainer: {
     marginTop: 16,
   },

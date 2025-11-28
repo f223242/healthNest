@@ -1,7 +1,7 @@
-import { EditProfileIcon, EmailIcon, PhoneIcon, UserIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { colors, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React from "react";
@@ -56,7 +56,7 @@ const EditProfile = () => {
             resizeMode="cover"
           />
           <TouchableOpacity style={styles.editIconContainer}>
-            <EditProfileIcon width={20} height={20} />
+            <Ionicons name="pencil" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -67,7 +67,7 @@ const EditProfile = () => {
             onChangeText={handleChange("fullName")}
             onBlur={handleBlur("fullName")}
             placeholder="Full Name"
-            LeftIcon={UserIcon}
+            LeftIcon={() => <Ionicons name="person-outline" size={20} color={colors.gray} />}
             error={
               touched.fullName && errors.fullName ? errors.fullName : undefined
             }
@@ -79,7 +79,7 @@ const EditProfile = () => {
             onBlur={handleBlur("email")}
             placeholder="Email"
             keyboardType="email-address"
-            LeftIcon={EmailIcon}
+            LeftIcon={() => <Ionicons name="mail-outline" size={20} color={colors.gray} />}
             error={touched.email && errors.email ? errors.email : undefined}
           />
 
@@ -89,7 +89,7 @@ const EditProfile = () => {
             onBlur={handleBlur("phone")}
             placeholder="Phone Number"
             keyboardType="phone-pad"
-            LeftIcon={PhoneIcon}
+            LeftIcon={() => <Ionicons name="call-outline" size={20} color={colors.gray} />}
             error={touched.phone && errors.phone ? errors.phone : undefined}
           />
         </View>
@@ -132,10 +132,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: "35%",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.white,
     borderRadius: 20,
     padding: 8,
     borderWidth: 3,
     borderColor: colors.white,
+    // borderWidth: 3,
   },
 });
