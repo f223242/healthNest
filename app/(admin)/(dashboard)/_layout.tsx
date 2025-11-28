@@ -10,12 +10,22 @@ export default function DashboardLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray,
         tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopWidth: 1,
-          borderTopColor: "#E5E5E5",
-          height: 100,
-          paddingBottom: 8,
-          paddingTop: 8,
+            //  height:110,
+                  backgroundColor: colors.white,
+                  borderTopLeftRadius: 25,
+                  borderTopRightRadius: 25,
+                  borderTopWidth: 0,
+                  elevation: 20,
+                  shadowColor: colors.black,
+                  shadowOffset: {
+                    width: 0,
+                    height: -5,
+                  },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 15,
+                  position: 'absolute',
+                  paddingBottom: 10,
+                  paddingTop:5,
         },
         tabBarLabelStyle: {
           fontFamily: Fonts.medium,
@@ -30,6 +40,7 @@ export default function DashboardLayout() {
           fontSize: 18,
         },
         headerShadowVisible: false,
+        animation: "shift",
       }}
     >
       <Tabs.Screen

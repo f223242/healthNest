@@ -1,4 +1,3 @@
-import AppButton from "@/component/AppButton";
 import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
@@ -102,11 +101,10 @@ const Profile = () => {
         </View>
 
        
-          <AppButton 
-            title="Log Out" 
-            containerStyle={{backgroundColor: "#FF3B30"}} 
-            onPress={logout}  
-          />
+          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <Ionicons name="log-out" size={20} color={colors.white} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
      
       </ScrollView>
     </SafeAreaView>
@@ -147,6 +145,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 8,
+  },
+  logoutButton: {
+    backgroundColor: colors.danger,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
   },
   editIconButton: {
     position: "absolute",

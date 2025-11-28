@@ -2,7 +2,7 @@ import { Email, Lock } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
-import React from "react";
+import React, { useState } from "react";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { useAuthContext } from "@/hooks/useContext";
@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { object, string } from "yup";
 
@@ -24,6 +24,7 @@ let email_schema = object({
 const index = () => {
   const { login } = useAuthContext();
   const router = useRouter();
+  const [rememberMe, setRememberMe] = useState(false);
 
   const formik = useFormik({
     initialValues: { email: "", password: "" },
@@ -95,12 +96,23 @@ const index = () => {
                 touched.password && errors.password ? errors.password : undefined
               }
             />
-            <TouchableOpacity
-              onPress={() => router.push("/(auth)/forgot-password")}
-              style={styles.forgotPasswordStyle}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
+            
+            <View style={styles.rememberMeContainer}>
+              <View style={styles.rememberMeRow}>
+                <Switch
+                  value={rememberMe}
+                  onValueChange={setRememberMe}
+                  trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
+                  thumbColor={rememberMe ? colors.primary : "#F3F4F6"}
+                />
+                <Text style={styles.rememberMeText}>Remember Me</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/(auth)/forgot-password")}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -219,6 +231,23 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     marginTop: 16,
+  },
+  rememberMeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  rememberMeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  rememberMeText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: colors.black,
   },
   forgotPasswordStyle: {
     alignSelf: "flex-end",

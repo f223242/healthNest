@@ -13,6 +13,7 @@ const _layout = () => {
           fontSize: 18,
           fontFamily: Fonts.bold,
         },
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen

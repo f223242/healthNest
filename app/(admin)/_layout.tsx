@@ -17,6 +17,7 @@ export default function AdminLayout() {
           fontSize: 18,
         },
         headerShadowVisible: false,
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen
