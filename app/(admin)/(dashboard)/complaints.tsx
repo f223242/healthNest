@@ -177,7 +177,7 @@ const ComplaintsManagement = () => {
     {
       key: "date",
       title: "Date",
-      width: 120,
+      width: 180,
     },
   ];
 

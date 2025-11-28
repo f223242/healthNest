@@ -224,7 +224,7 @@ const UsersManagement = () => {
     {
       key: "registeredDate",
       title: "Registered Date",
-      width: 140,
+      width: 180,
     },
   ];
 
