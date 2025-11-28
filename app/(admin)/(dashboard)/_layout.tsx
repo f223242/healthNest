@@ -29,7 +29,7 @@ export default function DashboardLayout() {
         },
         tabBarLabelStyle: {
           fontFamily: Fonts.medium,
-          fontSize: 11,
+          fontSize: 8,
         },
         headerStyle: {
           backgroundColor: colors.white,
@@ -68,15 +68,6 @@ export default function DashboardLayout() {
           title: "Complaints",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbox-ellipses-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="appointments"
-        options={{
-          title: "Appointments",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />

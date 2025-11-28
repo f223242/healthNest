@@ -1,12 +1,12 @@
 import { appStyles, colors, sizes } from "@/constant/theme";
 import React, { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -168,8 +168,8 @@ const Notifications = () => {
                       onValueChange={() =>
                         toggleNotification(category.id, option.id)
                       }
-                      trackColor={{ false: "#E5E5E5", true: "#A6D8C1" }}
-                      thumbColor={option.enabled ? colors.primary : "#f4f3f4"}
+                      trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
+                      thumbColor={option.enabled ? colors.primary : "#F3F4F6"}
                     />
                   </View>
                 ))}
@@ -191,7 +191,7 @@ const Notifications = () => {
             </View>
             <Switch
               value={true}
-              trackColor={{ false: "#E5E5E5", true: "#A6D8C1" }}
+              trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
               thumbColor={colors.primary}
             />
           </View>
@@ -205,7 +205,7 @@ const Notifications = () => {
             </View>
             <Switch
               value={true}
-              trackColor={{ false: "#E5E5E5", true: "#A6D8C1" }}
+              trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
               thumbColor={colors.primary}
             />
           </View>

@@ -17,72 +17,124 @@ interface User {
   name: string;
   email: string;
   phone: string;
-  status: "Active" | "Inactive" | "Blocked";
+  type: "User" | "Lab" | "Nurse";
+  location?: string;
+  specialty?: string;
   registeredDate: string;
-  appointments: number;
 }
 
 const UsersManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Inactive" | "Blocked">("All");
+  const [filterType, setFilterType] = useState<"All" | "User" | "Lab" | "Nurse">("All");
 
-  // Sample data
-  const users: User[] = [
+  // Sample data with different user types
+  const allUsers: User[] = [
+    // Regular Users
     {
       id: 1,
       name: "John Doe",
       email: "john.doe@example.com",
-      phone: "+92 300 1234567",
-      status: "Active",
+      phone: "+1 234-567-8901",
+      type: "User",
       registeredDate: "Nov 15, 2025",
-      appointments: 12,
     },
     {
       id: 2,
       name: "Sarah Johnson",
       email: "sarah.j@example.com",
-      phone: "+92 301 2345678",
-      status: "Active",
-      registeredDate: "Nov 10, 2025",
-      appointments: 8,
+      phone: "+1 234-567-8902",
+      type: "User",
+      registeredDate: "Nov 18, 2025",
     },
     {
       id: 3,
       name: "Michael Chen",
       email: "michael.c@example.com",
-      phone: "+92 302 3456789",
-      status: "Inactive",
-      registeredDate: "Nov 5, 2025",
-      appointments: 3,
+      phone: "+1 234-567-8903",
+      type: "User",
+      registeredDate: "Nov 20, 2025",
     },
+    // Labs
     {
       id: 4,
-      name: "Emma Wilson",
-      email: "emma.w@example.com",
-      phone: "+92 303 4567890",
-      status: "Active",
-      registeredDate: "Oct 28, 2025",
-      appointments: 15,
+      name: "City Lab Center",
+      email: "contact@citylab.com",
+      phone: "+1 234-567-8904",
+      type: "Lab",
+      location: "Downtown, NY",
+      specialty: "Blood Tests, X-Ray",
+      registeredDate: "Oct 25, 2025",
     },
     {
       id: 5,
-      name: "David Brown",
-      email: "david.b@example.com",
-      phone: "+92 304 5678901",
-      status: "Blocked",
-      registeredDate: "Oct 20, 2025",
-      appointments: 5,
+      name: "Metro Diagnostics",
+      email: "info@metrodiag.com",
+      phone: "+1 234-567-8905",
+      type: "Lab",
+      location: "Brooklyn, NY",
+      specialty: "MRI, CT Scan, Ultrasound",
+      registeredDate: "Nov 5, 2025",
+    },
+    {
+      id: 6,
+      name: "Heart Care Lab",
+      email: "heartcare@lab.com",
+      phone: "+1 234-567-8906",
+      type: "Lab",
+      location: "Manhattan, NY",
+      specialty: "ECG, Cardiac Tests",
+      registeredDate: "Nov 10, 2025",
+    },
+    // Nurses
+    {
+      id: 7,
+      name: "Emily Williams",
+      email: "emily.w@nurse.com",
+      phone: "+1 234-567-8907",
+      type: "Nurse",
+      location: "Queens, NY",
+      specialty: "Home Care, Wound Dressing",
+      registeredDate: "Oct 30, 2025",
+    },
+    {
+      id: 8,
+      name: "David Martinez",
+      email: "david.m@nurse.com",
+      phone: "+1 234-567-8908",
+      type: "Nurse",
+      location: "Bronx, NY",
+      specialty: "Physiotherapy, Elderly Care",
+      registeredDate: "Nov 8, 2025",
+    },
+    {
+      id: 9,
+      name: "Jessica Taylor",
+      email: "jessica.t@nurse.com",
+      phone: "+1 234-567-8909",
+      type: "Nurse",
+      location: "Staten Island, NY",
+      specialty: "Pediatric Care, IV Therapy",
+      registeredDate: "Nov 12, 2025",
+    },
+    // More Users
+    {
+      id: 10,
+      name: "Emma Wilson",
+      email: "emma.w@example.com",
+      phone: "+1 234-567-8910",
+      type: "User",
+      registeredDate: "Nov 22, 2025",
     },
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return colors.success;
-      case "Inactive":
-        return colors.warning;
-      case "Blocked":
-        return colors.danger;
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "User":
+        return colors.primary;
+      case "Lab":
+        return "#2196F3";
+      case "Nurse":
+        return "#FF9800";
       default:
         return colors.gray;
     }
@@ -97,7 +149,7 @@ const UsersManagement = () => {
     {
       key: "name",
       title: "Name",
-      width: 150,
+      width: 180,
     },
     {
       key: "email",
@@ -110,60 +162,75 @@ const UsersManagement = () => {
       width: 150,
     },
     {
-      key: "status",
-      title: "Status",
+      key: "type",
+      title: "Type",
       width: 100,
       render: (value) => (
         <View
           style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(value) + "20" },
+            styles.typeBadge,
+            { backgroundColor: getTypeColor(value) + "20" },
           ]}
         >
-          <Text style={[styles.statusText, { color: getStatusColor(value) }]}>
+          <Text style={[styles.typeText, { color: getTypeColor(value) }]}>
             {value}
           </Text>
         </View>
       ),
     },
     {
-      key: "registeredDate",
-      title: "Registered",
-      width: 120,
+      key: "location",
+      title: "Location",
+      width: 150,
+      render: (value) => (
+        <Text style={styles.cellText}>{value || "-"}</Text>
+      ),
     },
     {
-      key: "appointments",
-      title: "Appointments",
-      width: 120,
+      key: "specialty",
+      title: "Specialty",
+      width: 180,
+      render: (value) => (
+        <Text style={styles.cellText}>{value || "-"}</Text>
+      ),
+    },
+    {
+      key: "registeredDate",
+      title: "Registered",
+      width: 140,
     },
   ];
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = allUsers.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery);
-    const matchesFilter =
-      filterStatus === "All" || user.status === filterStatus;
+      user.phone.includes(searchQuery) ||
+      (user.location && user.location.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesFilter = filterType === "All" || user.type === filterType;
     return matchesSearch && matchesFilter;
   });
 
   const stats = [
-    { label: "Total Users", value: users.length, color: colors.primary },
     {
-      label: "Active",
-      value: users.filter((u) => u.status === "Active").length,
-      color: colors.success,
+      label: "Total Users",
+      value: allUsers.length,
+      color: colors.primary,
     },
     {
-      label: "Inactive",
-      value: users.filter((u) => u.status === "Inactive").length,
-      color: colors.warning,
+      label: "Regular Users",
+      value: allUsers.filter((u) => u.type === "User").length,
+      color: colors.primary,
     },
     {
-      label: "Blocked",
-      value: users.filter((u) => u.status === "Blocked").length,
-      color: colors.danger,
+      label: "Labs",
+      value: allUsers.filter((u) => u.type === "Lab").length,
+      color: "#2196F3",
+    },
+    {
+      label: "Nurses",
+      value: allUsers.filter((u) => u.type === "Nurse").length,
+      color: "#FF9800",
     },
   ];
 
@@ -192,7 +259,7 @@ const UsersManagement = () => {
         {/* Search and Filters */}
         <View style={styles.searchSection}>
           <FormInput
-            placeholder="Search users..."
+            placeholder="Search by name, email, phone, location..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             LeftIcon={() => <Ionicons name="search" size={20} color={colors.gray} />}
@@ -204,22 +271,22 @@ const UsersManagement = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filtersContainer}
           >
-            {(["All", "Active", "Inactive", "Blocked"] as const).map((status) => (
+            {(["All", "User", "Lab", "Nurse"] as const).map((type) => (
               <TouchableOpacity
-                key={status}
+                key={type}
                 style={[
                   styles.filterChip,
-                  filterStatus === status && styles.filterChipActive,
+                  filterType === type && styles.filterChipActive,
                 ]}
-                onPress={() => setFilterStatus(status)}
+                onPress={() => setFilterType(type)}
               >
                 <Text
                   style={[
                     styles.filterText,
-                    filterStatus === status && styles.filterTextActive,
+                    filterType === type && styles.filterTextActive,
                   ]}
                 >
-                  {status}
+                  {type}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -228,17 +295,10 @@ const UsersManagement = () => {
 
         {/* Users Table */}
         <View style={styles.tableSection}>
-          <View style={styles.tableTitleContainer}>
-            <Text style={styles.tableTitle}>All Users</Text>
-            <TouchableOpacity style={styles.addButton}>
-              <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.addButtonText}>Add User</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.tableTitle}>All Registered Users</Text>
           <AdminTable
             columns={columns}
             data={filteredUsers}
-            onRowPress={(user) => console.log("User pressed:", user)}
             emptyMessage="No users found"
           />
         </View>
@@ -321,39 +381,25 @@ const styles = StyleSheet.create({
   tableSection: {
     marginBottom: 20,
   },
-  tableTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
   tableTitle: {
     fontSize: 16,
     fontFamily: Fonts.semiBold,
     color: colors.black,
+    marginBottom: 12,
   },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
-  },
-  statusBadge: {
+  typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     alignSelf: "flex-start",
   },
-  statusText: {
+  typeText: {
     fontSize: 11,
     fontFamily: Fonts.semiBold,
+  },
+  cellText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.black,
   },
 });
