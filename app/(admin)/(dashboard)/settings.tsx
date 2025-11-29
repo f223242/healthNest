@@ -1,9 +1,9 @@
+import LogoutModal from "@/component/ModalComponent/LogoutModal";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    Alert,
     ScrollView,
     StyleSheet,
     Switch,
@@ -17,20 +17,15 @@ const SettingsScreen = () => {
   const { logout } = useAuthContext();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
-  const [autoApproval, setAutoApproval] = useState(false);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: () => {
-          logout();
-        },
-      },
-    ]);
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
   };
 
   const settingSections = [
@@ -56,79 +51,6 @@ const SettingsScreen = () => {
       ],
     },
     {
-      title: "System Settings",
-      items: [
-        {
-          icon: "checkmark-done" as const,
-          label: "Auto Approval",
-          description: "Automatically approve new appointments",
-          type: "switch" as const,
-          value: autoApproval,
-          onValueChange: setAutoApproval,
-        },
-        {
-          icon: "construct" as const,
-          label: "Maintenance Mode",
-          description: "Put the app in maintenance mode",
-          type: "switch" as const,
-          value: maintenanceMode,
-          onValueChange: setMaintenanceMode,
-        },
-      ],
-    },
-    {
-      title: "Content Management",
-      items: [
-        {
-          icon: "medkit" as const,
-          label: "Manage Services",
-          description: "Add, edit or remove services",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Manage services feature"),
-        },
-        {
-          icon: "people" as const,
-          label: "Manage Providers",
-          description: "Add, edit or remove healthcare providers",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Manage providers feature"),
-        },
-        {
-          icon: "location" as const,
-          label: "Manage Locations",
-          description: "Add, edit or remove lab locations",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Manage locations feature"),
-        },
-      ],
-    },
-    {
-      title: "Reports & Analytics",
-      items: [
-        {
-          icon: "stats-chart" as const,
-          label: "Revenue Reports",
-          description: "View detailed revenue analytics",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Revenue reports feature"),
-        },
-        {
-          icon: "pie-chart" as const,
-          label: "User Analytics",
-          description: "View user behavior and engagement",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "User analytics feature"),
-        },
-        {
-          icon: "document-text" as const,
-          label: "Audit Logs",
-          description: "View system activity logs",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Audit logs feature"),
-        },
-      ],
-    },
-    {
       title: "Account",
       items: [
         {
@@ -136,21 +58,14 @@ const SettingsScreen = () => {
           label: "Admin Profile",
           description: "View and edit your profile",
           type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Admin profile feature"),
+          onPress: () => {},
         },
         {
           icon: "key" as const,
           label: "Change Password",
           description: "Update your password",
           type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Change password feature"),
-        },
-        {
-          icon: "shield-checkmark" as const,
-          label: "Security Settings",
-          description: "Two-factor authentication, session management",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Security settings feature"),
+          onPress: () => {},
         },
       ],
     },
@@ -162,22 +77,14 @@ const SettingsScreen = () => {
           label: "Help & FAQ",
           description: "Get help and view FAQs",
           type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Help & FAQ feature"),
-        },
-        {
-          icon: "call" as const,
-          label: "Contact Support",
-          description: "Get in touch with technical support",
-          type: "navigation" as const,
-          onPress: () => Alert.alert("Info", "Contact support feature"),
+          onPress: () => {},
         },
         {
           icon: "information-circle" as const,
           label: "About",
           description: "App version and information",
           type: "navigation" as const,
-          onPress: () =>
-            Alert.alert("About HealthNest Admin", "Version 1.0.0\n© 2025 HealthNest"),
+          onPress: () => {},
         },
       ],
     },
@@ -247,6 +154,13 @@ const SettingsScreen = () => {
         {/* Version Info */}
         <Text style={styles.versionText}>HealthNest Admin v1.0.0</Text>
       </ScrollView>
+
+      {/* Logout Modal */}
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </SafeAreaView>
   );
 };

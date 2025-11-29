@@ -245,9 +245,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rememberMeText: {
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
     fontSize: 14,
-    color: colors.black,
+    color: colors.primary
   },
   forgotPasswordStyle: {
     alignSelf: "flex-end",

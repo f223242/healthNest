@@ -17,72 +17,159 @@ interface User {
   name: string;
   email: string;
   phone: string;
-  status: "Active" | "Inactive" | "Blocked";
+  type: "User" | "Lab" | "Nurse" | "Medicine Delivery";
+  location?: string;
   registeredDate: string;
-  appointments: number;
 }
 
 const UsersManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Inactive" | "Blocked">("All");
+  const [filterType, setFilterType] = useState<"All" | "User" | "Lab" | "Nurse" | "Medicine Delivery">("All");
 
-  // Sample data
-  const users: User[] = [
+  // Sample data with different user types
+  const allUsers: User[] = [
+    // Regular Users
     {
       id: 1,
       name: "John Doe",
       email: "john.doe@example.com",
       phone: "+92 300 1234567",
-      status: "Active",
+      type: "User",
+      location: "Karachi, Pakistan",
       registeredDate: "Nov 15, 2025",
-      appointments: 12,
     },
     {
       id: 2,
       name: "Sarah Johnson",
       email: "sarah.j@example.com",
       phone: "+92 301 2345678",
-      status: "Active",
-      registeredDate: "Nov 10, 2025",
-      appointments: 8,
+      type: "User",
+      location: "Lahore, Pakistan",
+      registeredDate: "Nov 18, 2025",
     },
     {
       id: 3,
       name: "Michael Chen",
       email: "michael.c@example.com",
       phone: "+92 302 3456789",
-      status: "Inactive",
-      registeredDate: "Nov 5, 2025",
-      appointments: 3,
+      type: "User",
+      location: "Islamabad, Pakistan",
+      registeredDate: "Nov 20, 2025",
     },
     {
       id: 4,
       name: "Emma Wilson",
       email: "emma.w@example.com",
       phone: "+92 303 4567890",
-      status: "Active",
-      registeredDate: "Oct 28, 2025",
-      appointments: 15,
+      type: "User",
+      location: "Multan, Pakistan",
+      registeredDate: "Nov 22, 2025",
     },
+    // Labs
     {
       id: 5,
-      name: "David Brown",
-      email: "david.b@example.com",
+      name: "Chughtai Lab",
+      email: "contact@chughtai.com",
       phone: "+92 304 5678901",
-      status: "Blocked",
-      registeredDate: "Oct 20, 2025",
-      appointments: 5,
+      type: "Lab",
+      location: "Gulberg, Lahore",
+      registeredDate: "Oct 25, 2025",
+    },
+    {
+      id: 6,
+      name: "IDC Diagnostic Center",
+      email: "info@idc.com",
+      phone: "+92 305 6789012",
+      type: "Lab",
+      location: "Clifton, Karachi",
+      registeredDate: "Nov 5, 2025",
+    },
+    {
+      id: 7,
+      name: "Excel Labs",
+      email: "excel@labs.com",
+      phone: "+92 306 7890123",
+      type: "Lab",
+      location: "F-8, Islamabad",
+      registeredDate: "Nov 10, 2025",
+    },
+    // Nurses
+    {
+      id: 8,
+      name: "Emily Williams",
+      email: "emily.w@nurse.com",
+      phone: "+92 307 8901234",
+      type: "Nurse",
+      location: "DHA, Karachi",
+      registeredDate: "Oct 30, 2025",
+    },
+    {
+      id: 9,
+      name: "Fatima Khan",
+      email: "fatima.k@nurse.com",
+      phone: "+92 308 9012345",
+      type: "Nurse",
+      location: "Model Town, Lahore",
+      registeredDate: "Nov 8, 2025",
+    },
+    {
+      id: 10,
+      name: "Ayesha Ahmed",
+      email: "ayesha.a@nurse.com",
+      phone: "+92 309 0123456",
+      type: "Nurse",
+      location: "G-11, Islamabad",
+      registeredDate: "Nov 12, 2025",
+    },
+    // Medicine Delivery Persons
+    {
+      id: 11,
+      name: "Ali Hassan",
+      email: "ali.h@delivery.com",
+      phone: "+92 310 1234567",
+      type: "Medicine Delivery",
+      location: "Saddar, Karachi",
+      registeredDate: "Nov 1, 2025",
+    },
+    {
+      id: 12,
+      name: "Usman Malik",
+      email: "usman.m@delivery.com",
+      phone: "+92 311 2345678",
+      type: "Medicine Delivery",
+      location: "Johar Town, Lahore",
+      registeredDate: "Oct 28, 2025",
+    },
+    {
+      id: 13,
+      name: "Bilal Ahmed",
+      email: "bilal.a@delivery.com",
+      phone: "+92 312 3456789",
+      type: "Medicine Delivery",
+      location: "Blue Area, Islamabad",
+      registeredDate: "Nov 14, 2025",
+    },
+    {
+      id: 14,
+      name: "Zain Abbas",
+      email: "zain.a@delivery.com",
+      phone: "+92 313 4567890",
+      type: "Medicine Delivery",
+      location: "Bahadurabad, Karachi",
+      registeredDate: "Nov 17, 2025",
     },
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return colors.success;
-      case "Inactive":
-        return colors.warning;
-      case "Blocked":
-        return colors.danger;
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "User":
+        return colors.primary;
+      case "Lab":
+        return "#2196F3";
+      case "Nurse":
+        return "#9C27B0";
+      case "Medicine Delivery":
+        return "#FF5722";
       default:
         return colors.gray;
     }
@@ -97,12 +184,12 @@ const UsersManagement = () => {
     {
       key: "name",
       title: "Name",
-      width: 150,
+      width: 180,
     },
     {
       key: "email",
       title: "Email",
-      width: 200,
+      width: 220,
     },
     {
       key: "phone",
@@ -110,60 +197,72 @@ const UsersManagement = () => {
       width: 150,
     },
     {
-      key: "status",
-      title: "Status",
-      width: 100,
+      key: "type",
+      title: "Registered As",
+      width: 150,
       render: (value) => (
         <View
           style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(value) + "20" },
+            styles.typeBadge,
+            { backgroundColor: getTypeColor(value) + "20" },
           ]}
         >
-          <Text style={[styles.statusText, { color: getStatusColor(value) }]}>
+          <Text style={[styles.typeText, { color: getTypeColor(value) }]}>
             {value}
           </Text>
         </View>
       ),
     },
     {
-      key: "registeredDate",
-      title: "Registered",
-      width: 120,
+      key: "location",
+      title: "Location",
+      width: 180,
+      render: (value) => (
+        <Text style={styles.cellText}>{value || "-"}</Text>
+      ),
     },
     {
-      key: "appointments",
-      title: "Appointments",
-      width: 120,
+      key: "registeredDate",
+      title: "Registered Date",
+      width: 180,
     },
   ];
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = allUsers.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery);
-    const matchesFilter =
-      filterStatus === "All" || user.status === filterStatus;
+      user.phone.includes(searchQuery) ||
+      (user.location && user.location.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesFilter = filterType === "All" || user.type === filterType;
     return matchesSearch && matchesFilter;
   });
 
   const stats = [
-    { label: "Total Users", value: users.length, color: colors.primary },
     {
-      label: "Active",
-      value: users.filter((u) => u.status === "Active").length,
-      color: colors.success,
+      label: "Total Users",
+      value: allUsers.length,
+      color: colors.primary,
     },
     {
-      label: "Inactive",
-      value: users.filter((u) => u.status === "Inactive").length,
-      color: colors.warning,
+      label: "Regular Users",
+      value: allUsers.filter((u) => u.type === "User").length,
+      color: colors.primary,
     },
     {
-      label: "Blocked",
-      value: users.filter((u) => u.status === "Blocked").length,
-      color: colors.danger,
+      label: "Labs",
+      value: allUsers.filter((u) => u.type === "Lab").length,
+      color: "#2196F3",
+    },
+    {
+      label: "Nurses",
+      value: allUsers.filter((u) => u.type === "Nurse").length,
+      color: "#9C27B0",
+    },
+    {
+      label: "Delivery Persons",
+      value: allUsers.filter((u) => u.type === "Medicine Delivery").length,
+      color: "#FF5722",
     },
   ];
 
@@ -192,7 +291,7 @@ const UsersManagement = () => {
         {/* Search and Filters */}
         <View style={styles.searchSection}>
           <FormInput
-            placeholder="Search users..."
+            placeholder="Search by name, email, phone, location..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             LeftIcon={() => <Ionicons name="search" size={20} color={colors.gray} />}
@@ -204,22 +303,22 @@ const UsersManagement = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filtersContainer}
           >
-            {(["All", "Active", "Inactive", "Blocked"] as const).map((status) => (
+            {(["All", "User", "Lab", "Nurse", "Medicine Delivery"] as const).map((type) => (
               <TouchableOpacity
-                key={status}
+                key={type}
                 style={[
                   styles.filterChip,
-                  filterStatus === status && styles.filterChipActive,
+                  filterType === type && styles.filterChipActive,
                 ]}
-                onPress={() => setFilterStatus(status)}
+                onPress={() => setFilterType(type)}
               >
                 <Text
                   style={[
                     styles.filterText,
-                    filterStatus === status && styles.filterTextActive,
+                    filterType === type && styles.filterTextActive,
                   ]}
                 >
-                  {status}
+                  {type}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -228,17 +327,10 @@ const UsersManagement = () => {
 
         {/* Users Table */}
         <View style={styles.tableSection}>
-          <View style={styles.tableTitleContainer}>
-            <Text style={styles.tableTitle}>All Users</Text>
-            <TouchableOpacity style={styles.addButton}>
-              <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.addButtonText}>Add User</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.tableTitle}>All Registered Users</Text>
           <AdminTable
             columns={columns}
             data={filteredUsers}
-            onRowPress={(user) => console.log("User pressed:", user)}
             emptyMessage="No users found"
           />
         </View>
@@ -321,39 +413,25 @@ const styles = StyleSheet.create({
   tableSection: {
     marginBottom: 20,
   },
-  tableTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
   tableTitle: {
     fontSize: 16,
     fontFamily: Fonts.semiBold,
     color: colors.black,
+    marginBottom: 12,
   },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
-  },
-  statusBadge: {
+  typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     alignSelf: "flex-start",
   },
-  statusText: {
+  typeText: {
     fontSize: 11,
     fontFamily: Fonts.semiBold,
+  },
+  cellText: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.black,
   },
 });
