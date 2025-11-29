@@ -47,8 +47,8 @@ export default function DashboardLayout() {
         name="index"
         options={{
           title: "Dashboard",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "grid" : "grid-outline"} size={size} color={color} />
           ),
           headerShown: false,
         }}
@@ -57,8 +57,8 @@ export default function DashboardLayout() {
         name="users"
         options={{
           title: "Users",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -66,17 +66,8 @@ export default function DashboardLayout() {
         name="complaints"
         options={{
           title: "Complaints",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbox-ellipses-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="appointments"
-        options={{
-          title: "Appointments",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "chatbox-ellipses" : "chatbox-ellipses-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -84,8 +75,8 @@ export default function DashboardLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "settings" : "settings-outline"} size={size} color={color} />
           ),
         }}
       />

@@ -25,25 +25,11 @@ const AdminDashboard = () => {
       trend: { value: "+12%", isUp: true },
     },
     {
-      title: "Appointments",
-      value: "1,234",
-      icon: "calendar" as const,
-      gradientColors: ["#FF9800", "#FFB74D"],
-      trend: { value: "+8%", isUp: true },
-    },
-    {
       title: "Complaints",
       value: "45",
       icon: "chatbox-ellipses" as const,
       gradientColors: ["#F44336", "#EF5350"],
       trend: { value: "-5%", isUp: false },
-    },
-    {
-      title: "Revenue",
-      value: "$52.4K",
-      icon: "cash" as const,
-      gradientColors: ["#4CAF50", "#66BB6A"],
-      trend: { value: "+15%", isUp: true },
     },
   ];
 
@@ -61,20 +47,6 @@ const AdminDashboard = () => {
       icon: "chatbox-ellipses-outline" as const,
       color: "#FFF4E6",
       onPress: () => router.push("/(admin)/(dashboard)/complaints" as any),
-    },
-    {
-      title: "Appointments",
-      description: "Manage appointments",
-      icon: "calendar-outline" as const,
-      color: "#F3E8FF",
-      onPress: () => router.push("/(admin)/(dashboard)/appointments" as any),
-    },
-    {
-      title: "Reports",
-      description: "View analytics & reports",
-      icon: "stats-chart-outline" as const,
-      color: "#E6F3FF",
-      onPress: () => {},
     },
   ];
 

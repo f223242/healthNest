@@ -1,7 +1,8 @@
 import { Lock } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
-import ResetPasswordModal from "@/component/ResetPasswordModal";
+import ResetPasswordModal from "@/component/ModalComponent/ResetPasswordModal";
+
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
