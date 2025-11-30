@@ -22,6 +22,9 @@ export const colors = {
   yellow: "#FFA500",
   success: "#4CAF50",
   warning: "#FF9800",
+  text: "#000000",
+  textSecondary: "#666",
+  background: "#F8F8F8",
 };
 
 export const useAppFonts = () =>

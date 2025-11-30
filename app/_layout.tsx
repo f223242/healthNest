@@ -41,29 +41,49 @@ function RootNavigator() {
 
     const inAuthGroup = segments[0] === "(auth)";
     const inProtectedGroup = segments[0] === "(protected)";
-    const inAdminGroup = segments[0] === "(admin)" as any;
+    const inAdminGroup = segments[0] === "(admin)";
+    const inNurseGroup = segments[0] === "(nurse)";
+    const inDeliveryGroup = segments[0] === "(delivery)";
 
     console.log("User:", user);
     console.log("Current segment:", segments[0]);
     console.log("User role:", user?.role);
 
     if (user) {
-      // Check if user is admin
-      if (user.role === "admin" && !inAdminGroup) {
-        // Admin logged in but not in admin screens - redirect to admin
-        router.replace("/(admin)/(dashboard)" as any);
-      } else if (user.role === "user" && !inProtectedGroup) {
-        // Regular user logged in but not in protected screens - redirect to protected
-        router.replace("/(protected)/(tabs)");
-      } else if (!user.role && !inProtectedGroup) {
+      // Check user role and redirect accordingly
+      if (user.role === "admin") {
+        if (!inAdminGroup) {
+          console.log("Redirecting to admin dashboard");
+          router.replace("/(admin)/(dashboard)" as any);
+        }
+      } else if (user.role === "nurse") {
+        if (!inNurseGroup) {
+          console.log("Redirecting to nurse chats");
+          router.replace("/(nurse)/nurse-chats" as any);
+        }
+      } else if (user.role === "delivery") {
+        if (!inDeliveryGroup) {
+          console.log("Redirecting to delivery chats");
+          router.replace("/(delivery)/delivery-chats" as any);
+        }
+      } else if (user.role === "user") {
+        if (!inProtectedGroup) {
+          console.log("Redirecting to user tabs");
+          router.replace("/(protected)/(tabs)");
+        }
+      } else if (!user.role) {
         // User without role (backward compatibility) - redirect to protected
-        router.replace("/(protected)/(tabs)");
+        if (!inProtectedGroup) {
+          console.log("Redirecting to user tabs (no role)");
+          router.replace("/(protected)/(tabs)");
+        }
       }
     } else if (!user && !inAuthGroup) {
       // User not logged in and not in auth screens - redirect to auth
+      console.log("Redirecting to auth");
       router.replace("/(auth)");
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, segments]);
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -79,6 +99,8 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(protected)" />
       <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(nurse)" />
+      <Stack.Screen name="(delivery)" />
     </Stack>
   );
 }
