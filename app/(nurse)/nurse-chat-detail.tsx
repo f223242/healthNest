@@ -12,7 +12,7 @@ const NurseChatDetail = () => {
   const isAI = useTora === 'true';
 
   return (
-    <SafeAreaView edges={[]} style={styles.container}>
+    <SafeAreaView edges={['bottom']} style={styles.container}>
       <ToraAIChat
         chatContext={isAI ? 'nurse' : 'person'}
         userName="Nurse"
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-    paddingBottom: 100 ,
+    // paddingBottom: 100 ,
     paddingHorizontal:sizes.paddingHorizontal
   },
 });
