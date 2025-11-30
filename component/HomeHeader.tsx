@@ -8,11 +8,28 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface HomeHeaderProps {
   notificationCount?: number;
   onNotificationPress?: () => void;
+
+  title?: string;
+
+  subtitle?: string;
+ 
+  showGreeting?: boolean;
+  rightAction?: React.ReactNode;
+  /** Show the notification bell (when `rightAction` is not provided). Default: false */
+  showNotification?: boolean;
+  /** Optional left-side action (e.g., icon). Rendered left of the title. */
+  leftAction?: React.ReactNode;
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({ 
   notificationCount = 3, 
-  onNotificationPress 
+  onNotificationPress,
+  title,
+  subtitle,
+  showGreeting = true,
+  rightAction,
+  showNotification = false,
+  leftAction,
 }) => {
   const insets = useSafeAreaInsets();
   const currentHour = new Date().getHours();
@@ -31,25 +48,31 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       style={[styles.gradient, { paddingTop: insets.top + 12 }]}
     >
       <View style={styles.container}>
+        {leftAction ? <View style={styles.leftActionContainer}>{leftAction}</View> : null}
+
         <View style={styles.textContainer}>
-          <Text style={styles.greeting}>{greeting}! 👋</Text>
-          <Text style={styles.subtitle}>How can we help you today?</Text>
+          <Text style={styles.greeting}>{showGreeting && !title ? `${greeting}!` : title || greeting}</Text>
+          <Text style={styles.subtitle}>{subtitle ?? "How can we help you today?"}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={onNotificationPress}
-          activeOpacity={0.7}
-        >
-          <BellIcon width={24} height={24} color={colors.white} />
-          {notificationCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {notificationCount > 99 ? "99+" : notificationCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {rightAction ? (
+          <View>{rightAction}</View>
+        ) : showNotification ? (
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={onNotificationPress}
+            activeOpacity={0.7}
+          >
+            <BellIcon width={24} height={24} color={colors.white} />
+            {notificationCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        ) : null}
       </View>
     </LinearGradient>
   );
@@ -99,6 +122,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  leftActionContainer: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   badge: {
     position: "absolute",

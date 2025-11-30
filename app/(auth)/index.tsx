@@ -72,6 +72,8 @@ const index = () => {
             Login to continue your health journey
           </Text>
 
+          
+
           <View style={styles.formContainer}>
             <FormInput
               LeftIcon={Email}
@@ -228,6 +230,43 @@ const styles = StyleSheet.create({
   adminInfoBold: {
     fontFamily: Fonts.semiBold,
     color: colors.primary,
+  },
+  credentialsCard: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + "30",
+  },
+  credentialHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  credentialTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  credentialRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  credentialLabel: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: colors.text,
+    width: 80,
+  },
+  credentialValue: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
   },
   formContainer: {
     marginTop: 16,
