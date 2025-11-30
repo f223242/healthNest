@@ -4,10 +4,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { Bubble, GiftedChat, IMessage, InputToolbar, Send } from 'react-native-gifted-chat';
 

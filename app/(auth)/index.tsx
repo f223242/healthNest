@@ -72,6 +72,30 @@ const index = () => {
             Login to continue your health journey
           </Text>
 
+          {/* Test Credentials Card */}
+          <View style={styles.credentialsCard}>
+            <View style={styles.credentialHeader}>
+              <Ionicons name="information-circle" size={20} color={colors.primary} />
+              <Text style={styles.credentialTitle}>Test Credentials</Text>
+            </View>
+            <View style={styles.credentialRow}>
+              <Text style={styles.credentialLabel}>User:</Text>
+              <Text style={styles.credentialValue}>qas@gmail.com / 123456</Text>
+            </View>
+            <View style={styles.credentialRow}>
+              <Text style={styles.credentialLabel}>Admin:</Text>
+              <Text style={styles.credentialValue}>admin@gmail.com / admin123</Text>
+            </View>
+            <View style={styles.credentialRow}>
+              <Text style={styles.credentialLabel}>Nurse:</Text>
+              <Text style={styles.credentialValue}>nurse@gmail.com / nurse123</Text>
+            </View>
+            <View style={styles.credentialRow}>
+              <Text style={styles.credentialLabel}>Delivery:</Text>
+              <Text style={styles.credentialValue}>delivery@gmail.com / delivery123</Text>
+            </View>
+          </View>
+
           <View style={styles.formContainer}>
             <FormInput
               LeftIcon={Email}
@@ -228,6 +252,43 @@ const styles = StyleSheet.create({
   adminInfoBold: {
     fontFamily: Fonts.semiBold,
     color: colors.primary,
+  },
+  credentialsCard: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + "30",
+  },
+  credentialHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  credentialTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  credentialRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  credentialLabel: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: colors.text,
+    width: 80,
+  },
+  credentialValue: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
   },
   formContainer: {
     marginTop: 16,

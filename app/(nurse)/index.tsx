@@ -1,0 +1,529 @@
+import { colors, Fonts } from '@/constant/theme';
+import { useAuthContext } from '@/hooks/useContext';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import React from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  trend?: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, trend }) => (
+  <View style={[styles.statCard, { borderLeftColor: color }]}>
+    <View style={styles.statIconContainer}>
+      <View style={[styles.statIconCircle, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+    </View>
+    <View style={styles.statContent}>
+      <Text style={styles.statTitle}>{title}</Text>
+      <View style={styles.statValueRow}>
+        <Text style={styles.statValue}>{value}</Text>
+        {trend && (
+          <View style={styles.trendBadge}>
+            <Ionicons name="trending-up" size={12} color={colors.success} />
+            <Text style={styles.trendText}>{trend}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  </View>
+);
+
+interface QuickActionProps {
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  onPress: () => void;
+}
+
+const QuickAction: React.FC<QuickActionProps> = ({
+  title,
+  subtitle,
+  icon,
+  color,
+  onPress,
+}) => (
+  <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.7}>
+    <LinearGradient
+      colors={[color, color + 'CC']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.quickActionGradient}
+    >
+      <Ionicons name={icon} size={28} color={colors.white} />
+      <View style={styles.quickActionText}>
+        <Text style={styles.quickActionTitle}>{title}</Text>
+        <Text style={styles.quickActionSubtitle}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={colors.white} />
+    </LinearGradient>
+  </TouchableOpacity>
+);
+
+const NurseDashboard = () => {
+  const { user, logout } = useAuthContext();
+  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+  return (
+    <SafeAreaView edges={['bottom']} style={styles.container}>
+      {/* Header with Gradient - Fixed */}
+      <LinearGradient
+        colors={[colors.primary, "#00B976", "#00D68F"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>Welcome Back</Text>
+            <Text style={styles.userName}>Nurse Sarah</Text>
+            <View style={styles.dateTimeContainer}>
+              <Ionicons name="time-outline" size={14} color={colors.white + 'CC'} />
+              <Text style={styles.dateTimeText}>{currentDate} • {currentTime}</Text>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications" size={24} color={colors.white} />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>3</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+              <Ionicons name="log-out-outline" size={24} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Scrollable Content */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+     
+
+        {/* Stats Overview */}
+        <View style={styles.statsContainer}>
+          <StatCard
+            title="Total Patients"
+            value="24"
+            icon="people"
+            color={colors.primary}
+            trend="+12%"
+          />
+          <StatCard
+            title="Appointments Today"
+            value="8"
+            icon="calendar"
+            color="#2196F3"
+            trend="+5"
+          />
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsContainer}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <QuickAction
+            title="Patient Chats"
+            subtitle="View and respond to messages"
+            icon="chatbubbles"
+            color={colors.primary}
+            onPress={() => router.push('/(nurse)/nurse-chats')}
+          />
+          <QuickAction
+            title="Today's Schedule"
+            subtitle="Check appointments"
+            icon="calendar-outline"
+            color="#2196F3"
+            onPress={() => {}}
+          />
+          <QuickAction
+            title="Patient Records"
+            subtitle="Access medical records"
+            icon="document-text-outline"
+            color="#9C27B0"
+            onPress={() => {}}
+          />
+          <QuickAction
+            title="Emergency Contacts"
+            subtitle="Quick access to contacts"
+            icon="call-outline"
+            color="#FF5722"
+            onPress={() => {}}
+          />
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.recentActivityContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.activityList}>
+            {[
+              {
+                icon: 'chatbubble-ellipses',
+                color: colors.primary,
+                title: 'New message from John Smith',
+                time: '5 min ago',
+              },
+              {
+                icon: 'checkmark-done',
+                color: colors.success,
+                title: 'Completed visit with Emma Watson',
+                time: '1 hour ago',
+              },
+              {
+                icon: 'calendar',
+                color: '#2196F3',
+                title: 'Upcoming appointment at 3:00 PM',
+                time: '2 hours',
+              },
+              {
+                icon: 'document-text',
+                color: '#9C27B0',
+                title: 'Updated medical record',
+                time: '3 hours ago',
+              },
+            ].map((activity, index) => (
+              <View key={index} style={styles.activityItem}>
+                <View
+                  style={[
+                    styles.activityIcon,
+                    { backgroundColor: activity.color + '20' },
+                  ]}
+                >
+                  <Ionicons
+                    name={activity.icon as any}
+                    size={20}
+                    color={activity.color}
+                  />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>{activity.title}</Text>
+                  <Text style={styles.activityTime}>{activity.time}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default NurseDashboard;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    paddingTop: 10,
+    paddingBottom: 100,
+  },
+  headerGradient: {
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingBottom: 30,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  greeting: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.white + 'CC',
+  },
+  userName: {
+    fontSize: 26,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateTimeText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.white + 'CC',
+  },
+  notificationButton: {
+    position: 'relative',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
+  },
+  statsContainer: {
+    paddingHorizontal: 20,
+    marginTop: 30,
+    marginBottom: 24,
+    gap: 12,
+  },
+  scheduleContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  scheduleCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 12,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.success,
+    marginTop: 4,
+  },
+  scheduleContent: {
+    flex: 1,
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  scheduleTime: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+  },
+  scheduleTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  scheduleLocation: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.textSecondary,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
+  statsGrid: {
+    gap: 12,
+  },
+  statCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  statIconContainer: {
+    marginRight: 16,
+  },
+  statIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statContent: {
+    flex: 1,
+  },
+  statTitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.success + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  trendText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: colors.success,
+  },
+  quickActionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  quickActionCard: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  quickActionText: {
+    flex: 1,
+  },
+  quickActionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
+    marginBottom: 2,
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.white,
+    opacity: 0.9,
+  },
+  recentActivityContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  activityList: {
+    gap: 12,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.textSecondary,
+  },
+});

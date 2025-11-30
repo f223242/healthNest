@@ -8,7 +8,7 @@ const USER_STORAGE_KEY = "@healthnest_user";
 interface User {
   email: string;
   password?: string;
-  role?: "user" | "admin";
+  role?: "user" | "admin" | "nurse" | "delivery";
 }
 
 interface AuthContextType {
@@ -86,6 +86,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(userData);
         await saveUserToStorage(userData);
         return; // Admin login handled by RootLayout
+      }
+      
+      // Nurse login check
+      if (values.email === "nurse@gmail.com" && values.password === "nurse123") {
+        const userData: User = {
+          email: values.email,
+          role: "nurse" as const,
+        };
+        setUser(userData);
+        await saveUserToStorage(userData);
+        return;
+      }
+      
+      // Medicine Delivery login check
+      if (values.email === "delivery@gmail.com" && values.password === "delivery123") {
+        const userData: User = {
+          email: values.email,
+          role: "delivery" as const,
+        };
+        setUser(userData);
+        await saveUserToStorage(userData);
+        return;
       }
       
       // Regular user login check
