@@ -255,28 +255,20 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   };
 
   const showImageOptions = () => {
-    Alert.alert("Send Image", "Choose an option", [
-      { text: "Take Photo", onPress: takePhoto },
-      { text: "Choose from Library", onPress: pickImage },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    // Open image picker directly to avoid dismissing keyboard
+    pickImage();
   };
 
   const handleVoicePress = () => {
     if (isRecording) {
       // Stop recording
       setIsRecording(false);
-      Alert.alert("Voice Message", "Voice recording stopped. This feature will be fully implemented soon.");
     } else {
       // Start recording
       setIsRecording(true);
-      Alert.alert("Voice Message", "Recording started... Tap again to stop.");
-      
       // Auto stop after 60 seconds
       setTimeout(() => {
-        if (isRecording) {
-          setIsRecording(false);
-        }
+        setIsRecording((current) => (current ? false : current));
       }, 60000);
     }
   };
@@ -308,22 +300,33 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   };
 
   const renderSend = (props: any) => {
+    // const showVoice = chatContext !== 'medicine-delivery' && chatContext !== 'person';
     return (
-      <Send {...props} containerStyle={styles.sendContainer}>
-        <LinearGradient
-          colors={[colors.primary, '#00D68F']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.sendButton}
-        >
-          <Ionicons name="send" size={20} color={colors.white} />
-        </LinearGradient>
-      </Send>
+      <View style={styles.sendRow}>
+        { (
+          <TouchableOpacity
+            onPress={handleVoicePress}
+            style={[styles.actionButton, isRecording && styles.recordingButton, { marginRight: 8 }]}
+          >
+            <Ionicons name={isRecording ? 'stop-circle' : 'mic'} size={20} color={isRecording ? colors.white : colors.primary} />
+          </TouchableOpacity>
+        )}
+        <Send {...props} containerStyle={styles.sendContainer}>
+          <LinearGradient
+            colors={[colors.primary, '#00D68F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sendButton}
+          >
+            <Ionicons name="send" size={20} color={colors.white} />
+          </LinearGradient>
+        </Send>
+      </View>
     );
   };
 
   const renderInputToolbar = (props: any) => {
-    const showVoice = chatContext !== 'medicine-delivery' && chatContext !== 'person';
+    // const showVoice = chatContext !== 'medicine-delivery' && chatContext !== 'person';
     
     return (
       <InputToolbar
@@ -333,29 +336,16 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         textInputStyle={styles.textInput}
         textInputProps={{
           ...props.textInputProps,
+          placeholderTextColor: '#BDBDBD',
           style: {
             ...props.textInputProps?.style,
-            color: colors.black,
+            color: colors.black ,
           },
         }}
         renderActions={() => (
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity onPress={showImageOptions} style={styles.actionButton}>
-              <Ionicons name="image" size={24} color={colors.primary} />
-            </TouchableOpacity>
-            {showVoice && (
-              <TouchableOpacity 
-                onPress={handleVoicePress} 
-                style={[styles.actionButton, isRecording && styles.recordingButton]}
-              >
-                <Ionicons 
-                  name={isRecording ? "stop-circle" : "mic"} 
-                  size={24} 
-                  color={isRecording ? colors.white : colors.primary} 
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+          <TouchableOpacity onPress={showImageOptions} style={styles.plusButton}>
+            <Ionicons name="add" size={22} color={colors.primary} />
+          </TouchableOpacity>
         )}
       />
     );
@@ -383,17 +373,24 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    // backgroundColor: colors.white,
   },
   messagesContainer: {
     backgroundColor: colors.white,
+  
   },
   inputToolbar: {
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray + '40',
+    backgroundColor: colors.lightGray,
+    borderRadius: 32,
+    elevation: 2,
+    marginBottom: 10,
+    marginHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 8,
-    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  
   },
   inputPrimary: {
     alignItems: 'center',
@@ -401,19 +398,21 @@ const styles = StyleSheet.create({
   textInput: {
     fontFamily: Fonts.regular,
     fontSize: 16,
-    color: colors.black,
-    backgroundColor: colors.lightGreen,
+    color: '#E6E6E6',
+    backgroundColor: 'transparent',
     borderRadius: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 8,
     marginRight: 8,
+    
   },
   sendContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
     marginBottom: 5,
+    
   },
   sendButton: {
     width: 40,
@@ -427,6 +426,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     gap: 4,
+   
+  },
+  sendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 4,
   },
   actionButton: {
     width: 36,
@@ -438,6 +443,15 @@ const styles = StyleSheet.create({
   },
   recordingButton: {
     backgroundColor: '#FF4444',
+  },
+  plusButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.lightGreen,
+    marginRight: 8,
   },
 });
 

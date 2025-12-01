@@ -1,3 +1,4 @@
+import HomeHeader from '@/component/HomeHeader';
 import { colors, Fonts } from '@/constant/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
@@ -29,6 +30,7 @@ export default function NurseLayout() {
                 shadowOpacity: 0.15,
                 shadowRadius: 15,
                 position: 'absolute',
+
         },
         tabBarItemStyle: {
           paddingVertical: 5,
@@ -46,11 +48,13 @@ export default function NurseLayout() {
         options={{
           title: 'Dashboard',
           headerShown: true,
-          headerTitle: 'Nurse Dashboard',
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-          },
+          header: () => (
+            <HomeHeader
+              notificationCount={5}
+              onNotificationPress={() => {}}
+            />
+          ),
+          headerStyle: { backgroundColor: 'transparent' },
           tabBarLabel: 'Dashboard',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons
@@ -66,11 +70,18 @@ export default function NurseLayout() {
         options={{
           title: 'Chats',
           headerShown: true,
-          headerTitle: 'Patient Chats',
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-          },
+          header: () => (
+            <HomeHeader
+              title="Patient Chats"
+              subtitle="Connect with your patients instantly"
+              // notificationCount={3}
+              onNotificationPress={() => {}}
+              leftAction={
+                <Ionicons name="chatbubbles" size={24} color={colors.white} />
+              }
+            />
+          ),
+          headerStyle: { backgroundColor: 'transparent' },
           tabBarLabel: 'Chats',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons
@@ -84,8 +95,9 @@ export default function NurseLayout() {
       <Tabs.Screen
         name="nurse-chat-detail"
         options={{
-          href: null, // Hide from tab bar
+          href: null,
           headerShown: true,
+          headerShadowVisible: true,
           headerTitle: 'Chat',
           headerTitleStyle: {
             fontFamily: Fonts.bold,

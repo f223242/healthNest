@@ -1,5 +1,5 @@
 import ToraAIChat from '@/component/ToraAIChat';
-import { colors } from '@/constant/theme';
+import { colors, sizes } from '@/constant/theme';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -12,7 +12,7 @@ const NurseChatDetail = () => {
   const isAI = useTora === 'true';
 
   return (
-    <SafeAreaView edges={["top", "left", "right", "bottom"]} style={styles.container}>
+    <SafeAreaView edges={[]} style={styles.container}>
       <ToraAIChat
         chatContext={isAI ? 'nurse' : 'person'}
         userName="Nurse"
@@ -30,5 +30,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+    paddingBottom: 100 ,
+    paddingHorizontal:sizes.paddingHorizontal
   },
 });

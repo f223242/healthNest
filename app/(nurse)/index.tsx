@@ -82,36 +82,8 @@ const NurseDashboard = () => {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      {/* Header with Gradient - Fixed */}
-      <LinearGradient
-        colors={[colors.primary, "#00B976", "#00D68F"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Welcome Back</Text>
-            <Text style={styles.userName}>Nurse Sarah</Text>
-            <View style={styles.dateTimeContainer}>
-              <Ionicons name="time-outline" size={14} color={colors.white + 'CC'} />
-              <Text style={styles.dateTimeText}>{currentDate} • {currentTime}</Text>
-            </View>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications" size={24} color={colors.white} />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>3</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-              <Ionicons name="log-out-outline" size={24} color={colors.white} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </LinearGradient>
-
+      {/* Header (using shared HomeHeader component) */}
+    
       {/* Scrollable Content */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
      

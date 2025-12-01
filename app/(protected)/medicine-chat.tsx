@@ -1,5 +1,5 @@
 import ToraAIChat from "@/component/ToraAIChat";
-import { colors } from "@/constant/theme";
+import { colors, sizes } from "@/constant/theme";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
 import { StyleSheet } from "react-native";
@@ -30,5 +30,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+    paddingHorizontal:sizes.paddingHorizontal
+
   },
 });

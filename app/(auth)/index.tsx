@@ -72,29 +72,7 @@ const index = () => {
             Login to continue your health journey
           </Text>
 
-          {/* Test Credentials Card */}
-          <View style={styles.credentialsCard}>
-            <View style={styles.credentialHeader}>
-              <Ionicons name="information-circle" size={20} color={colors.primary} />
-              <Text style={styles.credentialTitle}>Test Credentials</Text>
-            </View>
-            <View style={styles.credentialRow}>
-              <Text style={styles.credentialLabel}>User:</Text>
-              <Text style={styles.credentialValue}>qas@gmail.com / 123456</Text>
-            </View>
-            <View style={styles.credentialRow}>
-              <Text style={styles.credentialLabel}>Admin:</Text>
-              <Text style={styles.credentialValue}>admin@gmail.com / admin123</Text>
-            </View>
-            <View style={styles.credentialRow}>
-              <Text style={styles.credentialLabel}>Nurse:</Text>
-              <Text style={styles.credentialValue}>nurse@gmail.com / nurse123</Text>
-            </View>
-            <View style={styles.credentialRow}>
-              <Text style={styles.credentialLabel}>Delivery:</Text>
-              <Text style={styles.credentialValue}>delivery@gmail.com / delivery123</Text>
-            </View>
-          </View>
+          
 
           <View style={styles.formContainer}>
             <FormInput

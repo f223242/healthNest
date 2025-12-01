@@ -1,10 +1,8 @@
 import ChatListComponent from '@/component/ChatListComponent';
 import { colors, Fonts } from '@/constant/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface PatientChat {
@@ -95,21 +93,7 @@ const NurseChats = () => {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.primary, '#00B976', '#00D68F']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <View style={styles.headerContent}>
-          <Ionicons name="chatbubbles" size={32} color={colors.white} style={styles.headerIcon} />
-          <View style={styles.headerTextBlock}>
-            <Text style={styles.headerTitle}>Patient Chats</Text>
-            <Text style={styles.headerSubtitle}>Connect with your patients instantly</Text>
-          </View>
-        </View>
-      </LinearGradient>
+ 
       <View style={styles.listCard}>
         <ChatListComponent
           users={patients}

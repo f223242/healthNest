@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // TODO: Replace with actual API call
 
       // Check for admin credentials first
-      if (values.email === "admin@gmail.com" && values.password === "admin123") {
+      if (values.email === "admin@gmail.com" && values.password === "123456") {
         const userData: User = {
           email: values.email,
           role: "admin" as const,
@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       
       // Nurse login check
-      if (values.email === "nurse@gmail.com" && values.password === "nurse123") {
+      if (values.email === "nurse@gmail.com" && values.password === "123456") {
         const userData: User = {
           email: values.email,
           role: "nurse" as const,
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       
       // Medicine Delivery login check
-      if (values.email === "delivery@gmail.com" && values.password === "delivery123") {
+      if (values.email === "delivery@gmail.com" && values.password === "123456") {
         const userData: User = {
           email: values.email,
           role: "delivery" as const,
