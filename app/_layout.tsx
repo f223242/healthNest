@@ -44,6 +44,7 @@ function RootNavigator() {
     const inAdminGroup = segments[0] === "(admin)";
     const inNurseGroup = segments[0] === "(nurse)";
     const inDeliveryGroup = segments[0] === "(delivery)";
+    const inLabGroup = segments[0] === "(lab)";
 
     console.log("User:", user);
     console.log("Current segment:", segments[0]);
@@ -65,6 +66,11 @@ function RootNavigator() {
         if (!inDeliveryGroup) {
           console.log("Redirecting to delivery chats");
           router.replace("/(delivery)/delivery-chats" as any);
+        }
+      } else if (user.role === "lab") {
+        if (!inLabGroup) {
+          console.log("Redirecting to lab dashboard");
+          router.replace("/(lab)/(tabs)" as any);
         }
       } else if (user.role === "user") {
         if (!inProtectedGroup) {
@@ -101,6 +107,7 @@ function RootNavigator() {
       <Stack.Screen name="(admin)" />
       <Stack.Screen name="(nurse)" />
       <Stack.Screen name="(delivery)" />
+      <Stack.Screen name="(lab)" />
     </Stack>
   );
 }
