@@ -8,7 +8,7 @@ const USER_STORAGE_KEY = "@healthnest_user";
 interface User {
   email: string;
   password?: string;
-  role?: "user" | "admin" | "nurse" | "delivery";
+  role?: "user" | "admin" | "nurse" | "delivery" | "lab";
 }
 
 interface AuthContextType {
@@ -109,7 +109,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await saveUserToStorage(userData);
         return;
       }
-      
+
+      // Lab Technician login check
+      if (values.email === "lab@gmail.com" && values.password === "123456") {
+        const userData: User = {
+          email: values.email,
+          role: "lab" as const,
+        };
+        setUser(userData);
+        await saveUserToStorage(userData);
+        return;
+      }
+
       // Regular user login check
       if (values.email === "qas@gmail.com" && values.password === "123456") {
         const userData: User = {
