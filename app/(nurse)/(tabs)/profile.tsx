@@ -55,7 +55,7 @@ const NurseProfile = () => {
               leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
               title="Edit Profile"
               description="Update personal details"
-              onPress={() => router.push("/(protected)/edit-profile")}
+              onPress={() => router.push("/(nurse)/edit-profile")}
             />
 
             <ProfileOptions
