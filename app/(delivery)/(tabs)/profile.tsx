@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const NurseProfile = () => {
+const DeliveryProfile = () => {
   const router = useRouter();
   const { user, logout } = useAuthContext();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -27,14 +27,14 @@ const NurseProfile = () => {
         {/* User Profile Card */}
         <View style={styles.profileCard}>
           <Image
-            source={{ uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg" }}
+            source={{ uri: "https://i.pravatar.cc/150?img=68" }}
             style={styles.profileImage}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "Nurse Name"}</Text>
-            <Text style={styles.profileEmail}>{user?.email || "nurse@healthnest.com"}</Text>
+            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "Delivery Person"}</Text>
+            <Text style={styles.profileEmail}>{user?.email || "delivery@healthnest.com"}</Text>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>NURSE</Text>
+              <Text style={styles.roleText}>DELIVERY</Text>
             </View>
           </View>
         </View>
@@ -43,22 +43,19 @@ const NurseProfile = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <View style={styles.sectionContent}>
-            
             <ProfileOptions
               leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
               title="Edit Profile"
               description="Update personal details"
-              onPress={() => router.push("/(nurse)/edit-profile")}
+              onPress={() => router.push('/(delivery)/edit-profile')}
             />
-
             <ProfileOptions
               leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
               title="Delete Account"
               description="Permanently remove your account"
-              onPress={() => router.push("/(nurse)/delete-account")}
+              onPress={() => router.push('/(delivery)/delete-account')}
               showBorder={false}
             />
-          
           </View>
         </View>
 
@@ -66,22 +63,19 @@ const NurseProfile = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
           <View style={styles.sectionContent}>
-            
             <ProfileOptions
               leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
               title="Help & Support"
               description="Get assistance and support"
-              onPress={() => router.push("/(nurse)/help")}
+              onPress={() => router.push('/(delivery)/help')}
             />
-
             <ProfileOptions
               leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
               title="About App"
               description="App version and details"
-              onPress={() => router.push("/(nurse)/about")}
+              onPress={() => router.push('/(delivery)/about')}
               showBorder={false}
             />
-          
           </View>
         </View>
 
@@ -90,7 +84,6 @@ const NurseProfile = () => {
           <Ionicons name="log-out" size={20} color={colors.white} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-
       </ScrollView>
 
       <LogoutModal 
@@ -98,25 +91,23 @@ const NurseProfile = () => {
         onClose={() => setShowLogoutModal(false)} 
         onConfirm={confirmLogout} 
       />
-
     </SafeAreaView>
   );
 };
 
-export default NurseProfile;
+export default DeliveryProfile;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F5F6FA",
   },
-
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
     paddingTop: 16,
     paddingBottom: 120,
   },
-
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -130,7 +121,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-
   profileImage: {
     width: 70,
     height: 70,
@@ -138,26 +128,22 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.primary,
   },
-
   profileInfo: {
     flex: 1,
     marginLeft: 14,
   },
-
   profileName: {
     fontSize: 18,
     fontFamily: Fonts.bold,
     color: colors.text,
     marginBottom: 2,
   },
-
   profileEmail: {
     fontSize: 13,
     fontFamily: Fonts.regular,
     color: colors.gray,
     marginBottom: 6,
   },
-
   roleBadge: {
     backgroundColor: colors.primary + "15",
     paddingHorizontal: 10,
@@ -165,18 +151,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: "flex-start",
   },
-
   roleText: {
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
     letterSpacing: 0.5,
   },
-
   section: {
-    marginBottom: 24,
+    marginBottom: 22,
   },
-
   sectionTitle: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
@@ -186,36 +169,26 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-
   sectionContent: {
     backgroundColor: colors.white,
     borderRadius: 16,
     overflow: "hidden",
-
-    // Shadows
-    elevation: 3,
+    elevation: 2,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-
   logoutButton: {
     backgroundColor: colors.danger,
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 12,
+    padding: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginTop: 10,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    marginTop: 8,
   },
-
   logoutText: {
     fontSize: 16,
     fontFamily: Fonts.semiBold,

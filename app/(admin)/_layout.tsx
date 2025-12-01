@@ -26,6 +26,22 @@ export default function AdminLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen name="change-password" options={{
+        headerTitle:'Change Password',
+        headerShown:true,
+        headerShadowVisible:false,
+
+      }}/>
+      <Stack.Screen name="edit-profile" options={{
+        headerTitle:"Edit Profile",
+        headerShown:true,
+        headerShadowVisible:false,
+      }} />
+      <Stack.Screen name="about" options={{
+        headerTitle:"About App",
+        headerShown:true,
+        headerShadowVisible:false,
+      }} />
     </Stack>
   );
 }

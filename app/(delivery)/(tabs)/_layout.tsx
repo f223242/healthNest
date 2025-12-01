@@ -7,7 +7,7 @@ import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function NurseLayout() {
+export default function DeliveryTabsLayout() {
   const insets = useSafeAreaInsets();
   const { logout } = useAuthContext();
 
@@ -53,67 +53,49 @@ export default function NurseLayout() {
           headerShown: true,
           header: () => (
             <HomeHeader
+              title="Delivery Dashboard"
+              subtitle="Manage your chats & deliveries"
               rightAction={
                 <TouchableOpacity onPress={logout} accessibilityLabel="Logout">
-                  <Ionicons
-                    name="log-out-outline"
-                    size={24}
-                    color={colors.white}
-                    style={{ marginRight: 10 }}
-                  />
+                  <Ionicons name="log-out-outline" size={24} color={colors.white} style={{ marginRight: 10 }} />
                 </TouchableOpacity>
               }
-              title="Nurse Dashboard"
-              subtitle="Manage your nursing services"
-              onNotificationPress={() => {}}
             />
           ),
-          headerStyle: { backgroundColor: 'transparent' },
           tabBarLabel: 'Dashboard',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'grid' : 'grid-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
           ),
         }}
       />
 
       {/* Chats */}
       <Tabs.Screen
-        name="nurse-chats"
+        name="delivery-chats"
         options={{
           title: 'Chats',
           headerShown: true,
           header: () => (
             <HomeHeader
-              title="Patient Chats"
-              subtitle="Connect with your patients instantly"
-              onNotificationPress={() => {}}
-              leftAction={
-                <Ionicons name="chatbubbles" size={40} color={colors.white} />
-              }
+              title="Customer Chats"
+              subtitle="Connect with your customers"
+              leftAction={<Ionicons name="chatbubbles" size={40} color={colors.white} />}
             />
           ),
-          headerStyle: { backgroundColor: 'transparent' },
           tabBarLabel: 'Chats',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} />
           ),
         }}
       />
+
       {/* Profile */}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           headerShown: true,
-          headerTitle: "Profile", 
+          headerTitle: "Profile",
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />

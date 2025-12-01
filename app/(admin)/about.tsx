@@ -11,10 +11,10 @@ const About = () => {
   };
 
   const features = [
-    { icon: "people", title: "Patient Management", description: "Manage patient records efficiently" },
-    { icon: "chatbubbles", title: "Real-time Chat", description: "Communicate with patients instantly" },
-    { icon: "calendar", title: "Appointments", description: "Schedule and manage appointments" },
-    { icon: "shield-checkmark", title: "Secure & Private", description: "HIPAA compliant data security" },
+    { icon: "people", title: "User Management", description: "Manage all users efficiently" },
+    { icon: "shield-checkmark", title: "System Security", description: "Monitor and control access" },
+    { icon: "stats-chart", title: "Analytics", description: "Track platform performance" },
+    { icon: "settings", title: "Configuration", description: "Control system settings" },
   ];
 
   return (
@@ -28,10 +28,10 @@ const About = () => {
           style={styles.appCard}
         >
           <View style={styles.logoContainer}>
-            <Ionicons name="medkit" size={40} color={colors.primary} />
+            <Ionicons name="shield" size={40} color={colors.primary} />
           </View>
           <Text style={styles.appName}>HealthNest</Text>
-          <Text style={styles.appTagline}>Nurse Care App</Text>
+          <Text style={styles.appTagline}>Admin Dashboard</Text>
           <View style={styles.versionBadge}>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>
@@ -39,20 +39,20 @@ const About = () => {
 
         {/* About Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About HealthNest</Text>
+          <Text style={styles.sectionTitle}>About HealthNest Admin</Text>
           <View style={styles.descriptionCard}>
             <Text style={styles.descriptionText}>
-              HealthNest is an all-in-one healthcare platform designed for nurses to efficiently manage patient care, communicate seamlessly, and streamline daily nursing tasks.
+              HealthNest Admin is a powerful control panel designed for administrators to manage the entire healthcare platform efficiently.
             </Text>
             <Text style={styles.descriptionText}>
-              We empower nurses with the tools they need to provide exceptional care while maintaining work-life balance.
+              With comprehensive tools for user management, analytics, and system configuration, admins can ensure smooth platform operations.
             </Text>
           </View>
         </View>
 
         {/* Features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Features</Text>
+          <Text style={styles.sectionTitle}>Admin Features</Text>
           <View style={styles.featuresGrid}>
             {features.map((feature, index) => (
               <View key={index} style={styles.featureCard}>

@@ -1,15 +1,14 @@
 import AdminStatCard from "@/component/admin/AdminStatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -86,30 +85,8 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
-      <LinearGradient
-        colors={[colors.primary, "#00B976"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Good Morning!</Text>
-            <Text style={styles.adminName}>Admin Dashboard</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => {}}
-          >
-            <Ionicons name="notifications-outline" size={24} color={colors.white} />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>3</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
