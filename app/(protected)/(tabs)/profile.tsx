@@ -3,7 +3,6 @@ import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -12,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
   const router = useRouter();
-  const {logout} =  useAuthContext()  // <- Example of using a custom hook for authentication 
+  const { user, logout } = useAuthContext();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
@@ -24,39 +23,26 @@ const Profile = () => {
     logout();
   }; 
   return (
-    <SafeAreaView edges={["top"]} style={styles.container}>
-      <LinearGradient
-        colors={[colors.primary, "#00B976", "#00D68F"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.headerGradient}
-      >
-        <View style={styles.profileHeader}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{
-                uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-              }}
-              style={styles.imageStyle}
-              resizeMode="cover"
-            />
-            <TouchableOpacity
-              style={styles.editIconButton}
-              onPress={() => router.push("/(protected)/edit-profile")}
-            >
-              <Ionicons name="pencil" size={16} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.userName}>Qasim Ali</Text>
-          <Text style={styles.userEmail}>qasim.ali@example.com</Text>
-        </View>
-      </LinearGradient>
-
+    <SafeAreaView edges={[ "bottom"]} style={styles.container}>
       <ScrollView
         contentContainerStyle={[styles.scrollContainer]}
         showsVerticalScrollIndicator={false}
       >
+        {/* User Profile Card */}
+        <View style={styles.profileCard}>
+          <Image
+            source={{ uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg" }}
+            style={styles.profileImage}
+          />
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "User Name"}</Text>
+            <Text style={styles.profileEmail}>{user?.email || "user@healthnest.com"}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>PATIENT</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Account Settings Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
@@ -141,85 +127,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F9FA",
   },
-  headerGradient: {
-    paddingBottom: 30,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  profileHeader: {
-    alignItems: "center",
-    paddingTop: 12,
-  },
-  imageContainer: {
-    position: "relative",
-    marginBottom: 16,
-  },
-  imageStyle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 4,
-    borderColor: colors.white,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  logoutButton: {
-    backgroundColor: colors.danger,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
-  },
-  editIconButton: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.white,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  userName: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  userEmail: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: "rgba(255, 255, 255, 0.9)",
-  },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 120,
+  },
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 3,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  profileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  profileName: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  profileEmail: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginBottom: 6,
+  },
+  roleBadge: {
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  roleText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
   section: {
     marginBottom: 24,
@@ -242,5 +203,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  logoutButton: {
+    backgroundColor: colors.danger,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
   },
 });

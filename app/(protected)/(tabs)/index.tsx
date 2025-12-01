@@ -107,7 +107,7 @@ const index = () => {
   ];
 
   return (
-    <SafeAreaView edges={[]} style={styles.container}>
+    <SafeAreaView edges={['bottom']} style={styles.container}>
       
         {/* Search Bar */}
         <FormInput

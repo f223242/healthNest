@@ -82,7 +82,6 @@ const NurseDashboard = () => {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      {/* Header (using shared HomeHeader component) */}
     
       {/* Scrollable Content */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -114,7 +113,7 @@ const NurseDashboard = () => {
             subtitle="View and respond to messages"
             icon="chatbubbles"
             color={colors.primary}
-            onPress={() => router.push('/(nurse)/nurse-chats')}
+            onPress={() => router.push('/nurse-chat-detail')}
           />
           <QuickAction
             title="Today's Schedule"

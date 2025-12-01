@@ -2,7 +2,7 @@ import { BellIcon } from "@/assets/svg";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface HomeHeaderProps {
@@ -19,6 +19,10 @@ interface HomeHeaderProps {
   showNotification?: boolean;
   /** Optional left-side action (e.g., icon). Rendered left of the title. */
   leftAction?: React.ReactNode;
+  /** Profile image URL - when provided, shows circular image on left side */
+  profileImage?: string;
+  /** Callback when profile image is pressed */
+  onProfilePress?: () => void;
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({ 
@@ -30,6 +34,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   rightAction,
   showNotification = false,
   leftAction,
+  profileImage,
+  onProfilePress,
 }) => {
   const insets = useSafeAreaInsets();
   const currentHour = new Date().getHours();
@@ -40,6 +46,28 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       ? "Good Afternoon"
       : "Good Evening";
 
+  const renderLeftContent = () => {
+    if (profileImage) {
+      return (
+        <TouchableOpacity 
+          style={styles.profileImageContainer} 
+          onPress={onProfilePress}
+          activeOpacity={0.8}
+        >
+          <Image 
+            source={{ uri: profileImage }} 
+            style={styles.profileImage} 
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      );
+    }
+    if (leftAction) {
+      return <View style={styles.leftActionContainer}>{leftAction}</View>;
+    }
+    return null;
+  };
+
   return (
     <LinearGradient
       colors={[colors.primary, "#00B976", "#00D68F"]}
@@ -48,7 +76,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       style={[styles.gradient, { paddingTop: insets.top + 12 }]}
     >
       <View style={styles.container}>
-        {leftAction ? <View style={styles.leftActionContainer}>{leftAction}</View> : null}
+        {renderLeftContent()}
 
         <View style={styles.textContainer}>
           <Text style={styles.greeting}>{showGreeting && !title ? `${greeting}!` : title || greeting}</Text>
@@ -131,6 +159,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  profileImageContainer: {
+    marginRight: 14,
+  },
+  profileImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2.5,
+    borderColor: colors.white,
   },
   badge: {
     position: "absolute",

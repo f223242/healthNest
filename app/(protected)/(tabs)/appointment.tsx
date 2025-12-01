@@ -164,7 +164,7 @@ const Appointment = () => {
   const pendingCount = appointmentsData.filter(a => a.status === "Pending").length;
 
   return (
-    <SafeAreaView edges={[]} style={styles.container}>
+    <SafeAreaView edges={['bottom']} style={styles.container}>
       {/* Search Bar */}
       <FormInput
         LeftIcon={SearchIcon}

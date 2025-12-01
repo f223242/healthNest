@@ -1,99 +1,36 @@
 import { colors, Fonts } from '@/constant/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 import React from 'react';
 
-export default function DeliveryLayout() {
+const DeliveryLayout = () => {
   return (
-    <Tabs
+    <Stack
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: Fonts.semiBold,
-          marginBottom: 5,
-        },
-        tabBarStyle: {
-          height: 100,
-          backgroundColor: colors.white,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          borderTopWidth: 0,
-          elevation: 20,
-          shadowColor: colors.black,
-          shadowOffset: {
-            width: 0,
-            height: -5,
-          },
-          shadowOpacity: 0.15,
-          shadowRadius: 15,
-          position: 'absolute',
-          paddingTop: 10,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 5,
-        },
         headerTitleAlign: 'center',
+        headerShown: true,
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          fontSize: 18,
+          fontFamily: Fonts.bold,
+        },
         headerStyle: {
           backgroundColor: colors.white,
         },
-        headerTintColor: colors.text,
-        headerShadowVisible: false,
+        animation: 'slide_from_right',
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          headerShown: true,
-          headerTitle: 'Delivery Dashboard',
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-          },
-          tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'grid' : 'grid-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="delivery-chats"
-        options={{
-          title: 'Chats',
-          headerShown: true,
-          headerTitle: 'Customer Chats',
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-          },
-          tabBarLabel: 'Chats',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
         name="delivery-chat-detail"
-        options={{
-          href: null, // Hide from tab bar
-          headerShown: true,
-          headerTitle: 'Chat',
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-          },
-        }}
+        options={{ headerTitle: 'Chat', headerShadowVisible: true }}
       />
-    </Tabs>
+      <Stack.Screen name="edit-profile" options={{ headerTitle: 'Edit Profile' }} />
+      <Stack.Screen name="delete-account" options={{ headerTitle: 'Delete Account' }} />
+      <Stack.Screen name="help" options={{ headerTitle: 'Help & Support' }} />
+      <Stack.Screen name="about" options={{ headerTitle: 'About App' }} />
+    </Stack>
   );
-}
+};
+
+export default DeliveryLayout;
+

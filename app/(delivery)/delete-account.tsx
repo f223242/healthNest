@@ -43,7 +43,7 @@ const DeleteAccount = () => {
           </View>
           <Text style={styles.warningTitle}>Delete Your Account?</Text>
           <Text style={styles.warningDescription}>
-            This action is permanent and cannot be undone. All your data, including patient records, chat messages, and personal information will be permanently removed.
+            This action is permanent and cannot be undone. All your data, including delivery history, chat messages, and personal information will be permanently removed.
           </Text>
         </View>
 
@@ -52,12 +52,12 @@ const DeleteAccount = () => {
           <Text style={styles.sectionTitle}>What you'll lose:</Text>
           <View style={styles.itemsList}>
             {[
-              { icon: "chatbubbles-outline", text: "All patient conversations" },
-              { icon: "document-text-outline", text: "Medical records and notes" },
-              { icon: "calendar-outline", text: "Appointment history" },
-              { icon: "person-outline", text: "Profile and credentials" },
+              { icon: "chatbubbles-outline", text: "All chat conversations" },
+              { icon: "bicycle-outline", text: "Delivery history and records" },
+              { icon: "star-outline", text: "Ratings and reviews" },
+              { icon: "wallet-outline", text: "Payment information" },
             ].map((item, index) => (
-              <View key={index} style={[styles.listItem, index === 3 && { borderBottomWidth: 0 }]}>
+              <View key={index} style={styles.listItem}>
                 <View style={styles.listIconContainer}>
                   <Ionicons name={item.icon as any} size={20} color={colors.danger} />
                 </View>
