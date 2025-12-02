@@ -1,3 +1,5 @@
+import AppButton from "@/component/AppButton";
+import QuickActionButton from "@/component/QuickActionButton";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,8 +9,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -213,19 +214,22 @@ const TestDetailScreen = () => {
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickActionBtn} onPress={handleCall}>
-              <Ionicons name="call" size={20} color={colors.primary} />
-              <Text style={styles.quickActionText}>Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionBtn}>
-              <Ionicons name="chatbubble" size={20} color={colors.primary} />
-              <Text style={styles.quickActionText}>Message</Text>
-            </TouchableOpacity>
+            <QuickActionButton
+              icon="call"
+              label="Call"
+              onPress={handleCall}
+            />
+            <QuickActionButton
+              icon="chatbubble"
+              label="Message"
+              onPress={() => Alert.alert("Message", "Opening messaging...")}
+            />
             {testDetail.collectionType === "Home Sampling" && (
-              <TouchableOpacity style={styles.quickActionBtn} onPress={handleNavigate}>
-                <Ionicons name="navigate" size={20} color={colors.primary} />
-                <Text style={styles.quickActionText}>Navigate</Text>
-              </TouchableOpacity>
+              <QuickActionButton
+                icon="navigate"
+                label="Navigate"
+                onPress={handleNavigate}
+              />
             )}
           </View>
         </View>
@@ -302,26 +306,14 @@ const TestDetailScreen = () => {
       {/* Bottom Action Button */}
       {getNextActionLabel() && (
         <View style={styles.bottomAction}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: getStatusColor(getNextStatus()!) },
-            ]}
+          <AppButton
+            title={getNextActionLabel()!}
             onPress={handleUpdateStatus}
-          >
-            <Ionicons
-              name={
-                testDetail.status === "Report Ready"
-                  ? "send"
-                  : testDetail.status === "Confirmed"
-                  ? "checkmark-circle"
-                  : "arrow-forward"
-              }
-              size={20}
-              color={colors.white}
-            />
-            <Text style={styles.actionButtonText}>{getNextActionLabel()}</Text>
-          </TouchableOpacity>
+            containerStyle={{
+              ...styles.actionButton,
+              backgroundColor: getStatusColor(getNextStatus()!),
+            }}
+          />
         </View>
       )}
     </SafeAreaView>
@@ -450,22 +442,7 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: "row",
-    gap: 12,
-  },
-  quickActionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary + "15",
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
-  },
-  quickActionText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: colors.primary,
+    gap: 10,
   },
   collectionTypeRow: {
     flexDirection: "row",
@@ -549,7 +526,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: colors.white,
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 34,
     borderTopWidth: 1,
     borderTopColor: colors.background,
     elevation: 10,
@@ -559,16 +536,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 14,
-    gap: 10,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: colors.white,
   },
 });
