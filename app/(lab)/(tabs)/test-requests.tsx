@@ -147,7 +147,7 @@ const TestRequests = () => {
   });
 
   const typeFilterOptions: Array<{ label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-    { label: "All", icon: "apps" },
+    { label: "All", icon: "grid" },
     { label: "Home Sampling", icon: "home" },
     { label: "Lab Visit", icon: "business" },
   ];
