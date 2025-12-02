@@ -1,48 +1,46 @@
+import HomeHeader from "@/component/HomeHeader";
 import { colors, Fonts } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DashboardLayout() {
+  const insets = useSafeAreaInsets();
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray,
-        tabBarStyle: {
-            //  height:110,
-                  backgroundColor: colors.white,
-                  borderTopLeftRadius: 25,
-                  borderTopRightRadius: 25,
-                  borderTopWidth: 0,
-                  elevation: 20,
-                  shadowColor: colors.black,
-                  shadowOffset: {
-                    width: 0,
-                    height: -5,
-                  },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 15,
-                  position: 'absolute',
-                  paddingBottom: 10,
-                  paddingTop:5,
-        },
-        tabBarLabelStyle: {
-          fontFamily: Fonts.medium,
-          fontSize: 11,
-        },
-        headerStyle: {
-          backgroundColor: colors.white,
-        },
-        headerTintColor: colors.black,
-        headerTitleStyle: {
-          fontFamily: Fonts.bold,
-          fontSize: 18,
-        },
-        headerShadowVisible: false,
-        animation: "shift",
-      }}
-    >
+       <Tabs
+            screenOptions={{
+              tabBarActiveTintColor: colors.primary,
+              tabBarInactiveTintColor: colors.gray,
+              tabBarLabelStyle: {
+                fontSize: 12,
+                fontFamily: Fonts.semiBold,
+                marginBottom: 5,
+              },
+              tabBarStyle: {
+                backgroundColor: colors.white,
+                borderTopLeftRadius: 25,
+                borderTopRightRadius: 25,
+                borderTopWidth: 0,
+                elevation: 20,
+                shadowColor: colors.black,
+                shadowOffset: { width: 0, height: -5 },
+                shadowOpacity: 0.15,
+                shadowRadius: 15,
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                bottom: insets.bottom ? insets.bottom : 12,
+                height: 70,
+                paddingBottom: insets.bottom ? insets.bottom / 2 : 10,
+              },
+              tabBarItemStyle: { paddingVertical: 5 },
+              headerTitleAlign: 'center',
+              headerStyle: { backgroundColor: colors.white },
+              headerTintColor: colors.text,
+              headerShadowVisible: false,
+            }}
+          >
       <Tabs.Screen
         name="index"
         options={{
@@ -50,7 +48,20 @@ export default function DashboardLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? "grid" : "grid-outline"} size={size} color={color} />
           ),
-          headerShown: false,
+            header: () => (
+            <HomeHeader
+              title="Admin Dashboard"
+              subtitle="Manage users & complaints"
+              notificationCount={5}
+              showNotification={true}
+              // rightAction={
+              //   <TouchableOpacity  accessibilityLabel="Logout">
+                
+              //   </TouchableOpacity>
+              // }
+            />
+          ),
+    
         }}
       />
       <Tabs.Screen

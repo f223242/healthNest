@@ -3,10 +3,9 @@ import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const DeliveryProfile = () => {
@@ -22,27 +21,6 @@ const DeliveryProfile = () => {
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-          colors={[colors.primary, "#00B976", "#00D68F"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.headerGradient}
-      >
-        <View style={styles.profileHeader}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: "https://i.pravatar.cc/150?img=68" }}
-              style={styles.imageStyle}
-              resizeMode="cover"
-            />
-          </View>
-          <Text style={styles.userName}>{user?.email?.split("@")[0] || "Delivery Person"}</Text>
-          <Text style={styles.userEmail}>{user?.email || "delivery@example.com"}</Text>
-          <Text style={styles.roleBadge}>DELIVERY</Text>
-        </View>
-      </LinearGradient>
-
       {/* Body */}
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
@@ -108,54 +86,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F6FA",
-  },
-  headerGradient: {
-    paddingBottom: 30,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  profileHeader: {
-    alignItems: "center",
-    paddingTop: 12,
-  },
-  imageContainer: {
-    position: "relative",
-    marginBottom: 14,
-  },
-  imageStyle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 4,
-    borderColor: colors.white,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  userName: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  userEmail: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: "rgba(255, 255, 255, 0.9)",
-  },
-  roleBadge: {
-    marginTop: 8,
-    fontSize: 11,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: "hidden",
   },
   scrollContainer: {
     flexGrow: 1,

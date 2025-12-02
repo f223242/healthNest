@@ -1,4 +1,3 @@
-import AppButton from "@/component/AppButton";
 import FAQAccordion, { FAQItem } from "@/component/FAQAccordion";
 import { colors, Fonts } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -42,7 +41,12 @@ const HelpScreen = () => {
           <Text style={styles.subtitle}>
             We're here to assist you anytime
           </Text>
+                   <TouchableOpacity style={styles.contactButton}>
+                    <Ionicons name="call" size={18} color={colors.primary} />
+                    <Text style={styles.contactButtonText}>Contact Support</Text>
+                  </TouchableOpacity>
         </View>
+  
       </LinearGradient>
 
       {/* Scrollable Content */}
@@ -69,7 +73,7 @@ const HelpScreen = () => {
                   {[
                     { icon: "document-text-outline", title: "Terms of Service" },
                     { icon: "shield-checkmark-outline", title: "Privacy Policy" },
-                    { icon: "chatbubble-ellipses-outline", title: "Live Chat" },
+          
                     { icon: "mail-outline", title: "Email Support" },
                   ].map((item, index) => (
                     <TouchableOpacity key={index} style={styles.quickLinkItem}>
@@ -82,14 +86,6 @@ const HelpScreen = () => {
                   ))}
                 </View>
               </View>
-
-        {/* Button */}
-        <AppButton
-          title="Contact Support"
-          containerStyle={styles.supportBtn}
-          textStyle={styles.supportBtnText}
-          onPress={() => {}}
-        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -214,5 +210,20 @@ const styles = StyleSheet.create({
   },
     section: {
     marginBottom: 24,
+  },
+   contactButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    gap: 8,
+    marginTop:16,
+  },
+  contactButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
   },
 });

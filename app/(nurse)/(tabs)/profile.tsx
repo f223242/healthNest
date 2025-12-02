@@ -3,10 +3,9 @@ import ProfileOptions from "@/component/ProfileOptions";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const NurseProfile = () => {
@@ -22,27 +21,6 @@ const NurseProfile = () => {
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[colors.primary, "#00B976", "#00D68F"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.headerGradient}
-      >
-        <View style={styles.profileHeader}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg" }}
-              style={styles.imageStyle}
-              resizeMode="cover"
-            />
-          </View>
-
-          <Text style={styles.userName}>{user?.email?.split("@")[0] || "Nurse Name"}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-        </View>
-      </LinearGradient>
-
       {/* Body */}
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
@@ -115,51 +93,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
-  },
-
-  headerGradient: {
-    paddingBottom: 32,
-    paddingTop: 12,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-
-  profileHeader: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  imageContainer: {
-    position: "relative",
-    marginBottom: 14,
-  },
-
-  imageStyle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 3.5,
-    borderColor: colors.white,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-
-  userName: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginBottom: 2,
-    letterSpacing: 0.3,
-  },
-
-  userEmail: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: "rgba(255,255,255,0.95)",
-    marginBottom: 8,
   },
 
   scrollContainer: {
