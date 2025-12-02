@@ -1,4 +1,5 @@
 import AppButton from "@/component/AppButton";
+import ConfirmationModal from "@/component/ConfirmationModal";
 import QuickActionButton from "@/component/QuickActionButton";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,11 @@ interface TestDetail {
 const TestDetailScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+
+  // Modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Mock data - in real app, fetch based on id
   const [testDetail, setTestDetail] = useState<TestDetail>({
@@ -96,6 +102,10 @@ const TestDetailScreen = () => {
   };
 
   const handleUpdateStatus = () => {
+    setShowConfirmModal(true);
+  };
+
+  const confirmStatusUpdate = () => {
     const nextStatus = getNextStatus();
     if (!nextStatus) return;
 
@@ -107,20 +117,10 @@ const TestDetailScreen = () => {
       Sent: "Report sent to patient successfully!",
     };
 
-    Alert.alert(
-      "Update Status",
-      `Update status to "${nextStatus}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          onPress: () => {
-            setTestDetail({ ...testDetail, status: nextStatus });
-            Alert.alert("Success", actionMessages[nextStatus]);
-          },
-        },
-      ]
-    );
+    setTestDetail({ ...testDetail, status: nextStatus });
+    setShowConfirmModal(false);
+    setSuccessMessage(actionMessages[nextStatus]);
+    setShowSuccessModal(true);
   };
 
   const handleCall = () => {
@@ -316,6 +316,32 @@ const TestDetailScreen = () => {
           />
         </View>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmStatusUpdate}
+        title="Update Status"
+        message={`Are you sure you want to update status to "${getNextStatus()}"?`}
+        icon="swap-horizontal-outline"
+        variant="primary"
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
+
+      {/* Success Modal */}
+      <ConfirmationModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => setShowSuccessModal(false)}
+        title="Success!"
+        message={successMessage}
+        icon="checkmark-circle-outline"
+        variant="success"
+        confirmText="OK"
+        showCancelButton={false}
+      />
     </SafeAreaView>
   );
 };
