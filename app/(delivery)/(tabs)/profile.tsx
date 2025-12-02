@@ -5,7 +5,7 @@ import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const DeliveryProfile = () => {
@@ -20,9 +20,24 @@ const DeliveryProfile = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
+    <SafeAreaView edges={[ "bottom"]} style={styles.container}>
       {/* Body */}
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        
+        {/* User Profile Card */}
+        <View style={styles.profileCard}>
+          <Image
+            source={{ uri: "https://i.pravatar.cc/150?img=68" }}
+            style={styles.profileImage}
+          />
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "Delivery Person"}</Text>
+            <Text style={styles.profileEmail}>{user?.email || "delivery@healthnest.com"}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>DELIVERY</Text>
+            </View>
+          </View>
+        </View>
         
         {/* Account Settings */}
         <View style={styles.section}>
@@ -90,8 +105,57 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 120,
+  },
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 3,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  profileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  profileName: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  profileEmail: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginBottom: 6,
+  },
+  roleBadge: {
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  roleText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
   section: {
     marginBottom: 22,

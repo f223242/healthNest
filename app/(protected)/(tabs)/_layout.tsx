@@ -99,19 +99,14 @@ const _layout = () => {
         name="profile"
         options={{
           headerShown: true,
-          header: () => (
-            <HomeHeader
-              profileImage="https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg"
-              title="My Profile"
-              subtitle="Manage your account"
-              showGreeting={false}
-            />
-          ),
+          headerTitle: "Profile", 
           tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) =>
             focused ? <ProfileFilled /> : <ProfileUnfilled />,
         }}
+        
       />
+      
     </Tabs>
   );
 };

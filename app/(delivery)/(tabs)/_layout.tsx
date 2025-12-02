@@ -95,14 +95,7 @@ export default function DeliveryTabsLayout() {
         options={{
           title: 'Profile',
           headerShown: true,
-          header: () => (
-            <HomeHeader
-              profileImage="https://i.pravatar.cc/150?img=68"
-              title="My Profile"
-              subtitle="Manage your account"
-              showGreeting={false}
-            />
-          ),
+          headerTitle: "Profile",
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />

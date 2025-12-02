@@ -2,7 +2,7 @@ import ChatListComponent from '@/component/ChatListComponent';
 import { colors } from '@/constant/theme';
 import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CustomerChat {
@@ -93,13 +93,16 @@ const DeliveryChats = () => {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      <ChatListComponent
-        users={customers}
-        onChatPress={handleChatPress}
-        title="Customers"
-        showAIOption={true}
-        onAIChatPress={handleAIChatPress}
-      />
+      <View style={styles.listCard}>
+        <ChatListComponent
+          users={customers}
+          onChatPress={handleChatPress}
+          title="Customers"
+          showAIOption={true}
+          onAIChatPress={handleAIChatPress}
+          aiTitle="Chat with Tora AI Assistant"
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -110,5 +113,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  listCard: {
+    flex: 1,
+    backgroundColor: colors.white,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
 });

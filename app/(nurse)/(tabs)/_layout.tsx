@@ -113,15 +113,7 @@ export default function NurseLayout() {
         options={{
           title: 'Profile',
           headerShown: true,
-          header: () => (
-            <HomeHeader
-              profileImage="https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg"
-              title="My Profile"
-              subtitle="Manage your account"
-              showGreeting={false}
-            />
-          ),
-          headerStyle: { backgroundColor: 'transparent' },
+          headerTitle: "Profile", 
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
