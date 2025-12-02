@@ -1,3 +1,6 @@
+import { SearchIcon } from "@/assets/svg";
+import FilterChip from "@/component/FilterChip";
+import FormInput from "@/component/FormInput";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -6,7 +9,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -144,82 +146,68 @@ const TestRequests = () => {
     return matchesSearch && matchesFilter && matchesType;
   });
 
+  const typeFilterOptions: Array<{ label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { label: "All", icon: "apps" },
+    { label: "Home Sampling", icon: "home" },
+    { label: "Lab Visit", icon: "business" },
+  ];
+
+  const statusFilterOptions: Array<{ label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { label: "All", icon: "grid" },
+    { label: "New", icon: "alert-circle" },
+    { label: "Confirmed", icon: "checkmark-circle" },
+    { label: "Sample Collected", icon: "flask" },
+    { label: "Processing", icon: "hourglass" },
+  ];
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={colors.gray} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search patient or test..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={colors.gray}
-          />
-        </View>
-      </View>
+      <FormInput
+        LeftIcon={SearchIcon}
+        placeholder="Search patient or test..."
+        containerStyle={styles.searchInput}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
       {/* Type Filter (Home Sampling / Lab Visit) */}
-      <View style={styles.typeFilterContainer}>
-        {typeFilters.map((type) => (
-          <TouchableOpacity
-            key={type}
-            style={[
-              styles.typeFilterTab,
-              selectedType === type && styles.typeFilterTabActive,
-            ]}
-            onPress={() => setSelectedType(type)}
-          >
-            <Ionicons
-              name={
-                type === "Home Sampling"
-                  ? "home"
-                  : type === "Lab Visit"
-                  ? "business"
-                  : "apps"
-              }
-              size={16}
-              color={selectedType === type ? colors.white : colors.gray}
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.typeFilterContainer}
+        >
+          {typeFilterOptions.map((filter) => (
+            <FilterChip
+              key={filter.label}
+              label={filter.label}
+              icon={filter.icon}
+              isActive={selectedType === filter.label}
+              onPress={() => setSelectedType(filter.label)}
             />
-            <Text
-              style={[
-                styles.typeFilterText,
-                selectedType === type && styles.typeFilterTextActive,
-              ]}
-            >
-              {type}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          ))}
+        </ScrollView>
       </View>
 
       {/* Status Filter Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-      >
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterTab,
-              selectedFilter === filter && styles.filterTabActive,
-            ]}
-            onPress={() => setSelectedFilter(filter)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === filter && styles.filterTextActive,
-              ]}
-            >
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {statusFilterOptions.map((filter) => (
+            <FilterChip
+              key={filter.label}
+              label={filter.label}
+              icon={filter.icon}
+              isActive={selectedFilter === filter.label}
+              onPress={() => setSelectedFilter(filter.label)}
+            />
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Requests List */}
       <ScrollView
@@ -351,89 +339,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  searchContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
   searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    fontFamily: Fonts.regular,
-    color: colors.text,
+    marginHorizontal: sizes.paddingHorizontal,
+    marginTop: 16,
+    marginBottom: 8,
   },
   typeFilterContainer: {
-    flexDirection: "row",
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 8,
-    gap: 10,
-  },
-  typeFilterTab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    gap: 6,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  typeFilterTabActive: {
-    backgroundColor: colors.primary,
-  },
-  typeFilterText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.gray,
-  },
-  typeFilterTextActive: {
-    color: colors.white,
   },
   filterContainer: {
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 8,
-  },
-  filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    marginRight: 8,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  filterTabActive: {
-    backgroundColor: colors.primary,
-  },
-  filterText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.gray,
-  },
-  filterTextActive: {
-    color: colors.white,
   },
   scrollContent: {
     flexGrow: 1,

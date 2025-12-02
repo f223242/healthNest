@@ -1,3 +1,6 @@
+import { SearchIcon } from "@/assets/svg";
+import FilterChip from "@/component/FilterChip";
+import FormInput from "@/component/FormInput";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -7,7 +10,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -151,48 +153,42 @@ const Reports = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const filterOptions: Array<{ label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { label: "All", icon: "grid" },
+    { label: "Ready", icon: "checkmark-circle" },
+    { label: "Sent", icon: "paper-plane" },
+    { label: "Processing", icon: "hourglass" },
+  ];
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={colors.gray} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by patient, test or report ID..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={colors.gray}
-          />
-        </View>
-      </View>
+      <FormInput
+        LeftIcon={SearchIcon}
+        placeholder="Search by patient, test or report ID..."
+        containerStyle={styles.searchInput}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
       {/* Filter Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-      >
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterTab,
-              selectedFilter === filter && styles.filterTabActive,
-            ]}
-            onPress={() => setSelectedFilter(filter)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === filter && styles.filterTextActive,
-              ]}
-            >
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {filterOptions.map((filter) => (
+            <FilterChip
+              key={filter.label}
+              label={filter.label}
+              icon={filter.icon}
+              isActive={selectedFilter === filter.label}
+              onPress={() => setSelectedFilter(filter.label)}
+            />
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Reports List */}
       <ScrollView
@@ -330,57 +326,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  searchContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
   searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    fontFamily: Fonts.regular,
-    color: colors.text,
+    marginHorizontal: sizes.paddingHorizontal,
+    marginTop: 16,
+    marginBottom: 8,
   },
   filterContainer: {
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 10,
-  },
-  filterTab: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    marginRight: 10,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  filterTabActive: {
-    backgroundColor: colors.primary,
-  },
-  filterText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: colors.gray,
-  },
-  filterTextActive: {
-    color: colors.white,
   },
   scrollContent: {
     flexGrow: 1,
