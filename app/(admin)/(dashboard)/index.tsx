@@ -161,55 +161,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F9FA",
   },
-  header: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  greeting: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: "rgba(255, 255, 255, 0.9)",
-  },
-  adminName: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginTop: 4,
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  badge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: "#F44336",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-  },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 100,
@@ -217,6 +168,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     paddingHorizontal: sizes.paddingHorizontal,
+    
   },
   sectionHeader: {
     flexDirection: "row",

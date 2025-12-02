@@ -35,9 +35,6 @@ const TestRequests = () => {
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [selectedType, setSelectedType] = useState("All");
 
-  const filters = ["All", "New", "Confirmed", "Sample Collected", "Processing"];
-  const typeFilters = ["All", "Home Sampling", "Lab Visit"];
-
   const testRequests: TestRequest[] = [
     {
       id: "1",

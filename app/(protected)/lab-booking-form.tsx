@@ -1,12 +1,14 @@
 import { CalendarIcon, ClockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
+import ConfirmationModal from "@/component/ConfirmationModal";
 import FormInput from "@/component/FormInput";
+import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
+
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,23 +28,31 @@ const bookingSchema = Yup.object().shape({
     .email("Invalid email address")
     .required("Email is required"),
   phone: Yup.string()
-    .matches(/^[0-9]{10}$/, "Phone number must be 10 digits")
+    .matches(/^[0-9]{10,11}$/, "Phone number must be 10-11 digits")
     .required("Phone number is required"),
   age: Yup.number()
     .min(1, "Age must be greater than 0")
     .max(120, "Invalid age")
     .required("Age is required"),
-  address: Yup.string()
-    .min(10, "Address must be at least 10 characters")
-    .required("Address is required"),
-  city: Yup.string().required("City is required"),
-  zipCode: Yup.string()
-    .matches(/^[0-9]{5,6}$/, "Invalid zip code")
-    .required("Zip code is required"),
+  referringDoctor: Yup.string()
+    .min(2, "Doctor name must be at least 2 characters"),
   preferredDate: Yup.string().required("Preferred date is required"),
   preferredTime: Yup.string().required("Preferred time is required"),
   notes: Yup.string(),
 });
+
+// Home sampling specific schema
+const homeSamplingSchema = bookingSchema.concat(
+  Yup.object().shape({
+    address: Yup.string()
+      .min(10, "Address must be at least 10 characters")
+      .required("Address is required"),
+    city: Yup.string().required("City is required"),
+    zipCode: Yup.string()
+      .matches(/^[0-9]{5,6}$/, "Invalid zip code")
+      .required("Zip code is required"),
+  })
+);
 
 const LabBookingForm = () => {
   const router = useRouter();
@@ -55,6 +65,15 @@ const LabBookingForm = () => {
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+
+  // Calculate total amount
+  const totalAmount = services.reduce(
+    (sum: number, s: any) => sum + parseInt(s.price.replace("$", "")),
+    0
+  ) + (selectedTestType === "Home" ? 15 : 0);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -90,6 +109,7 @@ const LabBookingForm = () => {
       email: "",
       phone: "",
       age: "",
+      referringDoctor: "",
       address: "",
       city: "",
       zipCode: "",
@@ -97,20 +117,44 @@ const LabBookingForm = () => {
       preferredTime: "",
       notes: "",
     },
-    validationSchema: bookingSchema,
-    onSubmit: (values) => {
-      Alert.alert(
-        "Booking Confirmed!",
-        `Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`,
-        [
-          {
-            text: "OK",
-            onPress: () => router.push("/(protected)/(tabs)"),
-          },
-        ]
-      );
+    validationSchema: selectedTestType === "Home" ? homeSamplingSchema : bookingSchema,
+    onSubmit: () => {
+      // Show payment method modal instead of directly confirming
+      setShowPaymentModal(true);
     },
   });
+
+  // Check if form is valid for submission
+  const isFormValid = () => {
+    const baseFieldsFilled = 
+      formik.values.fullName.length >= 2 &&
+      formik.values.email.includes("@") &&
+      formik.values.phone.length >= 10 &&
+      formik.values.age !== "" &&
+      formik.values.preferredDate !== "" &&
+      formik.values.preferredTime !== "";
+
+    if (selectedTestType === "Home") {
+      return baseFieldsFilled &&
+        formik.values.address.length >= 10 &&
+        formik.values.city !== "" &&
+        formik.values.zipCode.length >= 5;
+    }
+
+    return baseFieldsFilled;
+  };
+
+  const handlePaymentConfirm = (paymentMethod: string, paymentDetails?: any) => {
+    setSelectedPaymentMethod(paymentMethod);
+    setShowPaymentModal(false);
+    // Show success modal after payment method selection
+    setShowSuccessModal(true);
+  };
+
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    router.push("/(protected)/(tabs)");
+  };
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
@@ -130,14 +174,16 @@ const LabBookingForm = () => {
                     </View>
                   ))}
                   <View style={styles.divider} />
+                  {selectedTestType === "Home" && (
+                    <View style={styles.serviceItem}>
+                      <Text style={styles.serviceName}>Home Collection Fee</Text>
+                      <Text style={styles.servicePrice}>$15</Text>
+                    </View>
+                  )}
                   <View style={styles.totalRow}>
                     <Text style={styles.totalLabel}>Total Amount:</Text>
                     <Text style={styles.totalAmount}>
-                      $
-                      {services.reduce(
-                        (sum: number, s: any) => sum + parseInt(s.price.replace("$", "")),
-                        0
-                      )}
+                      ${totalAmount}
                     </Text>
                   </View>
                 </View>
@@ -213,7 +259,7 @@ const LabBookingForm = () => {
                   onBlur={formik.handleBlur("phone")}
                   error={formik.touched.phone ? formik.errors.phone : undefined}
                   keyboardType="phone-pad"
-                  maxLength={10}
+                  maxLength={11}
                 />
                 <FormInput
                   placeholder="Age"
@@ -223,6 +269,18 @@ const LabBookingForm = () => {
                   error={formik.touched.age ? formik.errors.age : undefined}
                   keyboardType="number-pad"
                   maxLength={3}
+                />
+              </View>
+
+              {/* Referring Doctor */}
+              <View style={{...styles.section, gap:8}}>
+                <Text style={appStyles.sectionTitle}>Referring Doctor (Optional)</Text>
+                <FormInput
+                  placeholder="Enter doctor's name who referred you"
+                  value={formik.values.referringDoctor}
+                  onChangeText={formik.handleChange("referringDoctor")}
+                  onBlur={formik.handleBlur("referringDoctor")}
+                  error={formik.touched.referringDoctor ? formik.errors.referringDoctor : undefined}
                 />
               </View>
 
@@ -325,7 +383,7 @@ const LabBookingForm = () => {
               <AppButton
                 title="Confirm Booking"
                 onPress={formik.handleSubmit}
-                disabled={!formik.isValid || !formik.dirty}
+                disabled={!isFormValid()}
               />
             </View>
 
@@ -344,6 +402,26 @@ const LabBookingForm = () => {
               onConfirm={(time) => handleTimeConfirm(time, formik.setFieldValue)}
               onCancel={() => setTimePickerVisible(false)}
               date={selectedTime || new Date()}
+            />
+
+            {/* Payment Method Modal */}
+            <PaymentMethodModal
+              visible={showPaymentModal}
+              onClose={() => setShowPaymentModal(false)}
+              onConfirm={handlePaymentConfirm}
+              totalAmount={`$${totalAmount}`}
+            />
+
+            {/* Success Confirmation Modal */}
+            <ConfirmationModal
+              visible={showSuccessModal}
+              onClose={handleSuccessClose}
+              onConfirm={handleSuccessClose}
+              title="Booking Confirmed!"
+              message={`Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`}
+              confirmText="Done"
+              showCancelButton={false}
+              variant="success"
             />
     </SafeAreaView>
   );

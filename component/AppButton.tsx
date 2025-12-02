@@ -1,11 +1,11 @@
 import { colors } from "@/constant/theme";
 import React from "react";
 import {
-  StyleSheet,
-  Text,
-  TextStyle,
-  TouchableOpacity,
-  ViewStyle
+    StyleSheet,
+    Text,
+    TextStyle,
+    TouchableOpacity,
+    ViewStyle
 } from "react-native";
 type Props = {
   title: string;
@@ -13,7 +13,6 @@ type Props = {
   textStyle?: TextStyle;
   onPress?: () => void;
   disabled?: boolean;
-  loading?: boolean;
 };
 
 const AppButton = ({
@@ -22,8 +21,7 @@ const AppButton = ({
   textStyle,
   onPress,
   disabled,
-}: // loading,
-Props) => {
+}: Props) => {
   return (
    
       <TouchableOpacity
@@ -32,7 +30,7 @@ Props) => {
         disabled={disabled}
         activeOpacity={0.7}
       >
-        <Text style={[styles.buttonTextStyle, styles.buttonText]}>{title}</Text>
+        <Text style={[styles.buttonTextStyle, styles.buttonText, textStyle]}>{title}</Text>
       </TouchableOpacity>
    
   );

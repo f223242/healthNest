@@ -1,12 +1,12 @@
 import {
-  AppointmentFilled,
-  AppointmentUnfilled,
-  HomeFilled,
-  HomeUnfilled,
-  MedicalRecordFilled,
-  MedicalRecordUnfilled,
-  ProfileFilled,
-  ProfileUnfilled,
+    AppointmentFilled,
+    AppointmentUnfilled,
+    HomeFilled,
+    HomeUnfilled,
+    MedicalRecordFilled,
+    MedicalRecordUnfilled,
+    ProfileFilled,
+    ProfileUnfilled,
 } from "@/assets/svg";
 import HomeHeader from "@/component/HomeHeader";
 import { colors, Fonts } from "@/constant/theme";
@@ -23,9 +23,9 @@ const _layout = () => {
            tabBarActiveTintColor: colors.primary,
            tabBarInactiveTintColor: colors.gray,
            tabBarLabelStyle: {
-             fontSize: 12,
+             fontSize: 10,
              fontFamily: Fonts.semiBold,
-             marginBottom: 5,
+             marginTop: -2,
            },
            tabBarStyle: {
              backgroundColor: colors.white,
@@ -41,10 +41,17 @@ const _layout = () => {
              left: 12,
              right: 12,
              bottom: insets.bottom ? insets.bottom : 12,
-             height: 70,
-             paddingBottom: insets.bottom ? insets.bottom / 2 : 10,
+             height: 75,
+             paddingTop: 8,
+             paddingBottom: insets.bottom ? insets.bottom / 2 : 12,
            },
-           tabBarItemStyle: { paddingVertical: 5 },
+           tabBarItemStyle: { 
+             paddingVertical: 4,
+             height: 60,
+           },
+           tabBarIconStyle: {
+             marginBottom: 2,
+           },
            headerTitleAlign: 'center',
            headerStyle: { backgroundColor: colors.white },
            headerTintColor: colors.text,
@@ -68,17 +75,15 @@ const _layout = () => {
         name="appointment"
         options={{
           headerShown: true,
-          headerShadowVisible: false, 
-          headerTitle: "Appointments",
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-            color: colors.black,
-          },
-          headerStyle: {
-            backgroundColor: colors.white,
-          },
-          tabBarLabel: "Appointments",
+          header: () => (
+            <HomeHeader
+              title="Appointments"
+              subtitle="Manage your bookings"
+              showGreeting={false}
+              showNotification={true}
+            />
+          ),
+          tabBarLabel: "Bookings",
           tabBarIcon: ({ focused }) =>
             focused ? <AppointmentFilled /> : <AppointmentUnfilled />,
         }}
@@ -88,7 +93,16 @@ const _layout = () => {
       <Tabs.Screen
         name="madical-record"
         options={{
-          tabBarLabel: "Medical Records",
+          headerShown: true,
+          header: () => (
+            <HomeHeader
+              title="Medical Records"
+              subtitle="View your lab reports & prescriptions"
+              showGreeting={false}
+              showNotification={true}
+            />
+          ),
+          tabBarLabel: "Records",
           tabBarIcon: ({ focused }) =>
             focused ? <MedicalRecordFilled /> : <MedicalRecordUnfilled />,
         }}
@@ -99,12 +113,18 @@ const _layout = () => {
         name="profile"
         options={{
           headerShown: true,
-          headerTitle: "Profile", 
+          header: () => (
+            <HomeHeader
+              title="Profile"
+              subtitle="Manage your account"
+              showGreeting={false}
+              showNotification={false}
+            />
+          ),
           tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) =>
             focused ? <ProfileFilled /> : <ProfileUnfilled />,
         }}
-        
       />
       
     </Tabs>

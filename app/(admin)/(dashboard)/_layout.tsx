@@ -68,6 +68,14 @@ export default function DashboardLayout() {
         name="users"
         options={{
           title: "Users",
+          header: () => (
+            <HomeHeader
+              title="Users Management"
+              subtitle="Manage all registered users"
+              showGreeting={false}
+              showNotification={false}
+            />
+          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />
           ),
@@ -77,6 +85,14 @@ export default function DashboardLayout() {
         name="complaints"
         options={{
           title: "Complaints",
+          header: () => (
+            <HomeHeader
+              title="Complaints"
+              subtitle="Review and manage user complaints"
+              showGreeting={false}
+              showNotification={false}
+            />
+          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? "chatbox-ellipses" : "chatbox-ellipses-outline"} size={size} color={color} />
           ),
@@ -86,6 +102,14 @@ export default function DashboardLayout() {
         name="settings"
         options={{
           title: "Settings",
+          header: () => (
+            <HomeHeader
+              title="Settings"
+              subtitle="Configure app preferences"
+              showGreeting={false}
+              showNotification={false}
+            />
+          ),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? "settings" : "settings-outline"} size={size} color={color} />
           ),
