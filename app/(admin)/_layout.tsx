@@ -37,6 +37,11 @@ export default function AdminLayout() {
         headerShown:true,
         headerShadowVisible:false,
       }} />
+      <Stack.Screen name="about" options={{
+        headerTitle:"About App",
+        headerShown:true,
+        headerShadowVisible:false,
+      }} />
     </Stack>
   );
 }
