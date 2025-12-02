@@ -2,18 +2,20 @@ import LogoutModal from "@/component/ModalComponent/LogoutModal";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useContext";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SettingsScreen = () => {
+  const router=useRouter();
   const { logout } = useAuthContext();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -58,14 +60,14 @@ const SettingsScreen = () => {
           label: "Admin Profile",
           description: "View and edit your profile",
           type: "navigation" as const,
-          onPress: () => {},
+          onPress: () => {router.push('/(admin)/edit-profile')},
         },
         {
           icon: "key" as const,
           label: "Change Password",
           description: "Update your password",
           type: "navigation" as const,
-          onPress: () => {},
+          onPress: () => {router.push('/(admin)/change-password')},
         },
       ],
     },
@@ -73,18 +75,11 @@ const SettingsScreen = () => {
       title: "Support",
       items: [
         {
-          icon: "help-circle" as const,
-          label: "Help & FAQ",
-          description: "Get help and view FAQs",
-          type: "navigation" as const,
-          onPress: () => {},
-        },
-        {
           icon: "information-circle" as const,
           label: "About",
           description: "App version and information",
           type: "navigation" as const,
-          onPress: () => {},
+          onPress: () => {router.push('/(admin)/about')},
         },
       ],
     },
