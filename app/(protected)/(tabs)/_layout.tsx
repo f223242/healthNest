@@ -51,7 +51,7 @@ const _layout = () => {
         name="index"
         options={{
           headerShown: true,
-          header: () => <HomeHeader notificationCount={5} />,
+          header: () => <HomeHeader  notificationCount={5} />,
           tabBarLabel: "Home",
           tabBarIcon: ({ focused }) =>
             focused ? <HomeFilled /> : <HomeUnfilled />,

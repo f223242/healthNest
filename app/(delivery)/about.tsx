@@ -11,10 +11,10 @@ const About = () => {
   };
 
   const features = [
-    { icon: "people", title: "Patient Management", description: "Manage patient records efficiently" },
-    { icon: "chatbubbles", title: "Real-time Chat", description: "Communicate with patients instantly" },
-    { icon: "calendar", title: "Appointments", description: "Schedule and manage appointments" },
-    { icon: "shield-checkmark", title: "Secure & Private", description: "HIPAA compliant data security" },
+    { icon: "chatbubbles", title: "Real-time Chat", description: "Communicate with customers instantly" },
+    { icon: "notifications", title: "Push Notifications", description: "Stay updated on new orders" },
+    { icon: "location", title: "GPS Navigation", description: "Easy navigation to delivery locations" },
+    { icon: "shield-checkmark", title: "Secure Payments", description: "Safe and secure transactions" },
   ];
 
   return (
@@ -28,10 +28,10 @@ const About = () => {
           style={styles.appCard}
         >
           <View style={styles.logoContainer}>
-            <Ionicons name="medkit" size={40} color={colors.primary} />
+            <Ionicons name="medical" size={40} color={colors.primary} />
           </View>
           <Text style={styles.appName}>HealthNest</Text>
-          <Text style={styles.appTagline}>Nurse Care App</Text>
+          <Text style={styles.appTagline}>Delivery Partner App</Text>
           <View style={styles.versionBadge}>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>
@@ -42,10 +42,10 @@ const About = () => {
           <Text style={styles.sectionTitle}>About HealthNest</Text>
           <View style={styles.descriptionCard}>
             <Text style={styles.descriptionText}>
-              HealthNest is an all-in-one healthcare platform designed for nurses to efficiently manage patient care, communicate seamlessly, and streamline daily nursing tasks.
+              HealthNest Delivery is your trusted partner for medical deliveries. Our app connects delivery partners with customers who need timely delivery of medicines and healthcare products.
             </Text>
             <Text style={styles.descriptionText}>
-              We empower nurses with the tools they need to provide exceptional care while maintaining work-life balance.
+              We ensure safe, secure, and efficient delivery of healthcare essentials right to customers' doorsteps.
             </Text>
           </View>
         </View>

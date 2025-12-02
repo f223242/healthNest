@@ -99,7 +99,6 @@ const DeliveryChats = () => {
         title="Customers"
         showAIOption={true}
         onAIChatPress={handleAIChatPress}
-        aiTitle="Chat with Tora AI for Support"
       />
     </SafeAreaView>
   );
@@ -110,6 +109,6 @@ export default DeliveryChats;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background,
   },
 });
