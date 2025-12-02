@@ -32,8 +32,6 @@ const Reports = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
 
-  const filters = ["All", "Ready", "Sent", "Processing"];
-
   const reports: Report[] = [
     {
       id: "1",

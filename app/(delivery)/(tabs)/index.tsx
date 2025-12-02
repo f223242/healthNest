@@ -1,75 +1,87 @@
+import DashboardStatCard from '@/component/DashboardStatCard';
+import QuickActionCard from '@/component/QuickActionCard';
 import { colors, Fonts } from '@/constant/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Simple stat card for chat-based stats
-interface ChatStatProps {
-  title: string;
-  value: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-}
-
-const ChatStat: React.FC<ChatStatProps> = ({ title, value, icon, color }) => (
-  <View style={[styles.chatStatCard, { borderLeftColor: color }]}>
-    <View style={[styles.chatStatIcon, { backgroundColor: color + '20' }]}>
-      <Ionicons name={icon} size={22} color={color} />
-    </View>
-    <View>
-      <Text style={styles.chatStatValue}>{value}</Text>
-      <Text style={styles.chatStatTitle}>{title}</Text>
-    </View>
-  </View>
-);
 
 const DeliveryDashboard = () => {
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
+      {/* Scrollable Content */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Chat Stats - Only Active Chats and Unread */}
-        <View style={styles.statsRow}>
-          <ChatStat title="Active Chats" value="5" icon="chatbubbles" color={colors.primary} />
-          <ChatStat title="Unread" value="3" icon="mail-unread" color={colors.primary} />
+
+        {/* Stats Overview */}
+        <View style={styles.statsContainer}>
+          <DashboardStatCard
+            title="Total Deliveries"
+            value="18"
+            icon="bicycle"
+            color={colors.primary}
+            trend="+8%"
+          />
+       
         </View>
 
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}>
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '20' }]}>
-                <Ionicons name="chatbubbles" size={24} color={colors.primary} />
-              </View>
-              <Text style={styles.quickActionLabel}>Chats</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/(delivery)/(tabs)/profile')}>
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '20' }]}>
-                <Ionicons name="person" size={24} color={colors.primary} />
-              </View>
-              <Text style={styles.quickActionLabel}>Profile</Text>
-            </TouchableOpacity>
-          </View>
+          <QuickActionCard
+            title="Customer Chats"
+            subtitle="View and respond to messages"
+            icon="chatbubbles"
+            color={colors.primary}
+            onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}
+          />
+        
         </View>
 
-        {/* Empty State Info */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoIconContainer}>
-            <Ionicons name="information-circle" size={28} color={colors.primary} />
+        {/* Recent Activity */}
+        <View style={styles.recentActivityContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Chat-Based System</Text>
-            <Text style={styles.infoDescription}>
-              Use the Chats tab to communicate with customers about their deliveries. All order updates and inquiries can be handled through chat.
-            </Text>
+
+          <View style={styles.activityList}>
+            {[
+              {
+                icon: 'chatbubble-ellipses',
+                color: colors.primary,
+                title: 'New message from Ali Hassan',
+                time: '5 min ago',
+              },
+             
+            ].map((activity, index) => (
+              <View key={index} style={styles.activityItem}>
+                <View
+                  style={[
+                    styles.activityIcon,
+                    { backgroundColor: activity.color + '20' },
+                  ]}
+                >
+                  <Ionicons
+                    name={activity.icon as any}
+                    size={20}
+                    color={activity.color}
+                  />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>{activity.title}</Text>
+                  <Text style={styles.activityTime}>{activity.time}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -82,120 +94,73 @@ export default DeliveryDashboard;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: 20,
+    paddingTop: 10,
     paddingBottom: 100,
   },
-  statsRow: {
-    flexDirection: 'row',
+  statsContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 24,
     gap: 12,
-    marginBottom: 20,
-  },
-  chatStatCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 14,
-    borderLeftWidth: 4,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    gap: 12,
-  },
-  chatStatIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chatStatValue: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: colors.text,
-  },
-  chatStatTitle: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  quickActionsContainer: {
-    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: Fonts.bold,
     color: colors.text,
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  quickActionsRow: {
+  sectionHeader: {
     flexDirection: 'row',
-    gap: 14,
-  },
-  quickActionBtn: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 14,
-    paddingVertical: 18,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    marginBottom: 16,
   },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickActionLabel: {
+  viewAllText: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
-    color: colors.text,
+    color: colors.primary,
   },
-  infoCard: {
+  quickActionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  recentActivityContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  activityList: {
+    gap: 12,
+  },
+  activityItem: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    gap: 14,
+    borderRadius: 12,
+    padding: 12,
   },
-  infoIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary + '15',
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
-  infoContent: {
+  activityContent: {
     flex: 1,
   },
-  infoTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
+  activityTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  infoDescription: {
-    fontSize: 13,
+  activityTime: {
+    fontSize: 12,
     fontFamily: Fonts.regular,
-    color: colors.gray,
-    lineHeight: 18,
+    color: colors.textSecondary,
   },
 });

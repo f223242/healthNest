@@ -1,9 +1,10 @@
-import { NurseIcon, SearchIcon } from "@/assets/svg";
+import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
 import LabCard from "@/component/LabCard";
 import ServiceCard from "@/component/ServiceCard";
 import StatCard from "@/component/StatCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -70,7 +71,7 @@ const index = () => {
       id: 1,
       title: "Lab Tests",
       description: "Book diagnostic tests",
-      icon: "🔬",
+      icon: <Ionicons name="flask" size={28} color={colors.primary} />,
       color: "#E8F5F0",
       onPress: handleLabPress,
     },
@@ -78,7 +79,7 @@ const index = () => {
       id: 2,
       title: "Medicine",
       description: "Order medications",
-      icon: "💊",
+      icon: <Ionicons name="medkit" size={28} color={colors.primary} />,
       color: "#FFF4E6",
       onPress: handleRequestMedicine,
     },
@@ -86,7 +87,7 @@ const index = () => {
      id: 3,
      title:"Nursing Services",
      description:"Book nursing care",
-     icon:<NurseIcon width={28} height={28} />,
+     icon:<Ionicons name="people" size={28} color={colors.primary} />,
      color:"#F3E8FF",
      onPress:handleNursingServices
     },
@@ -94,7 +95,7 @@ const index = () => {
       id: 4,
       title: "AI Assistant",
       description: "Chat with Tora",
-      icon: "🤖",
+      icon: <Ionicons name="chatbubbles" size={28} color={colors.primary} />,
       color: "#E6F3FF",
       onPress: handleAIAssistant,
     },
@@ -108,7 +109,12 @@ const index = () => {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+      >
         {/* Search Bar */}
         <FormInput
           LeftIcon={SearchIcon}
@@ -117,13 +123,6 @@ const index = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        enableOnAndroid={true}
-      >
-        
 
 
         {/* Stats Cards */}
@@ -212,26 +211,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingBottom: 120,
-  },
-  headerSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: colors.white,
-  },
-  greetingText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  userName: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-    marginTop: 4,
   },
   searchInput: {
     marginHorizontal: sizes.paddingHorizontal,
