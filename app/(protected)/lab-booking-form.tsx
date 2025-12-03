@@ -1,17 +1,18 @@
 import { CalendarIcon, ClockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
+import ConfirmationModal from "@/component/ConfirmationModal";
 import FormInput from "@/component/FormInput";
+import PaymentMethodModal from "@/component/PaymentMethodModal";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -55,6 +56,15 @@ const LabBookingForm = () => {
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+
+  // Calculate total amount
+  const totalAmount = services.reduce(
+    (sum: number, s: any) => sum + parseInt(s.price.replace("$", "")),
+    0
+  ) + (selectedTestType === "Home" ? 15 : 0);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -98,19 +108,23 @@ const LabBookingForm = () => {
       notes: "",
     },
     validationSchema: bookingSchema,
-    onSubmit: (values) => {
-      Alert.alert(
-        "Booking Confirmed!",
-        `Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`,
-        [
-          {
-            text: "OK",
-            onPress: () => router.push("/(protected)/(tabs)"),
-          },
-        ]
-      );
+    onSubmit: () => {
+      // Show payment method modal instead of directly confirming
+      setShowPaymentModal(true);
     },
   });
+
+  const handlePaymentConfirm = (paymentMethod: string) => {
+    setSelectedPaymentMethod(paymentMethod);
+    setShowPaymentModal(false);
+    // Show success modal after payment method selection
+    setShowSuccessModal(true);
+  };
+
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    router.push("/(protected)/(tabs)");
+  };
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
@@ -130,14 +144,16 @@ const LabBookingForm = () => {
                     </View>
                   ))}
                   <View style={styles.divider} />
+                  {selectedTestType === "Home" && (
+                    <View style={styles.serviceItem}>
+                      <Text style={styles.serviceName}>Home Collection Fee</Text>
+                      <Text style={styles.servicePrice}>$15</Text>
+                    </View>
+                  )}
                   <View style={styles.totalRow}>
                     <Text style={styles.totalLabel}>Total Amount:</Text>
                     <Text style={styles.totalAmount}>
-                      $
-                      {services.reduce(
-                        (sum: number, s: any) => sum + parseInt(s.price.replace("$", "")),
-                        0
-                      )}
+                      ${totalAmount}
                     </Text>
                   </View>
                 </View>
@@ -344,6 +360,26 @@ const LabBookingForm = () => {
               onConfirm={(time) => handleTimeConfirm(time, formik.setFieldValue)}
               onCancel={() => setTimePickerVisible(false)}
               date={selectedTime || new Date()}
+            />
+
+            {/* Payment Method Modal */}
+            <PaymentMethodModal
+              visible={showPaymentModal}
+              onClose={() => setShowPaymentModal(false)}
+              onConfirm={handlePaymentConfirm}
+              totalAmount={`$${totalAmount}`}
+            />
+
+            {/* Success Confirmation Modal */}
+            <ConfirmationModal
+              visible={showSuccessModal}
+              onClose={handleSuccessClose}
+              onConfirm={handleSuccessClose}
+              title="Booking Confirmed!"
+              message={`Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`}
+              confirmText="Done"
+              showCancelButton={false}
+              variant="success"
             />
     </SafeAreaView>
   );
