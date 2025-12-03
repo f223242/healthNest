@@ -17,12 +17,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type RecordType = "All" | "Lab Reports" | "Prescriptions" | "Imaging";
+type RecordType = "All" | "Lab Reports" | "Prescriptions";
 type RecordStatus = "New" | "Viewed";
 
 interface MedicalRecord {
   id: string;
-  type: "Lab Report" | "Prescription" | "Imaging";
+  type: "Lab Report" | "Prescription";
   title: string;
   provider: string;
   providerImage: string;
@@ -85,6 +85,18 @@ const medicalRecordsData: MedicalRecord[] = [
   },
   {
     id: "5",
+    type: "Lab Report",
+    title: "Liver Function Test (LFT)",
+    provider: "Quest Diagnostics",
+    providerImage: "https://img.freepik.com/free-photo/scientist-laboratory-analyzing-blood-sample_23-2148810467.jpg",
+    date: "Nov 12, 2025",
+    status: "Viewed",
+    doctor: "Dr. Fatima Noor",
+    reportId: "RPT-2024-005",
+    testCount: 10,
+  },
+  {
+    id: "6",
     type: "Prescription",
     title: "Medication Prescription",
     provider: "City Hospital",
@@ -93,17 +105,6 @@ const medicalRecordsData: MedicalRecord[] = [
     status: "Viewed",
     doctor: "Dr. Michael Chen",
     reportId: "PRE-2024-001",
-  },
-  {
-    id: "6",
-    type: "Imaging",
-    title: "Chest X-Ray",
-    provider: "Radiology Center",
-    providerImage: "https://img.freepik.com/free-photo/medical-technology-lab-science_23-2148896574.jpg",
-    date: "Nov 10, 2025",
-    status: "Viewed",
-    doctor: "Dr. Ali Hassan",
-    reportId: "IMG-2024-001",
   },
 ];
 
@@ -116,7 +117,6 @@ const MedicalRecord = () => {
     { label: "All", icon: "grid" },
     { label: "Lab Reports", icon: "flask" },
     { label: "Prescriptions", icon: "document-text" },
-    { label: "Imaging", icon: "scan" },
   ];
 
   const filteredRecords = medicalRecordsData
@@ -129,8 +129,7 @@ const MedicalRecord = () => {
       const matchesFilter =
         selectedFilter === "All" ||
         (selectedFilter === "Lab Reports" && record.type === "Lab Report") ||
-        (selectedFilter === "Prescriptions" && record.type === "Prescription") ||
-        (selectedFilter === "Imaging" && record.type === "Imaging");
+        (selectedFilter === "Prescriptions" && record.type === "Prescription");
 
       return matchesSearch && matchesFilter;
     })
@@ -142,8 +141,6 @@ const MedicalRecord = () => {
         return "flask";
       case "Prescription":
         return "document-text";
-      case "Imaging":
-        return "scan";
       default:
         return "document";
     }
@@ -155,8 +152,6 @@ const MedicalRecord = () => {
         return colors.primary;
       case "Prescription":
         return "#FF9800";
-      case "Imaging":
-        return "#2196F3";
       default:
         return colors.gray;
     }
