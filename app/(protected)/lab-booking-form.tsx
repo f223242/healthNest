@@ -2,17 +2,18 @@ import { CalendarIcon, ClockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import ConfirmationModal from "@/component/ConfirmationModal";
 import FormInput from "@/component/FormInput";
-import PaymentMethodModal from "@/component/PaymentMethodModal";
+import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
+
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";

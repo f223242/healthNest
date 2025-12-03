@@ -2,16 +2,16 @@ import { colors, Fonts } from "@/constant/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import AppButton from "./AppButton";
+import AppButton from "../AppButton";
 
 type PaymentMethod = "cash" | "card" | "jazzcash" | "easypaisa" | "bank" | "pay_later";
 
