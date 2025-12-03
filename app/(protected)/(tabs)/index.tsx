@@ -212,26 +212,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 120,
   },
-  headerSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: colors.white,
-  },
-  greetingText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  userName: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-    marginTop: 4,
-  },
   searchInput: {
     marginHorizontal: sizes.paddingHorizontal,
     marginTop: 16,

@@ -5,13 +5,12 @@ import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -106,7 +105,6 @@ const appointmentsData: Appointment[] = [
 ];
 
 const Appointment = () => {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<AppointmentStatus>("All");
 

@@ -115,6 +115,14 @@ export default function LabTabsLayout() {
         options={{
           title: 'Profile',
           headerShown: true,
+          header: () => (
+            <HomeHeader
+              title="Profile"
+              subtitle="Manage your account"
+              showGreeting={false}
+              showNotification={false}
+            />
+          ),
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />

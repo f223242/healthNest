@@ -75,16 +75,14 @@ const _layout = () => {
         name="appointment"
         options={{
           headerShown: true,
-          headerShadowVisible: false, 
-          headerTitle: "Appointments",
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-            color: colors.black,
-          },
-          headerStyle: {
-            backgroundColor: colors.white,
-          },
+          header: () => (
+            <HomeHeader
+              title="Appointments"
+              subtitle="Manage your bookings"
+              showGreeting={false}
+              showNotification={true}
+            />
+          ),
           tabBarLabel: "Bookings",
           tabBarIcon: ({ focused }) =>
             focused ? <AppointmentFilled /> : <AppointmentUnfilled />,
@@ -96,16 +94,14 @@ const _layout = () => {
         name="madical-record"
         options={{
           headerShown: true,
-          headerShadowVisible: false,
-          headerTitle: "Medical Records",
-          headerTitleStyle: {
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-            color: colors.black,
-          },
-          headerStyle: {
-            backgroundColor: colors.white,
-          },
+          header: () => (
+            <HomeHeader
+              title="Medical Records"
+              subtitle="View your lab reports & prescriptions"
+              showGreeting={false}
+              showNotification={true}
+            />
+          ),
           tabBarLabel: "Records",
           tabBarIcon: ({ focused }) =>
             focused ? <MedicalRecordFilled /> : <MedicalRecordUnfilled />,
@@ -117,12 +113,18 @@ const _layout = () => {
         name="profile"
         options={{
           headerShown: true,
-          headerTitle: "Profile", 
+          header: () => (
+            <HomeHeader
+              title="Profile"
+              subtitle="Manage your account"
+              showGreeting={false}
+              showNotification={false}
+            />
+          ),
           tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) =>
             focused ? <ProfileFilled /> : <ProfileUnfilled />,
         }}
-        
       />
       
     </Tabs>

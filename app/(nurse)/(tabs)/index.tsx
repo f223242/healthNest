@@ -1,15 +1,14 @@
 import { colors, Fonts } from '@/constant/theme';
-import { useAuthContext } from '@/hooks/useContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -76,10 +75,6 @@ const QuickAction: React.FC<QuickActionProps> = ({
 );
 
 const NurseDashboard = () => {
-  const { user, logout } = useAuthContext();
-  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
     
@@ -211,150 +206,17 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 100,
   },
-  headerGradient: {
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    paddingBottom: 30,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  greeting: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.white + 'CC',
-  },
-  userName: {
-    fontSize: 26,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  dateTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dateTimeText: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: colors.white + 'CC',
-  },
-  notificationButton: {
-    position: 'relative',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoutButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.danger,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationBadgeText: {
-    fontSize: 10,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
-  },
   statsContainer: {
     paddingHorizontal: 20,
-    marginTop: 30,
+    marginTop: 20,
     marginBottom: 24,
     gap: 12,
-  },
-  scheduleContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  scheduleCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    gap: 12,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.success,
-    marginTop: 4,
-  },
-  scheduleContent: {
-    flex: 1,
-  },
-  scheduleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  scheduleTime: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontFamily: Fonts.semiBold,
-  },
-  scheduleTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    color: colors.text,
-    marginBottom: 6,
-  },
-  scheduleLocation: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: colors.textSecondary,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: Fonts.bold,
     color: colors.text,
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -366,9 +228,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
-  },
-  statsGrid: {
-    gap: 12,
   },
   statCard: {
     flexDirection: 'row',
