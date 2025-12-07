@@ -1,6 +1,6 @@
 import DeleteAccountModal from "@/component/ModalComponent/DeleteAccountModal";
 import { colors, Fonts, sizes } from "@/constant/theme";
-import { useAuthContext } from "@/hooks/useContext";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
 import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";

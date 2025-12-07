@@ -94,7 +94,10 @@ const FormInput: React.FC<FormInputProps> = ({
   }, [error]);
   
   return (
-    <>
+    <View style={styles.wrapper}>
+      {label && (
+        <Text style={styles.labelText}>{label}</Text>
+      )}
       <Animated.View
         style={[
           styles.container,
@@ -177,19 +180,27 @@ const FormInput: React.FC<FormInputProps> = ({
           <Text style={[appStyles.errorStyle, styles.errorText]}>{error}</Text>
         </Animated.View>
       )}
-    </>
+    </View>
   );
 };
 
 export default FormInput;
 
 const styles = StyleSheet.create({
+  wrapper: {
+    marginTop: 15,
+  },
+  labelText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+    marginBottom: 8,
+  },
   container: {
     borderRadius: 12,
     backgroundColor: "#E5F5F0",
     height: 56,
     justifyContent: "center",
-    // backgroundColor: "blue",
   },
   multilineContainer: {
     height: "auto",

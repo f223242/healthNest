@@ -1,16 +1,16 @@
 import AdminTable, { TableColumn } from "@/component/admin/AdminTable";
 import FormInput from "@/component/FormInput";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -90,6 +90,8 @@ const ComplaintsManagement = () => {
       priority: "High",
     },
   ];
+
+  const toast = useToast();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -374,7 +376,7 @@ const ComplaintsManagement = () => {
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.success }]}
                     onPress={() => {
-                      Alert.alert("Success", "Complaint resolved");
+                      toast.success("Complaint resolved");
                       setShowDetailModal(false);
                     }}
                   >
@@ -383,7 +385,7 @@ const ComplaintsManagement = () => {
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.danger }]}
                     onPress={() => {
-                      Alert.alert("Success", "Complaint rejected");
+                      toast.success("Complaint rejected");
                       setShowDetailModal(false);
                     }}
                   >

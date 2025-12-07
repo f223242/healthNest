@@ -10,6 +10,7 @@ export const sizes = {
 
 export const colors = {
   primary: "#009963",
+  secondary: "#246BFD",
   white: "#FFFFFF",
   black: "#000000",
   colors: ["#167738", "#246BFD"] as const,

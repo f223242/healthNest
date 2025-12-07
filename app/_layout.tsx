@@ -1,5 +1,6 @@
+import { ToastProvider } from "@/component/Toast/ToastProvider";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { AuthProvider, useAuthContext } from "@/hooks/useContext";
+import { AuthProvider, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
@@ -25,9 +26,11 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 
@@ -36,58 +39,48 @@ function RootNavigator() {
   const segments = useSegments();
   const router = useRouter();
 
+  const inAuthGroup = segments[0] === "(auth)";
+  const inProtectedGroup = segments[0] === "(protected)";
+  const inAdminGroup = segments[0] === "(admin)";
+  const inNurseGroup = segments[0] === "(nurse)";
+  const inDeliveryGroup = segments[0] === "(delivery)";
+  const inLabGroup = segments[0] === "(lab)";
+
+  // Role-based navigation using useEffect
   useEffect(() => {
-    if (isLoading) return; // Don't navigate while loading user data
-
-    const inAuthGroup = segments[0] === "(auth)";
-    const inProtectedGroup = segments[0] === "(protected)";
-    const inAdminGroup = segments[0] === "(admin)";
-    const inNurseGroup = segments[0] === "(nurse)";
-    const inDeliveryGroup = segments[0] === "(delivery)";
-    const inLabGroup = segments[0] === "(lab)";
-
-    console.log("User:", user);
-    console.log("Current segment:", segments[0]);
-    console.log("User role:", user?.role);
+    if (isLoading) return;
 
     if (user) {
-      // Check user role and redirect accordingly
-      if (user.role === "admin") {
-        if (!inAdminGroup) {
-          console.log("Redirecting to admin dashboard");
-          router.replace("/(admin)/(dashboard)" as any);
-        }
-      } else if (user.role === "nurse") {
-        if (!inNurseGroup) {
-          console.log("Redirecting to nurse chats");
-          router.replace("/(nurse)/nurse-chats" as any);
-        }
-      } else if (user.role === "delivery") {
-        if (!inDeliveryGroup) {
-          console.log("Redirecting to delivery chats");
-          router.replace("/(delivery)/delivery-chats" as any);
-        }
-      } else if (user.role === "lab") {
-        if (!inLabGroup) {
-          console.log("Redirecting to lab dashboard");
-          router.replace("/(lab)/(tabs)" as any);
-        }
-      } else if (user.role === "user") {
-        if (!inProtectedGroup) {
-          console.log("Redirecting to user tabs");
-          router.replace("/(protected)/(tabs)");
-        }
-      } else if (!user.role) {
-        // User without role (backward compatibility) - redirect to protected
-        if (!inProtectedGroup) {
-          console.log("Redirecting to user tabs (no role)");
-          router.replace("/(protected)/(tabs)");
-        }
+      // Admin role
+      if (user.role === "admin" && !inAdminGroup) {
+        router.replace("/(admin)/(dashboard)" as any);
+        return;
       }
-    } else if (!user && !inAuthGroup) {
-      // User not logged in and not in auth screens - redirect to auth
-      console.log("Redirecting to auth");
-      router.replace("/(auth)");
+      // Nurse role
+      if (user.role === "nurse" && !inNurseGroup) {
+        router.replace("/(nurse)/(tabs)" as any);
+        return;
+      }
+      // Delivery role
+      if (user.role === "delivery" && !inDeliveryGroup) {
+        router.replace("/(delivery)/(tabs)" as any);
+        return;
+      }
+      // Lab role
+      if (user.role === "lab" && !inLabGroup) {
+        router.replace("/(lab)/(tabs)" as any);
+        return;
+      }
+      // User role (default)
+      if ((user.role === "user" || !user.role) && !inProtectedGroup) {
+        router.replace("/(protected)/(tabs)" as any);
+        return;
+      }
+    } else {
+      // Not logged in - redirect to auth
+      if (!inAuthGroup) {
+        router.replace("/(auth)" as any);
+      }
     }
   }, [user, isLoading, segments]);
 

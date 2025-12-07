@@ -1,22 +1,23 @@
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ComplainToAdmin = () => {
   const router = useRouter();
+  const toast = useToast();
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
@@ -31,24 +32,21 @@ const ComplainToAdmin = () => {
 
   const handleSubmit = () => {
     if (!subject.trim()) {
-      Alert.alert("Error", "Please enter a subject");
+      toast.error("Please enter a subject");
       return;
     }
     if (!category) {
-      Alert.alert("Error", "Please select a category");
+      toast.error("Please select a category");
       return;
     }
     if (!message.trim()) {
-      Alert.alert("Error", "Please describe your complaint");
+      toast.error("Please describe your complaint");
       return;
     }
 
     // Handle complaint submission
-    Alert.alert(
-      "Success",
-      "Your complaint has been submitted. Our admin team will review it shortly.",
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+    toast.success("Your complaint has been submitted. Our admin team will review it shortly.");
+    setTimeout(() => router.back(), 2000);
   };
 
   return (
