@@ -1,21 +1,25 @@
 import { Email, Lock } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
+import { useToast } from "@/component/Toast/ToastProvider";
+import { firebaseMessages } from "@/constant/messages";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
-import React, { useState } from "react";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-
-import { useAuthContext } from "@/hooks/useContext";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import { Image, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Image, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { object, string } from "yup";
 
 let email_schema = object({
-  email: string().required("Email is required").email("Invalid email"),
+  email: string()
+    .required("Email is required")
+    .email("Invalid email format")
+    .trim(),
   password: string()
     .required("Password is required")
     .min(6, "Password must be at least 6 characters"),
@@ -23,12 +27,34 @@ let email_schema = object({
 
 const index = () => {
   const { login } = useAuthContext();
+  const toast = useToast();
   const router = useRouter();
   const [rememberMe, setRememberMe] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleLogin = async (values: { email: string; password: string }) => {
+    try {
+      setIsSubmitting(true);
+      await login(values);
+      toast.show({
+        type: firebaseMessages.loginSuccess.type as any,
+        text1: firebaseMessages.loginSuccess.text1,
+        text2: firebaseMessages.loginSuccess.text2,
+      });
+    } catch (error: any) {
+      toast.show({
+        type: error.type || 'error',
+        text1: error.text1 || 'Login Failed',
+        text2: error.text2 || error.message || "Login failed. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const formik = useFormik({
     initialValues: { email: "", password: "" },
-    onSubmit: (value) => login(value),
+    onSubmit: handleLogin,
     validationSchema: email_schema,
   });
 
@@ -120,10 +146,14 @@ const index = () => {
 
         <View>
           <AppButton
-            title="Login"
-            disabled={!isValid || !dirty}
+            title={isSubmitting ? "Logging in..." : "Login"}
+            disabled={!isValid || !dirty || isSubmitting}
             onPress={handleSubmit}
-          />
+          >
+            {isSubmitting && (
+              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+            )}
+          </AppButton>
 
           {/* Divider with OR */}
           <View style={styles.dividerContainer}>
