@@ -7,11 +7,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -57,8 +57,10 @@ const OtpScreen = () => {
             text1: "Email Verified",
             text2: "Your email has been verified successfully. Please login.",
           });
-          await logout();
-          router.replace("/(auth)");
+          // Small delay to ensure sign out completes before navigation
+          setTimeout(() => {
+            router.replace("/(auth)");
+          }, 500);
         }
       } catch (error) {
         // Silently fail on background checks
@@ -102,8 +104,10 @@ const OtpScreen = () => {
           text1: "Email Verified",
           text2: "Your email has been verified successfully. Please login.",
         });
-        await logout();
-        router.replace("/(auth)");
+        // Small delay to ensure everything completes
+        setTimeout(() => {
+          router.replace("/(auth)");
+        }, 500);
       } else {
         toast.show({
           type: "warning",
@@ -249,7 +253,9 @@ const OtpScreen = () => {
             <Text style={styles.spamNoticeText}>
               Check your spam folder if you don't see the email
             </Text>
-          </View>          {/* Back to Login */}
+          </View>
+          
+          {/* Back to Login */}
           <TouchableOpacity
             onPress={handleBackToLogin}
             style={styles.backToLoginButton}

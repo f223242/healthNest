@@ -59,6 +59,7 @@ const ForgotPassword = () => {
     initialValues: { phoneNumber: "" },
     onSubmit: handleSendOTP,
     validationSchema: phoneSchema,
+    validateOnMount: true,
   });
 
   const {
@@ -145,7 +146,7 @@ const ForgotPassword = () => {
         <View>
           <AppButton
             title={isSubmitting ? "Sending OTP..." : "Send OTP"}
-            disabled={!isValid || !dirty || isSubmitting}
+            disabled={!dirty || !isValid || isSubmitting}
             onPress={handleSubmit}
           >
             {isSubmitting && (
@@ -212,6 +213,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderGray,
     height: 56,
+    marginTop: 16,
   },
   countryFlag: {
     fontSize: 20,
