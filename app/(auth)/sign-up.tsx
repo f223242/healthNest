@@ -20,6 +20,7 @@ import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ----------------------
 // Yup Validation Schema
@@ -88,9 +89,17 @@ export default function SignupScreen() {
       try {
         const formattedPhone = `${countryCode}${values.phoneNumber}`;
         const payload = { ...values, phoneNumber: formattedPhone };
-        await register(payload);
-      } catch (error) {
-        showToast("Failed to sign up", "error");
+        const result = await register(payload);
+        
+        // Navigate to email verification screen after successful registration
+        if (result?.requiresVerification) {
+          router.replace({
+            pathname: "/(auth)/otp-screen",
+            params: { email: values.email }
+          });
+        }
+      } catch (error: any) {
+        showToast(error?.text2 || "Failed to sign up", "error");
       } finally {
         setSubmitting(false);
       }
@@ -129,6 +138,7 @@ export default function SignupScreen() {
   };
 
   return (
+    <SafeAreaView edges={['bottom']} style={{flex:1}}>
     <KeyboardAwareScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
@@ -310,6 +320,7 @@ export default function SignupScreen() {
         </TouchableOpacity>
       </View>
     </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 

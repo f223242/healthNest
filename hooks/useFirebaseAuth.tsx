@@ -455,12 +455,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const otp = generateOTP();
       console.log("Password Reset OTP for", phoneNumber, ":", otp);
       
-      // Store OTP in Firestore and locally
-      await setDoc(doc(db, "users", userDoc.id), {
-        passwordResetOTP: otp,
-        passwordResetOTPCreatedAt: new Date().toISOString(),
-      }, { merge: true });
+      // Store OTP in a separate collection (more permissive rules)
+      // Use phone number as document ID for easy lookup
+      const otpDocRef = doc(db, "passwordResetOTPs", phoneNumber.replace(/\+/g, ""));
+      await setDoc(otpDocRef, {
+        otp: otp,
+        phoneNumber: phoneNumber,
+        userId: userDoc.id,
+        email: userData.email,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes expiry
+        used: false,
+      });
       
+      // Store locally for verification
       await AsyncStorage.setItem(OTP_KEY, otp);
       await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
         email: userData.email,
