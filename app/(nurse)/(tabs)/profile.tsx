@@ -3,10 +3,11 @@ import ProfileOptions from "@/component/ProfileOptions";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { firebaseMessages } from "@/constant/messages";
 import { colors, Fonts, sizes } from "@/constant/theme";
-import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import { NurseInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,6 +16,38 @@ const NurseProfile = () => {
   const toast = useToast();
   const { user, logout } = useAuthContext();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Extract nurse info from additionalInfo
+  const nurseInfo = useMemo(() => {
+    const additionalInfo = user?.additionalInfo as NurseInfo | undefined;
+    const firstName = user?.firstname || "";
+    const lastName = user?.lastname || "";
+    const fullName = `${firstName} ${lastName}`.trim() || user?.email?.split("@")[0] || "Nurse";
+    const profileImage = additionalInfo?.profileImage || null;
+    const email = user?.email || "nurse@healthnest.com";
+    const specialization = additionalInfo?.specialization || null;
+    const experience = additionalInfo?.experience || null;
+    const hourlyRate = additionalInfo?.hourlyRate || null;
+    const availability = additionalInfo?.availability || null;
+    const address = additionalInfo?.address || null;
+    const city = additionalInfo?.city || null;
+    const certifications = additionalInfo?.certifications || null;
+    
+    return {
+      fullName,
+      firstName,
+      lastName,
+      profileImage,
+      email,
+      specialization,
+      experience,
+      hourlyRate,
+      availability,
+      address,
+      city,
+      certifications,
+    };
+  }, [user]);
 
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
@@ -42,18 +75,72 @@ const NurseProfile = () => {
         
         {/* User Profile Card */}
         <View style={styles.profileCard}>
-          <Image
-            source={{ uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg" }}
-            style={styles.profileImage}
-          />
+          {nurseInfo.profileImage ? (
+            <Image
+              source={{ uri: nurseInfo.profileImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileImagePlaceholder}
+            >
+              <Ionicons name="person" size={32} color={colors.white} />
+            </LinearGradient>
+          )}
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "Nurse Name"}</Text>
-            <Text style={styles.profileEmail}>{user?.email || "nurse@healthnest.com"}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>NURSE</Text>
+            <Text style={styles.profileName}>{nurseInfo.fullName}</Text>
+            <Text style={styles.profileEmail}>{nurseInfo.email}</Text>
+            <View style={styles.badgesRow}>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>NURSE</Text>
+              </View>
+              {nurseInfo.specialization && (
+                <View style={[styles.roleBadge, { backgroundColor: colors.secondary + "15" }]}>
+                  <Text style={[styles.roleText, { color: colors.secondary }]}>{nurseInfo.specialization}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
+
+        {/* Quick Info Section */}
+        {(nurseInfo.experience || nurseInfo.hourlyRate || nurseInfo.availability) && (
+          <View style={styles.quickInfoCard}>
+            {nurseInfo.experience && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="time-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>{nurseInfo.experience} Experience</Text>
+              </View>
+            )}
+            {nurseInfo.hourlyRate && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="cash-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>Rs. {nurseInfo.hourlyRate}/hr</Text>
+              </View>
+            )}
+            {nurseInfo.availability && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>{nurseInfo.availability}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Location Info */}
+        {(nurseInfo.address || nurseInfo.city) && (
+          <View style={styles.quickInfoCard}>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="location-outline" size={18} color={colors.primary} />
+              <Text style={styles.quickInfoText} numberOfLines={2}>
+                {nurseInfo.address}{nurseInfo.city ? `, ${nurseInfo.city}` : ""}
+              </Text>
+            </View>
+          </View>
+        )}
         
         {/* Account Settings */}
         <View style={styles.section}>
@@ -139,7 +226,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     elevation: 3,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -151,6 +238,16 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+
+  profileImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
     borderColor: colors.primary,
   },
@@ -171,7 +268,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.regular,
     color: colors.gray,
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+
+  badgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
 
   roleBadge: {
@@ -179,7 +283,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: "flex-start",
   },
 
   roleText: {
@@ -187,6 +290,32 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     color: colors.primary,
     letterSpacing: 0.5,
+  },
+
+  quickInfoCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    gap: 12,
+  },
+
+  quickInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  quickInfoText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.text,
   },
 
   section: {

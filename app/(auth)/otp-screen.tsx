@@ -1,32 +1,52 @@
 import AppButton from "@/component/AppButton";
+import InstructionSteps from "@/component/InstructionSteps";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Verification instructions
+const verificationSteps = [
+  { text: "Open your email inbox" },
+  { text: "Find the email from HealthNest" },
+  { text: "Click the verification link" },
+  { text: "Come back and tap \"I've Verified\"" },
+];
+
 const OtpScreen = () => {
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
   const { email } = useLocalSearchParams<{ email: string }>();
   const { resendVerificationEmail, checkEmailVerification, logout } = useAuthContext();
   const toast = useToast();
+  const hasNavigatedRef = useRef(false);
 
   const [seconds, setSeconds] = useState(59);
   const [minutes, setMinutes] = useState(0);
   const [canResend, setCanResend] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isResending, setIsResending] = useState(false);
+
+  // Helper to safely navigate
+  const safeNavigate = (route: string) => {
+    if (!rootNavigationState?.key || hasNavigatedRef.current) return;
+    hasNavigatedRef.current = true;
+    setTimeout(() => {
+      router.replace(route as any);
+    }, 100);
+  };
 
   // Countdown timer logic
   useEffect(() => {
@@ -45,30 +65,7 @@ const OtpScreen = () => {
     return () => clearInterval(timer);
   }, [seconds, minutes]);
 
-  // Auto-check email verification periodically
-  useEffect(() => {
-    const checkInterval = setInterval(async () => {
-      try {
-        const isVerified = await checkEmailVerification();
-        if (isVerified) {
-          clearInterval(checkInterval);
-          toast.show({
-            type: "success",
-            text1: "Email Verified",
-            text2: "Your email has been verified successfully. Please login.",
-          });
-          // Small delay to ensure sign out completes before navigation
-          setTimeout(() => {
-            router.replace("/(auth)");
-          }, 500);
-        }
-      } catch (error) {
-        // Silently fail on background checks
-      }
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(checkInterval);
-  }, []);
+  // REMOVED: Auto-check email verification - user should click button to verify
 
   const handleResend = async () => {
     try {
@@ -104,10 +101,7 @@ const OtpScreen = () => {
           text1: "Email Verified",
           text2: "Your email has been verified successfully. Please login.",
         });
-        // Small delay to ensure everything completes
-        setTimeout(() => {
-          router.replace("/(auth)");
-        }, 500);
+        safeNavigate("/(auth)");
       } else {
         toast.show({
           type: "warning",
@@ -129,9 +123,11 @@ const OtpScreen = () => {
   const handleBackToLogin = async () => {
     try {
       await logout();
-      router.replace("/(auth)");
+      hasNavigatedRef.current = false; // Reset for manual navigation
+      safeNavigate("/(auth)");
     } catch (error) {
-      router.replace("/(auth)");
+      hasNavigatedRef.current = false;
+      safeNavigate("/(auth)");
     }
   };
 
@@ -172,32 +168,10 @@ const OtpScreen = () => {
           </Text>
 
           {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>1</Text>
-              </View>
-              <Text style={styles.instructionText}>Open your email inbox</Text>
-            </View>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>2</Text>
-              </View>
-              <Text style={styles.instructionText}>Find the email from HealthNest</Text>
-            </View>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>3</Text>
-              </View>
-              <Text style={styles.instructionText}>Click the verification link</Text>
-            </View>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>4</Text>
-              </View>
-              <Text style={styles.instructionText}>Come back and tap "I've Verified"</Text>
-            </View>
-          </View>
+          <InstructionSteps
+            steps={verificationSteps}
+            containerStyle={styles.instructionsContainer}
+          />
 
           {/* Timer */}
           <View style={styles.timerSection}>
@@ -277,9 +251,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
+  scrollContainer: {
+    paddingHorizontal: sizes.paddingHorizontal,
+    flexGrow: 1,
+    justifyContent: "space-between",
+    paddingBottom: 20,
+  },
   iconContainer: {
     alignSelf: "center",
-    marginTop: 32,
+    marginTop: 40,
   },
   gradientCircle: {
     width: 120,
@@ -296,44 +276,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  scrollContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    flexGrow: 1,
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
   instructionsContainer: {
     marginTop: 32,
-    backgroundColor: colors.lightGreen,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.primary + "20",
-  },
-  instructionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    gap: 12,
-  },
-  instructionNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  instructionNumberText: {
-    color: colors.white,
-    fontFamily: Fonts.semiBold,
-    fontSize: 14,
-  },
-  instructionText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: colors.black,
-    flex: 1,
   },
   timerSection: {
     alignItems: "center",
@@ -359,5 +303,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
     paddingVertical: 12,
+
+    backgroundColor: "red",
   },
 });

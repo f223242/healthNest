@@ -11,13 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { CountryPicker } from "react-native-country-codes-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
 
 import { DropDownIcon, Email, Person } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
+import PhoneInput from "@/component/PhoneInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
@@ -66,7 +66,6 @@ export default function SignupScreen() {
   const router = useRouter();
 
   const [showPicker, setShowPicker] = useState(false);
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countryCode, setCountryCode] = useState("+92");
   const [countryFlag, setCountryFlag] = useState("🇵🇰");
 
@@ -123,15 +122,6 @@ export default function SignupScreen() {
     dirty,
     isSubmitting,
   } = formik;
-
-  // ----------------------
-  // Phone Number Auto Fix
-  // ----------------------
-  const handlePhone = (text: string) => {
-    let cleaned = text.replace(/\D/g, "");
-    if (cleaned.startsWith("0")) cleaned = cleaned.substring(1);
-    setFieldValue("phoneNumber", cleaned);
-  };
 
   // ----------------------
   // Date Picker Handler
@@ -199,47 +189,20 @@ export default function SignupScreen() {
       />
 
       {/* PHONE INPUT */}
-      <View style={styles.phoneContainer}>
-        <Text style={styles.phoneLabel}>Phone Number</Text>
-
-        <View style={styles.phoneInputRow}>
-          <TouchableOpacity
-            style={styles.countryPickerButton}
-            onPress={() => setShowCountryPicker(true)}
-          >
-            <Text style={styles.countryFlag}>{countryFlag}</Text>
-            <Text style={styles.countryCode}>{countryCode}</Text>
-            <Ionicons name="chevron-down" size={16} color={colors.primary} />
-          </TouchableOpacity>
-
-          <View style={styles.phoneInputWrapper}>
-            <FormInput
-            LeftIcon={ <Ionicons name="call-outline" size={20} color={colors.gray} />}
-              value={values.phoneNumber}
-              onChangeText={handlePhone}
-              onBlur={handleBlur("phoneNumber")}
-              placeholder="3123456789"
-              error={
-                touched.phoneNumber && errors.phoneNumber
-                  ? errors.phoneNumber
-                  : ""
-              }
-              keyboardType="numeric"
-              maxLength={10}
-            />
-          </View>
-        </View>
-      </View>
-
-      <CountryPicker
-        show={showCountryPicker}
-        pickerButtonOnPress={(item) => {
-          setCountryCode(item.dial_code);
-          setCountryFlag(item.flag);
-          setShowCountryPicker(false);
+      <PhoneInput
+        label="Phone Number"
+        value={values.phoneNumber}
+        onChangeText={(text) => setFieldValue("phoneNumber", text)}
+        onBlur={() => handleBlur("phoneNumber")}
+        error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
+        countryCode={countryCode}
+        countryFlag={countryFlag}
+        onCountryChange={(code, flag) => {
+          setCountryCode(code);
+          setCountryFlag(flag);
         }}
-        onBackdropPress={() => setShowCountryPicker(false)}
-        lang="en"
+        placeholder="3123456789"
+        maxLength={10}
       />
 
       {/* PASSWORDS */}
@@ -441,42 +404,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
-  },
-  phoneContainer: {
-    marginTop: 15,
-  },
-  phoneLabel: {
-    fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  phoneInputRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  countryPickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.lightGreen,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 56,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  countryFlag: {
-    fontSize: 20,
-  },
-  countryCode: {
-    fontSize: 16,
-    fontFamily: Fonts.regular,
-    color: colors.primary,
-  },
-  phoneInputWrapper: {
-    flex: 1,
-    marginTop: -15,
   },
 });

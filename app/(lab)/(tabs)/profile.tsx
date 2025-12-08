@@ -3,10 +3,11 @@ import ProfileOptions from "@/component/ProfileOptions";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { firebaseMessages } from "@/constant/messages";
 import { colors, Fonts, sizes } from "@/constant/theme";
-import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import { LabInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,6 +16,38 @@ const LabProfile = () => {
   const toast = useToast();
   const { user, logout } = useAuthContext();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Extract lab info from additionalInfo
+  const labInfo = useMemo(() => {
+    const additionalInfo = user?.additionalInfo as LabInfo | undefined;
+    const firstName = user?.firstname || "";
+    const lastName = user?.lastname || "";
+    const fullName = `${firstName} ${lastName}`.trim() || user?.email?.split("@")[0] || "Lab Technician";
+    const profileImage = additionalInfo?.profileImage || null;
+    const email = user?.email || "lab@healthnest.com";
+    const labName = additionalInfo?.labName || null;
+    const licenseNumber = additionalInfo?.licenseNumber || null;
+    const operatingHours = additionalInfo?.operatingHours || null;
+    const servicesOffered = additionalInfo?.servicesOffered || null;
+    const homeSampling = additionalInfo?.homeSampling || false;
+    const address = additionalInfo?.address || null;
+    const city = additionalInfo?.city || null;
+    
+    return {
+      fullName,
+      firstName,
+      lastName,
+      profileImage,
+      email,
+      labName,
+      licenseNumber,
+      operatingHours,
+      servicesOffered,
+      homeSampling,
+      address,
+      city,
+    };
+  }, [user]);
 
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
@@ -42,18 +75,72 @@ const LabProfile = () => {
         
         {/* User Profile Card */}
         <View style={styles.profileCard}>
-          <Image
-            source={{ uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg" }}
-            style={styles.profileImage}
-          />
+          {labInfo.profileImage ? (
+            <Image
+              source={{ uri: labInfo.profileImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileImagePlaceholder}
+            >
+              <Ionicons name="flask" size={32} color={colors.white} />
+            </LinearGradient>
+          )}
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "Lab Technician"}</Text>
-            <Text style={styles.profileEmail}>{user?.email || "lab@healthnest.com"}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>LAB TECHNICIAN</Text>
+            <Text style={styles.profileName}>{labInfo.labName || labInfo.fullName}</Text>
+            <Text style={styles.profileEmail}>{labInfo.email}</Text>
+            <View style={styles.badgesRow}>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>LAB</Text>
+              </View>
+              {labInfo.homeSampling && (
+                <View style={[styles.roleBadge, { backgroundColor: colors.secondary + "15" }]}>
+                  <Text style={[styles.roleText, { color: colors.secondary }]}>Home Sampling</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
+
+        {/* Quick Info Section */}
+        {(labInfo.operatingHours || labInfo.licenseNumber || labInfo.servicesOffered) && (
+          <View style={styles.quickInfoCard}>
+            {labInfo.licenseNumber && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="card-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>License: {labInfo.licenseNumber}</Text>
+              </View>
+            )}
+            {labInfo.operatingHours && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="time-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>{labInfo.operatingHours}</Text>
+              </View>
+            )}
+            {labInfo.servicesOffered && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="medical-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText} numberOfLines={2}>{labInfo.servicesOffered}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Location Info */}
+        {(labInfo.address || labInfo.city) && (
+          <View style={styles.quickInfoCard}>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="location-outline" size={18} color={colors.primary} />
+              <Text style={styles.quickInfoText} numberOfLines={2}>
+                {labInfo.address}{labInfo.city ? `, ${labInfo.city}` : ""}
+              </Text>
+            </View>
+          </View>
+        )}
         
         {/* Account Settings */}
         <View style={styles.section}>
@@ -140,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     elevation: 3,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -152,6 +239,16 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+
+  profileImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
     borderColor: colors.primary,
   },
@@ -175,10 +272,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  badgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+
   roleBadge: {
-    alignSelf: "flex-start",
     backgroundColor: colors.primary + "15",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
@@ -187,6 +290,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
+    letterSpacing: 0.5,
+  },
+
+  quickInfoCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    gap: 12,
+  },
+
+  quickInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  quickInfoText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.text,
   },
 
   section: {

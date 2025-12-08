@@ -22,14 +22,13 @@ const ResetPasswordModal = ({ visible, onClose }: any) => {
               end={{ x: 1, y: 1 }}
               style={styles.gradientCircle}
             >
-              <Ionicons name="checkmark-circle" size={64} color={colors.white} />
+              <Ionicons name="mail-outline" size={64} color={colors.white} />
             </LinearGradient>
           </View>
 
-          <Text style={styles.title}>Password Reset Successful!</Text>
+          <Text style={styles.title}>Check Your Email!</Text>
           <Text style={styles.description}>
-            Your password has been successfully reset. You can now log in with
-            your new password.
+            We've sent a password reset link to your email. Please check your inbox and click the link to set your new password.
           </Text>
 
           <TouchableOpacity onPress={onClose} style={styles.button}>
@@ -39,7 +38,7 @@ const ResetPasswordModal = ({ visible, onClose }: any) => {
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
             >
-              <Text style={styles.buttonText}>Continue to Login</Text>
+              <Text style={styles.buttonText}>Back to Login</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
