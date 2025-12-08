@@ -81,9 +81,12 @@ export default function SignupScreen() {
       confirmPassword: "",
       role: "",
       phoneNumber: "",
-      dateOfBirth: "2000-01-01T00:00:00.000Z",
+      dateOfBirth: "",
     },
     validationSchema: SignupSchema,
+    validateOnMount: true,
+    validateOnChange: true,
+    validateOnBlur: true,
 
     onSubmit: async (values, { setSubmitting }) => {
       try {
@@ -111,8 +114,10 @@ export default function SignupScreen() {
     errors,
     touched,
     handleChange,
+    handleBlur,
     handleSubmit,
     setFieldValue,
+    setFieldTouched,
     isValid,
     dirty,
     isSubmitting,
@@ -164,6 +169,7 @@ export default function SignupScreen() {
         label="First Name"
         value={values.firstname}
         onChangeText={handleChange("firstname")}
+        onBlur={handleBlur("firstname")}
         error={touched.firstname && errors.firstname ? errors.firstname : ""}
         placeholder="Enter your first name"
       />
@@ -172,6 +178,7 @@ export default function SignupScreen() {
         label="Last Name"
         value={values.lastname}
         onChangeText={handleChange("lastname")}
+        onBlur={handleBlur("lastname")}
         error={touched.lastname && errors.lastname ? errors.lastname : ""}
         placeholder="Enter your last name"
       />
@@ -180,6 +187,7 @@ export default function SignupScreen() {
         label="Email"
         value={values.email}
         onChangeText={handleChange("email")}
+        onBlur={handleBlur("email")}
         error={touched.email && errors.email ? errors.email : ""}
         keyboardType="email-address"
         placeholder="Enter your email"
@@ -204,6 +212,7 @@ export default function SignupScreen() {
             <FormInput
               value={values.phoneNumber}
               onChangeText={handlePhone}
+              onBlur={handleBlur("phoneNumber")}
               placeholder="3123456789"
               error={
                 touched.phoneNumber && errors.phoneNumber
@@ -234,6 +243,7 @@ export default function SignupScreen() {
         value={values.password}
         isPassword
         onChangeText={handleChange("password")}
+        onBlur={handleBlur("password")}
         error={touched.password && errors.password ? errors.password : ""}
         placeholder="Enter password"
       />
@@ -243,6 +253,7 @@ export default function SignupScreen() {
         value={values.confirmPassword}
         isPassword
         onChangeText={handleChange("confirmPassword")}
+        onBlur={handleBlur("confirmPassword")}
         error={
           touched.confirmPassword && errors.confirmPassword
             ? errors.confirmPassword
@@ -263,32 +274,37 @@ export default function SignupScreen() {
       />
 
       {/* DATE PICKER */}
-      <TouchableOpacity
-        style={[
-          styles.datePickerButton,
-          {
-            borderColor:
-              touched.dateOfBirth && errors.dateOfBirth
-                ? colors.danger
-                : values.dateOfBirth
-                ? colors.primary
-                : colors.white,
-          },
-        ]}
-        onPress={() => setShowPicker(true)}
-      >
-        <View>
-          <Text style={styles.dateLabel}>Date of Birth</Text>
-          <Text style={styles.dateValue}>
-            {new Date(values.dateOfBirth).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+      <View style={styles.datePickerContainer}>
+        <Text style={styles.datePickerLabel}>Date of Birth</Text>
+        <TouchableOpacity
+          style={[
+            styles.datePickerButton,
+            {
+              borderColor:
+                touched.dateOfBirth && errors.dateOfBirth
+                  ? colors.danger
+                  : values.dateOfBirth
+                  ? colors.primary
+                  : colors.borderGray,
+            },
+          ]}
+          onPress={() => {
+            setShowPicker(true);
+            setFieldTouched("dateOfBirth", true);
+          }}
+        >
+          <Text style={[styles.dateValue, !values.dateOfBirth && styles.datePlaceholder]}>
+            {values.dateOfBirth
+              ? new Date(values.dateOfBirth).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "Select your date of birth"}
           </Text>
-        </View>
-        <Ionicons name="calendar-outline" size={24} color={colors.primary} />
-      </TouchableOpacity>
+          <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
 
       {touched.dateOfBirth && errors.dateOfBirth && (
         <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
@@ -296,7 +312,7 @@ export default function SignupScreen() {
 
       {showPicker && (
         <DateTimePicker
-          value={new Date(values.dateOfBirth)}
+          value={values.dateOfBirth ? new Date(values.dateOfBirth) : new Date(2000, 0, 1)}
           mode="date"
           display="spinner"
           onChange={onDateSelect}
@@ -308,7 +324,7 @@ export default function SignupScreen() {
       <AppButton
         title={isSubmitting ? <ActivityIndicator color="#fff" /> : "Sign Up"}
         onPress={handleSubmit}
-        disabled={!isValid || !dirty || isSubmitting}
+        disabled={!isValid || isSubmitting}
         style={styles.submitButton}
       />
 
@@ -356,6 +372,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: colors.gray,
   },
+  datePickerContainer: {
+    marginTop: 15,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+    marginBottom: 8,
+  },
   datePickerButton: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -363,7 +388,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGreen,
     borderRadius: 12,
     padding: 16,
-    marginTop: 15,
     borderWidth: 1,
   },
   dateLabel: {
@@ -376,6 +400,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: colors.primary,
+  },
+  datePlaceholder: {
+    color: colors.gray,
   },
   errorText: {
     color: colors.danger,

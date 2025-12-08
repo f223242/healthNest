@@ -9,9 +9,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { OtpInput } from "react-native-otp-entry";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
 import { object } from "yup";
@@ -40,15 +41,12 @@ const ResetPassword = () => {
   
   const [modalVisible, setModalVisible] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-  const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
+  const [otpCode, setOtpCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  
-  // Refs for OTP inputs
-  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // Timer for resend OTP
   useEffect(() => {
@@ -63,29 +61,8 @@ const ResetPassword = () => {
     return () => clearInterval(interval);
   }, [timer, canResend]);
 
-  const handleOtpChange = (text: string, index: number) => {
-    // Only allow numbers
-    if (text && !/^\d+$/.test(text)) return;
-
-    const newOtpValues = [...otpValues];
-    newOtpValues[index] = text;
-    setOtpValues(newOtpValues);
-
-    // Auto focus next input
-    if (text && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === "Backspace" && !otpValues[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
   const handleVerifyOTP = async () => {
-    const otp = otpValues.join("");
-    if (otp.length !== 6) {
+    if (otpCode.length !== 6) {
       toast.show({
         type: "error",
         text1: "Invalid OTP",
@@ -96,7 +73,7 @@ const ResetPassword = () => {
 
     try {
       setIsVerifying(true);
-      const isValid = await verifyPasswordResetOTP(otp);
+      const isValid = await verifyPasswordResetOTP(otpCode);
       if (isValid) {
         setOtpVerified(true);
         toast.show({
@@ -111,8 +88,7 @@ const ResetPassword = () => {
         text1: error.text1 || "Verification Failed",
         text2: error.text2 || "Invalid or expired OTP",
       });
-      setOtpValues(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
+      setOtpCode("");
     } finally {
       setIsVerifying(false);
     }
@@ -124,7 +100,7 @@ const ResetPassword = () => {
       await resendPasswordResetOTP();
       setTimer(60);
       setCanResend(false);
-      setOtpValues(["", "", "", "", "", ""]);
+      setOtpCode("");
       toast.show({
         type: "success",
         text1: "OTP Sent",
@@ -147,6 +123,7 @@ const ResetPassword = () => {
       confirmPassword: "",
     },
     validationSchema: reset_password_schema,
+    validateOnMount: true,
     validateOnChange: true,
     validateOnBlur: true,
     onSubmit: async (values) => {
@@ -210,26 +187,21 @@ const ResetPassword = () => {
               </Text>
             </Text>
 
-            {/* OTP Input Fields */}
-            <View style={styles.otpInputContainer}>
-              {otpValues.map((value, index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref: TextInput | null) => {
-                    inputRefs.current[index] = ref;
-                  }}
-                  style={[
-                    styles.otpInput,
-                    value ? styles.otpInputFilled : {},
-                  ]}
-                  value={value}
-                  onChangeText={(text) => handleOtpChange(text, index)}
-                  onKeyPress={(e) => handleKeyPress(e, index)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
-                />
-              ))}
+            {/* OTP Input using react-native-otp-entry */}
+            <View style={styles.otpWrapper}>
+              <OtpInput
+                numberOfDigits={6}
+                onTextChange={setOtpCode}
+                focusColor={colors.primary}
+                focusStickBlinkingDuration={500}
+                theme={{
+                  containerStyle: styles.otpContainer,
+                  pinCodeContainerStyle: styles.otpPinContainer,
+                  pinCodeTextStyle: styles.otpPinText,
+                  focusedPinCodeContainerStyle: styles.otpPinContainerFocused,
+                  filledPinCodeContainerStyle: styles.otpPinContainerFilled,
+                }}
+              />
             </View>
 
             <View style={styles.resendContainer}>
@@ -254,7 +226,7 @@ const ResetPassword = () => {
             <AppButton
               title={isVerifying ? "Verifying..." : "Verify OTP"}
               onPress={handleVerifyOTP}
-              disabled={otpValues.join("").length !== 6 || isVerifying}
+              disabled={otpCode.length !== 6 || isVerifying}
             >
               {isVerifying && (
                 <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
@@ -377,7 +349,7 @@ const ResetPassword = () => {
           <AppButton
             title={isSubmitting ? "Updating..." : "Reset Password"}
             onPress={handleSubmit}
-            disabled={!isValid || !dirty || isSubmitting}
+            disabled={!dirty || !isValid || isSubmitting}
             containerStyle={{ marginTop: 20 }}
           >
             {isSubmitting && (
@@ -437,26 +409,40 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 20,
   },
-  otpInputContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+  otpWrapper: {
+    alignSelf: "center",
     marginTop: 32,
-    gap: 10,
   },
-  otpInput: {
-    width: 50,
+  otpContainer: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  
+  },
+  otpPinContainer: {
+    width: 48,
     height: 56,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.borderGray,
     backgroundColor: colors.lightGray,
-    textAlign: "center",
-    fontSize: 24,
-    fontFamily: Fonts.semiBold,
-    color: colors.black,
   },
-  otpInputFilled: {
+  otpPinText: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+  },
+  otpPinContainerFocused: {
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  otpPinContainerFilled: {
     borderColor: colors.primary,
     backgroundColor: colors.lightGreen,
   },

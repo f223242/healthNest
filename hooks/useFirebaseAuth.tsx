@@ -7,6 +7,7 @@ import {
     User as FirebaseUser,
     onAuthStateChanged,
     sendEmailVerification,
+    sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut,
 } from "firebase/auth";
@@ -497,10 +498,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log("Password reset OTP verified");
         return true;
       }
-      return false;
-    } catch (error) {
+      // Throw error for invalid OTP
+      const errorWithInfo = new Error("Invalid OTP") as any;
+      errorWithInfo.text1 = "Invalid OTP";
+      errorWithInfo.text2 = "The OTP you entered is incorrect. Please try again.";
+      errorWithInfo.type = "error";
+      throw errorWithInfo;
+    } catch (error: any) {
       console.error("Verify password reset OTP error:", error);
-      return false;
+      if (error.text1) throw error;
+      const errorWithInfo = new Error("Verification failed") as any;
+      errorWithInfo.text1 = "Error";
+      errorWithInfo.text2 = "Failed to verify OTP. Please try again.";
+      errorWithInfo.type = "error";
+      throw errorWithInfo;
     }
   };
 
@@ -509,23 +520,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (!pendingUserStr) {
-        throw new Error("No pending reset found");
+        const errorWithInfo = new Error("No pending reset found") as any;
+        errorWithInfo.text1 = "Session Expired";
+        errorWithInfo.text2 = "Please start the password reset process again.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
       }
       
       const pendingUser = JSON.parse(pendingUserStr);
       const otp = generateOTP();
       console.log("Resent Password Reset OTP for", pendingUser.phoneNumber, ":", otp);
       
+      // Store OTP locally
       await AsyncStorage.setItem(OTP_KEY, otp);
       
-      await setDoc(doc(db, "users", pendingUser.uid), {
-        passwordResetOTP: otp,
-        passwordResetOTPCreatedAt: new Date().toISOString(),
-      }, { merge: true });
+      // Store in passwordResetOTPs collection (not users collection)
+      const otpDocRef = doc(db, "passwordResetOTPs", pendingUser.phoneNumber.replace(/\+/g, ""));
+      await setDoc(otpDocRef, {
+        otp: otp,
+        phoneNumber: pendingUser.phoneNumber,
+        userId: pendingUser.uid,
+        email: pendingUser.email,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        used: false,
+      });
       
       return otp;
     } catch (error: any) {
       console.error("Resend password reset OTP error:", error);
+      if (error.text1) throw error;
       const errorWithInfo = new Error("Failed to resend OTP") as any;
       errorWithInfo.text1 = "Error";
       errorWithInfo.text2 = "Failed to resend OTP. Please try again.";
@@ -539,31 +563,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (!pendingUserStr) {
-        throw new Error("No pending reset found");
+        const errorWithInfo = new Error("No pending reset found") as any;
+        errorWithInfo.text1 = "Session Expired";
+        errorWithInfo.text2 = "Please start the password reset process again.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
       }
       
       const pendingUser = JSON.parse(pendingUserStr);
+      const email = pendingUser.email;
       
-      // For password update, we need to delete and recreate the user
-      // Or use Firebase Admin SDK. For now, we'll store new password hash
-      // In production, use Firebase Admin SDK or Cloud Functions
+      if (!email) {
+        const errorWithInfo = new Error("Email not found") as any;
+        errorWithInfo.text1 = "Error";
+        errorWithInfo.text2 = "Email not found. Please try again.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
       
-      // Clear the OTP and pending user
-      await setDoc(doc(db, "users", pendingUser.uid), {
-        passwordResetOTP: null,
-        passwordResetOTPCreatedAt: null,
-        passwordUpdatedAt: new Date().toISOString(),
+      // Send Firebase password reset email
+      // User will click the link in email to set new password
+      await sendPasswordResetEmail(auth, email);
+      
+      // Mark OTP as used in passwordResetOTPs collection (public access)
+      const otpDocRef = doc(db, "passwordResetOTPs", pendingUser.phoneNumber.replace(/\\+/g, ""));
+      await setDoc(otpDocRef, {
+        used: true,
+        usedAt: new Date().toISOString(),
       }, { merge: true });
       
+      // Clear local storage
       await AsyncStorage.removeItem(OTP_KEY);
       await AsyncStorage.removeItem(PENDING_USER_KEY);
       
-      console.log("Password updated successfully");
+      console.log("Password reset email sent successfully to:", email);
     } catch (error: any) {
       console.error("Update password error:", error);
+      if (error.text1) throw error;
       const errorWithInfo = new Error("Failed to update password") as any;
       errorWithInfo.text1 = "Error";
-      errorWithInfo.text2 = "Failed to update password. Please try again.";
+      errorWithInfo.text2 = "Failed to send password reset email. Please try again.";
       errorWithInfo.type = "error";
       throw errorWithInfo;
     }
