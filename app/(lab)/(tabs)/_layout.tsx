@@ -1,6 +1,5 @@
 import HomeHeader from '@/component/HomeHeader';
 import { colors, Fonts } from '@/constant/theme';
-import { useAuthContext } from '@/hooks/useContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
@@ -9,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LabTabsLayout() {
   const insets = useSafeAreaInsets();
-  const { logout } = useAuthContext();
 
   return (
     <Tabs
@@ -56,7 +54,7 @@ export default function LabTabsLayout() {
               title="Lab Dashboard"
               subtitle="Manage tests & reports"
               rightAction={
-                <TouchableOpacity onPress={logout} accessibilityLabel="Logout">
+                <TouchableOpacity  accessibilityLabel="Logout">
                   <Ionicons name="log-out-outline" size={24} color={colors.white} style={{ marginRight: 10 }} />
                 </TouchableOpacity>
               }

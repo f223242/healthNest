@@ -1,407 +1,432 @@
-import { CalendarIconBlack, DropDownIcon, Email, Lock, Person } from "@/assets/svg";
-import AppButton from "@/component/AppButton";
-import FormInput from "@/component/FormInput";
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
-import React, { useState } from "react";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { CountryPicker } from "react-native-country-codes-picker";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
-import { object } from "yup";
 
-let email_schema = object({
-  email: Yup.string().required("email is required").email("Invalid email"),
-  password: Yup.string()
-    .required("Password is required")
-    .min(6, "Password must be at least 6 characters")
-    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
-    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .matches(/[0-9]/, "Password must contain at least one number")
-    .matches(
-      /[^a-zA-Z0-9]/,
-      "Password must contain at least one special character"
-    ),
-  confirmPassword: Yup.string()
-    .required("Confirm Password is required")
-    .oneOf([Yup.ref("password")], "Passwords must match"),
+import AppButton from "@/component/AppButton";
+import FormInput from "@/component/FormInput";
+import { useToast } from "@/component/Toast/ToastProvider";
+import { colors, Fonts } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+
+// ----------------------
+// Yup Validation Schema
+// ----------------------
+const SignupSchema = Yup.object().shape({
   firstname: Yup.string().required("First name is required"),
   lastname: Yup.string().required("Last name is required"),
-  role: Yup.string()
-    .required("Role is required")
-    .oneOf(["User", "Lab", "Nurse", "Medicine Delivery"], "Invalid role selected"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  password: Yup.string()
+    .min(6, "Minimum 6 characters")
+    .matches(/[a-z]/, "At least one lowercase letter required")
+    .matches(/[A-Z]/, "At least one uppercase letter required")
+    .matches(/\d/, "At least one digit required")
+    .matches(/[@$!%*?&]/, "At least one special character required")
+    .required("Password is required"),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref("password")], "Passwords do not match")
+    .required("Confirm password is required"),
+  phoneNumber: Yup.string()
+    .matches(/^[0-9]{10}$/, "Enter valid 10-digit number")
+    .required("Phone number is required"),
+  role: Yup.string().required("Role is required"),
   dateOfBirth: Yup.string().required("Date of birth is required"),
 });
 
-const SignUpScreen = () => {
-  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
+// ----------------------
+// Role Options
+// ----------------------
+const roleOptions = [
+  { label: "User", value: "User" },
+  { label: "Lab", value: "Lab" },
+  { label: "Nurse", value: "Nurse" },
+  { label: "Medicine Delivery", value: "Medicine Delivery" },
+];
 
-  const roles = [
-    { label: "User", value: "User" },
-    { label: "Lab", value: "Lab" },
-    { label: "Nurse", value: "Nurse" },
-    { label: "Medicine Delivery", value: "Medicine Delivery" },
-  ];
+// ----------------------
+// Component
+// ----------------------
+export default function SignupScreen() {
+  const { register } = useAuthContext();
+  const { showToast } = useToast();
+  const router = useRouter();
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-    });
-  };
+  const [showPicker, setShowPicker] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countryCode, setCountryCode] = useState("+92");
+  const [countryFlag, setCountryFlag] = useState("🇵🇰");
 
+  // ----------------------
+  // Formik Hook
+  // ----------------------
   const formik = useFormik({
     initialValues: {
+      firstname: "",
+      lastname: "",
       email: "",
       password: "",
       confirmPassword: "",
-      firstname: "",
-      lastname: "",
       role: "",
-      dateOfBirth: "",
+      phoneNumber: "",
+      dateOfBirth: "2000-01-01T00:00:00.000Z",
     },
-    onSubmit: (value) => console.log(" value", value),
-    validationSchema: email_schema,
+    validationSchema: SignupSchema,
+
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        const formattedPhone = `${countryCode}${values.phoneNumber}`;
+        const payload = { ...values, phoneNumber: formattedPhone };
+        await register(payload);
+      } catch (error) {
+        showToast("Failed to sign up", "error");
+      } finally {
+        setSubmitting(false);
+      }
+    },
   });
-  
-  const router = useRouter();
+
   const {
-    handleBlur,
-    handleChange,
     values,
-    touched,
     errors,
+    touched,
+    handleChange,
+    handleSubmit,
+    setFieldValue,
     isValid,
     dirty,
-    handleSubmit,
+    isSubmitting,
   } = formik;
-  
+
+  // ----------------------
+  // Phone Number Auto Fix
+  // ----------------------
+  const handlePhone = (text: string) => {
+    let cleaned = text.replace(/\D/g, "");
+    if (cleaned.startsWith("0")) cleaned = cleaned.substring(1);
+    setFieldValue("phoneNumber", cleaned);
+  };
+
+  // ----------------------
+  // Date Picker Handler
+  // ----------------------
+  const onDateSelect = (_: any, date?: Date) => {
+    setShowPicker(false);
+    if (date) {
+      setFieldValue("dateOfBirth", date.toISOString());
+    }
+  };
+
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
+    <KeyboardAwareScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      enableOnAndroid
+      extraScrollHeight={120}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          style={styles.iconContainer}
+        >
+          <Ionicons name="medical" size={40} color={colors.white} />
+        </LinearGradient>
+
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Sign up to get started</Text>
+      </View>
+
+      <FormInput
+        label="First Name"
+        value={values.firstname}
+        onChangeText={handleChange("firstname")}
+        error={touched.firstname && errors.firstname ? errors.firstname : ""}
+        placeholder="Enter your first name"
+      />
+
+      <FormInput
+        label="Last Name"
+        value={values.lastname}
+        onChangeText={handleChange("lastname")}
+        error={touched.lastname && errors.lastname ? errors.lastname : ""}
+        placeholder="Enter your last name"
+      />
+
+      <FormInput
+        label="Email"
+        value={values.email}
+        onChangeText={handleChange("email")}
+        error={touched.email && errors.email ? errors.email : ""}
+        keyboardType="email-address"
+        placeholder="Enter your email"
+        autoCapitalize="none"
+      />
+
+      {/* PHONE INPUT */}
+      <View style={styles.phoneContainer}>
+        <Text style={styles.phoneLabel}>Phone Number</Text>
+
+        <View style={styles.phoneInputRow}>
+          <TouchableOpacity
+            style={styles.countryPickerButton}
+            onPress={() => setShowCountryPicker(true)}
+          >
+            <Text style={styles.countryFlag}>{countryFlag}</Text>
+            <Text style={styles.countryCode}>{countryCode}</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.primary} />
+          </TouchableOpacity>
+
+          <View style={styles.phoneInputWrapper}>
+            <FormInput
+              value={values.phoneNumber}
+              onChangeText={handlePhone}
+              placeholder="3123456789"
+              error={
+                touched.phoneNumber && errors.phoneNumber
+                  ? errors.phoneNumber
+                  : ""
+              }
+              keyboardType="numeric"
+              maxLength={10}
+            />
+          </View>
+        </View>
+      </View>
+
+      <CountryPicker
+        show={showCountryPicker}
+        pickerButtonOnPress={(item) => {
+          setCountryCode(item.dial_code);
+          setCountryFlag(item.flag);
+          setShowCountryPicker(false);
+        }}
+        onBackdropPress={() => setShowCountryPicker(false)}
+        lang="en"
+      />
+
+      {/* PASSWORDS */}
+      <FormInput
+        label="Password"
+        value={values.password}
+        isPassword
+        onChangeText={handleChange("password")}
+        error={touched.password && errors.password ? errors.password : ""}
+        placeholder="Enter password"
+      />
+
+      <FormInput
+        label="Confirm Password"
+        value={values.confirmPassword}
+        isPassword
+        onChangeText={handleChange("confirmPassword")}
+        error={
+          touched.confirmPassword && errors.confirmPassword
+            ? errors.confirmPassword
+            : ""
+        }
+        placeholder="Confirm password"
+      />
+
+      {/* ROLE */}
+      <FormInput
+        label="Role"
+        isDropdown
+        data={roleOptions}
+        value={values.role}
+        onDropdownChange={(item) => setFieldValue("role", item.value)}
+        error={touched.role && errors.role ? errors.role : ""}
+        placeholder="Select your role"
+      />
+
+      {/* DATE PICKER */}
+      <TouchableOpacity
+        style={[
+          styles.datePickerButton,
+          {
+            borderColor:
+              touched.dateOfBirth && errors.dateOfBirth
+                ? colors.danger
+                : values.dateOfBirth
+                ? colors.primary
+                : colors.white,
+          },
+        ]}
+        onPress={() => setShowPicker(true)}
       >
         <View>
-          {/* Icon with gradient background */}
-          <View style={styles.iconContainer}>
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCircle}
-            >
-              <Ionicons name="person-add-outline" size={52} color={colors.white} />
-            </LinearGradient>
-          </View>
-
-          <Text style={[appStyles.h3, { textAlign: "center", marginBottom: 8 }]}>
-            Create Account
+          <Text style={styles.dateLabel}>Date of Birth</Text>
+          <Text style={styles.dateValue}>
+            {new Date(values.dateOfBirth).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
           </Text>
-          <Text style={styles.subheadingStyle}>
-            Sign up to start your health journey
-          </Text>
-
-          {/* Progress Indicator */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressStep}>
-              <View style={currentStep === 1 ? styles.progressDotActive : styles.progressDot}>
-                <Text style={currentStep === 1 ? styles.progressNumberActive : styles.progressNumber}>1</Text>
-              </View>
-              <Text style={currentStep === 1 ? styles.progressLabelActive : styles.progressLabel}>Personal</Text>
-            </View>
-            <View style={styles.progressLine} />
-            <View style={styles.progressStep}>
-              <View style={currentStep === 2 ? styles.progressDotActive : styles.progressDot}>
-                <Text style={currentStep === 2 ? styles.progressNumberActive : styles.progressNumber}>2</Text>
-              </View>
-              <Text style={currentStep === 2 ? styles.progressLabelActive : styles.progressLabel}>Account</Text>
-            </View>
-          </View>
-
-          <View style={styles.formContainer}>
-            <FormInput
-              LeftIcon={Person}
-              placeholder="First Name"
-              keyboardType="default"
-              onFocus={() => setCurrentStep(1)}
-              onBlur={handleBlur("firstname")}
-              onChangeText={handleChange("firstname")}
-              value={values.firstname}
-              containerStyle={{ marginTop: 12 }}
-              error={
-                touched.firstname && errors.firstname
-                  ? errors.firstname
-                  : undefined
-              }
-            />
-            <FormInput
-              LeftIcon={Person}
-              placeholder="Last Name"
-              keyboardType="default"
-              onFocus={() => setCurrentStep(1)}
-              onBlur={handleBlur("lastname")}
-              onChangeText={handleChange("lastname")}
-              value={values.lastname}
-              containerStyle={{ marginTop: 12 }}
-              error={
-                touched.lastname && errors.lastname ? errors.lastname : undefined
-              }
-            />
-
-            {/* Role Selection Dropdown */}
-            <FormInput
-              isDropdown
-              data={roles}
-              placeholder="Select Role"
-              value={values.role}
-              onDropdownChange={(item) => {
-                formik.setFieldValue("role", item.value);
-              }}
-              LeftIcon={Person}
-              RightIcon={DropDownIcon}
-              containerStyle={{ marginTop: 12 }}
-              error={
-                touched.role && errors.role ? errors.role : undefined
-              }
-            />
-
-            {/* Date of Birth */}
-            <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
-              <FormInput
-                RightIcon={CalendarIconBlack}
-                placeholder="Date of Birth"
-                value={values.dateOfBirth}
-                editable={false}
-                pointerEvents="none"
-                containerStyle={{ marginTop: 12 }}
-                error={
-                  touched.dateOfBirth && errors.dateOfBirth
-                    ? errors.dateOfBirth
-                    : undefined
-                }
-              />
-            </TouchableOpacity>
-
-            {/* Account Section */}
-            <View style={styles.sectionDivider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.sectionLabel}>Account Details</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <FormInput
-              LeftIcon={Email}
-              placeholder="Email"
-              keyboardType="email-address"
-              onFocus={() => setCurrentStep(2)}
-              onBlur={handleBlur("email")}
-              onChangeText={handleChange("email")}
-              value={values.email}
-              containerStyle={{ marginTop: 12 }}
-              error={touched.email && errors.email ? errors.email : undefined}
-              autoCapitalize="none"
-            />
-            <FormInput
-              LeftIcon={Lock}
-              placeholder="Password"
-              isPassword
-              onFocus={() => setCurrentStep(2)}
-              onBlur={handleBlur("password")}
-              onChangeText={handleChange("password")}
-              value={values.password}
-              containerStyle={{ marginTop: 12 }}
-              error={
-                touched.password && errors.password ? errors.password : undefined
-              }
-            />
-
-            <FormInput
-              LeftIcon={Lock}
-              placeholder="Confirm Password"
-              isPassword
-              onFocus={() => setCurrentStep(2)}
-              onBlur={handleBlur("confirmPassword")}
-              onChangeText={handleChange("confirmPassword")}
-              value={values.confirmPassword}
-              containerStyle={{ marginTop: 12 }}
-              error={
-                touched.confirmPassword && errors.confirmPassword
-                  ? errors.confirmPassword
-                  : undefined
-              }
-            />
-          </View>
         </View>
-        
-        <View>
-          <AppButton 
-            title="Create Account" 
-            disabled={!isValid || !dirty}
-            onPress={handleSubmit}
-            containerStyle={{marginTop:20}}
-          />
-          <View style={styles.bottomTextStyle}>
-            <Text style={[appStyles.body1, { color: colors.gray }]}>
-              Already have an account?{" "}
-            </Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)")}>  
-              <Text style={styles.signInText}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </KeyboardAwareScrollView>
+        <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+      </TouchableOpacity>
 
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={(date) => {
-          setSelectedDate(date);
-          formik.setFieldValue("dateOfBirth", formatDate(date));
-          setDatePickerVisible(false);
-        }}
-        onCancel={() => setDatePickerVisible(false)}
-        maximumDate={new Date()}
-        date={selectedDate || new Date()}
+      {touched.dateOfBirth && errors.dateOfBirth && (
+        <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
+      )}
+
+      {showPicker && (
+        <DateTimePicker
+          value={new Date(values.dateOfBirth)}
+          mode="date"
+          display="spinner"
+          onChange={onDateSelect}
+          maximumDate={new Date()}
+        />
+      )}
+
+      {/* SUBMIT BUTTON */}
+      <AppButton
+        title={isSubmitting ? <ActivityIndicator color="#fff" /> : "Sign Up"}
+        onPress={handleSubmit}
+        disabled={!isValid || !dirty || isSubmitting}
+        style={styles.submitButton}
       />
-    </SafeAreaView>
-  );
-};
 
-export default SignUpScreen;
+      {/* LOGIN LINK */}
+      <View style={styles.loginContainer}>
+        <Text style={styles.loginText}>Already have an account? </Text>
+        <TouchableOpacity onPress={() => router.push("/(auth)")}>
+          <Text style={styles.loginLink}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAwareScrollView>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.white,
+  },
+  contentContainer: {
+    padding: 20,
+    // paddingBottom: 20,
+  },
+  headerContainer: {
+    alignItems: "center",
+    marginBottom: 30,
   },
   iconContainer: {
-    alignSelf: "center",
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  gradientCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
+    marginBottom: 16,
   },
-  subheadingStyle: {
-    textAlign: "center",
-    fontFamily: Fonts.regular,
-    fontSize: 15,
-    color: colors.gray,
-    marginBottom: 20,
+  title: {
+    fontSize: 28,
+    fontFamily: Fonts.bold,
+    color: colors.black,
+    marginBottom: 8,
   },
-  progressContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  progressStep: {
-    alignItems: "center",
-  },
-  progressDotActive: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  progressDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.lightGray,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  progressNumberActive: {
-    color: colors.white,
-    fontFamily: Fonts.semiBold,
+  subtitle: {
     fontSize: 16,
-  },
-  progressNumber: {
-    color: colors.gray,
-    fontFamily: Fonts.semiBold,
-    fontSize: 16,
-  },
-  progressLabelActive: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.primary,
-  },
-  progressLabel: {
-    fontSize: 12,
     fontFamily: Fonts.regular,
     color: colors.gray,
   },
-  progressLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: colors.lightGray,
-    marginHorizontal: 8,
-    marginBottom: 20,
-  },
-  formContainer: {
-    marginTop: 8,
-  },
-  sectionDivider: {
+  datePickerButton: {
     flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.borderGray,
-  },
-  sectionLabel: {
-    marginHorizontal: 12,
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-    color: colors.gray,
-  },
-  bottomTextStyle: {
-    marginVertical: 20,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  signInText: {
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
-    fontSize: 15,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: sizes.paddingHorizontal,
     justifyContent: "space-between",
-    backgroundColor: colors.white,
-    marginBottom: 20,
+    alignItems: "center",
+    backgroundColor: colors.lightGreen,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 15,
+    borderWidth: 1,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginBottom: 4,
+  },
+  dateValue: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: colors.primary,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  submitButton: {
+    marginTop: 25,
+  },
+  loginContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  loginText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  loginLink: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
+  phoneContainer: {
+    marginTop: 15,
+  },
+  phoneLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  phoneInputRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  countryPickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.lightGreen,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 56,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  countryFlag: {
+    fontSize: 20,
+  },
+  countryCode: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: colors.primary,
+  },
+  phoneInputWrapper: {
+    flex: 1,
+    marginTop: -15,
   },
 });

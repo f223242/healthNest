@@ -1,6 +1,8 @@
 import LogoutModal from "@/component/ModalComponent/LogoutModal";
+import { useToast } from "@/component/Toast/ToastProvider";
+import { firebaseMessages } from "@/constant/messages";
 import { colors, Fonts, sizes } from "@/constant/theme";
-import { useAuthContext } from "@/hooks/useContext";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -16,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const SettingsScreen = () => {
   const router=useRouter();
+  const toast = useToast();
   const { logout } = useAuthContext();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -25,9 +28,22 @@ const SettingsScreen = () => {
     setShowLogoutModal(true);
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     setShowLogoutModal(false);
-    logout();
+    try {
+      await logout();
+      toast.show({
+        type: firebaseMessages.logoutSuccess.type as any,
+        text1: firebaseMessages.logoutSuccess.text1,
+        text2: firebaseMessages.logoutSuccess.text2,
+      });
+    } catch (error: any) {
+      toast.show({
+        type: error.type || 'error',
+        text1: error.text1 || 'Logout Failed',
+        text2: error.text2 || error.message || "Logout failed. Please try again.",
+      });
+    }
   };
 
   const settingSections = [

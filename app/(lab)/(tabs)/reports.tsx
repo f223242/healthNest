@@ -1,17 +1,17 @@
 import { SearchIcon } from "@/assets/svg";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -99,20 +99,11 @@ const Reports = () => {
     },
   ];
 
+  const toast = useToast();
+
   const handleSendReport = (report: Report) => {
-    Alert.alert(
-      "Send Report",
-      `Send report to ${report.patientName}?\n\nThe report will be sent via:\n• App notification\n• SMS to ${report.patientPhone}`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Send",
-          onPress: () => {
-            Alert.alert("Success", "Report sent successfully to patient!");
-          },
-        },
-      ]
-    );
+    // Send report logic
+    toast.success(`Report sent successfully to ${report.patientName}!`);
   };
 
   const getStatusColor = (status: string) => {

@@ -1,13 +1,14 @@
 import { LockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -31,6 +32,7 @@ const passwordSchema = Yup.object({
 
 const ChangePassword = () => {
   const router = useRouter();
+  const toast = useToast();
 
   const formik = useFormik({
     initialValues: {
@@ -44,9 +46,8 @@ const ChangePassword = () => {
     onSubmit: (values) => {
       // Handle password change logic
       console.log("Password change values:", values);
-      Alert.alert("Success", "Password changed successfully!", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      toast.success("Password changed successfully!");
+      setTimeout(() => router.back(), 1500);
     },
   });
 

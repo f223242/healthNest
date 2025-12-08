@@ -1,6 +1,6 @@
 import HomeHeader from '@/component/HomeHeader';
 import { colors, Fonts } from '@/constant/theme';
-import { useAuthContext } from '@/hooks/useContext';
+import { useAuthContext } from '@/hooks/useFirebaseAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';

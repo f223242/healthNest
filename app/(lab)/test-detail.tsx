@@ -1,16 +1,16 @@
 import AppButton from "@/component/AppButton";
 import ConfirmationModal from "@/component/ConfirmationModal";
 import QuickActionButton from "@/component/QuickActionButton";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -123,12 +123,14 @@ const TestDetailScreen = () => {
     setShowSuccessModal(true);
   };
 
+  const toast = useToast();
+
   const handleCall = () => {
-    Alert.alert("Call Patient", `Calling ${testDetail.patientPhone}`);
+    toast.info(`Calling ${testDetail.patientPhone}`);
   };
 
   const handleNavigate = () => {
-    Alert.alert("Navigate", "Opening maps for navigation...");
+    toast.info("Opening maps for navigation...");
   };
 
   return (
@@ -222,7 +224,7 @@ const TestDetailScreen = () => {
             <QuickActionButton
               icon="chatbubble"
               label="Message"
-              onPress={() => Alert.alert("Message", "Opening messaging...")}
+              onPress={() => toast.info("Opening messaging...")}
             />
             {testDetail.collectionType === "Home Sampling" && (
               <QuickActionButton

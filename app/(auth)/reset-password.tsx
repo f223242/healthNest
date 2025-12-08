@@ -2,14 +2,15 @@ import { Lock } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import ResetPasswordModal from "@/component/ModalComponent/ResetPasswordModal";
-
+import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -32,7 +33,114 @@ let reset_password_schema = object({
 });
 
 const ResetPassword = () => {
-  const [modalVisible, setModalVisible] = React.useState(false);
+  const router = useRouter();
+  const params = useLocalSearchParams<{ phoneNumber: string }>();
+  const { verifyPasswordResetOTP, resendPasswordResetOTP, updatePassword } = useAuthContext();
+  const toast = useToast();
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timer, setTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  
+  // Refs for OTP inputs
+  const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  // Timer for resend OTP
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timer > 0 && !canResend) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(interval);
+  }, [timer, canResend]);
+
+  const handleOtpChange = (text: string, index: number) => {
+    // Only allow numbers
+    if (text && !/^\d+$/.test(text)) return;
+
+    const newOtpValues = [...otpValues];
+    newOtpValues[index] = text;
+    setOtpValues(newOtpValues);
+
+    // Auto focus next input
+    if (text && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === "Backspace" && !otpValues[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    const otp = otpValues.join("");
+    if (otp.length !== 6) {
+      toast.show({
+        type: "error",
+        text1: "Invalid OTP",
+        text2: "Please enter a 6-digit OTP",
+      });
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      const isValid = await verifyPasswordResetOTP(otp);
+      if (isValid) {
+        setOtpVerified(true);
+        toast.show({
+          type: "success",
+          text1: "OTP Verified",
+          text2: "Now set your new password",
+        });
+      }
+    } catch (error: any) {
+      toast.show({
+        type: error.type || "error",
+        text1: error.text1 || "Verification Failed",
+        text2: error.text2 || "Invalid or expired OTP",
+      });
+      setOtpValues(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      setIsResending(true);
+      await resendPasswordResetOTP();
+      setTimer(60);
+      setCanResend(false);
+      setOtpValues(["", "", "", "", "", ""]);
+      toast.show({
+        type: "success",
+        text1: "OTP Sent",
+        text2: "A new OTP has been sent to your phone",
+      });
+    } catch (error: any) {
+      toast.show({
+        type: error.type || "error",
+        text1: error.text1 || "Error",
+        text2: error.text2 || "Failed to resend OTP",
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const formik = useFormik({
     initialValues: {
       password: "",
@@ -41,12 +149,23 @@ const ResetPassword = () => {
     validationSchema: reset_password_schema,
     validateOnChange: true,
     validateOnBlur: true,
-    onSubmit: (values) => {
-      console.log("Modal visible:", modalVisible);
-      setModalVisible(true);
+    onSubmit: async (values) => {
+      try {
+        setIsSubmitting(true);
+        await updatePassword(values.password);
+        setModalVisible(true);
+      } catch (error: any) {
+        toast.show({
+          type: error.type || "error",
+          text1: error.text1 || "Error",
+          text2: error.text2 || "Failed to update password",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     },
   });
-  const router = useRouter();
+  
   const {
     handleBlur,
     handleChange,
@@ -58,6 +177,96 @@ const ResetPassword = () => {
     handleSubmit,
   } = formik;
 
+  // OTP Verification Screen
+  if (!otpVerified) {
+    return (
+      <SafeAreaView edges={["bottom"]} style={styles.container}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <View>
+            {/* Icon with gradient background */}
+            <View style={styles.iconContainer}>
+              <LinearGradient
+                colors={[colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientCircle}
+              >
+                <Ionicons name="shield-checkmark-outline" size={56} color={colors.white} />
+              </LinearGradient>
+            </View>
+
+            <Text style={[appStyles.h3, { marginTop: 32, textAlign: "center" }]}>
+              Verify OTP
+            </Text>
+            <Text style={styles.subheadingStyle}>
+              Enter the 6-digit code sent to{"\n"}
+              <Text style={{ fontFamily: Fonts.semiBold, color: colors.primary }}>
+                {params.phoneNumber}
+              </Text>
+            </Text>
+
+            {/* OTP Input Fields */}
+            <View style={styles.otpInputContainer}>
+              {otpValues.map((value, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref: TextInput | null) => {
+                    inputRefs.current[index] = ref;
+                  }}
+                  style={[
+                    styles.otpInput,
+                    value ? styles.otpInputFilled : {},
+                  ]}
+                  value={value}
+                  onChangeText={(text) => handleOtpChange(text, index)}
+                  onKeyPress={(e) => handleKeyPress(e, index)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                />
+              ))}
+            </View>
+
+            <View style={styles.resendContainer}>
+              {canResend ? (
+                <TouchableOpacity 
+                  onPress={handleResendOTP} 
+                  disabled={isResending}
+                >
+                  <Text style={styles.resendText}>
+                    {isResending ? "Sending..." : "Resend OTP"}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.timerText}>
+                  Resend OTP in <Text style={styles.timerNumber}>{timer}s</Text>
+                </Text>
+              )}
+            </View>
+          </View>
+
+          <View>
+            <AppButton
+              title={isVerifying ? "Verifying..." : "Verify OTP"}
+              onPress={handleVerifyOTP}
+              disabled={otpValues.join("").length !== 6 || isVerifying}
+            >
+              {isVerifying && (
+                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+              )}
+            </AppButton>
+          </View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Password Reset Screen (after OTP verified)
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <KeyboardAwareScrollView
@@ -95,6 +304,7 @@ const ResetPassword = () => {
               onBlur={handleBlur("password")}
               onChangeText={handleChange("password")}
               value={values.password}
+              error={touched.password && errors.password ? errors.password : undefined}
             />
 
             <FormInput
@@ -105,6 +315,7 @@ const ResetPassword = () => {
               onBlur={handleBlur("confirmPassword")}
               onChangeText={handleChange("confirmPassword")}
               value={values.confirmPassword}
+              error={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : undefined}
             />
 
             {/* Password Requirements */}
@@ -164,17 +375,22 @@ const ResetPassword = () => {
 
         <View>
           <AppButton
-            title="Reset Password"
+            title={isSubmitting ? "Updating..." : "Reset Password"}
             onPress={handleSubmit}
-            disabled={!isValid}
-            containerStyle={{marginTop:20}}
-          />
+            disabled={!isValid || !dirty || isSubmitting}
+            containerStyle={{ marginTop: 20 }}
+          >
+            {isSubmitting && (
+              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+            )}
+          </AppButton>
         </View>
       </KeyboardAwareScrollView>
       <ResetPasswordModal
         visible={modalVisible}
         onClose={() => {
           setModalVisible(false);
+          router.replace("/(auth)");
         }}
       />
     </SafeAreaView>
@@ -220,6 +436,47 @@ const styles = StyleSheet.create({
     color: colors.gray,
     marginTop: 12,
     paddingHorizontal: 20,
+  },
+  otpInputContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 32,
+    gap: 10,
+  },
+  otpInput: {
+    width: 50,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borderGray,
+    backgroundColor: colors.lightGray,
+    textAlign: "center",
+    fontSize: 24,
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+  },
+  otpInputFilled: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightGreen,
+  },
+  resendContainer: {
+    marginTop: 24,
+    alignItems: "center",
+  },
+  resendText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  timerText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: colors.gray,
+  },
+  timerNumber: {
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
   },
   formContainer: {
     marginTop: 32,

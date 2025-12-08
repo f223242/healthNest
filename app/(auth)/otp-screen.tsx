@@ -1,33 +1,32 @@
 import AppButton from "@/component/AppButton";
-import OtpCompnent from "@/component/OtpCompnent";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useFormik } from "formik";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { OtpInput } from "react-native-otp-entry";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { object, string } from "yup";
-let otp_schema = object({
-  otp: string().required("OTP is required").length(4, "OTP must be 4 digits"),
-});
 
 const OtpScreen = () => {
   const router = useRouter();
+  const { email } = useLocalSearchParams<{ email: string }>();
+  const { resendVerificationEmail, checkEmailVerification, logout } = useAuthContext();
+  const toast = useToast();
+
   const [seconds, setSeconds] = useState(59);
   const [minutes, setMinutes] = useState(0);
   const [canResend, setCanResend] = useState(false);
-
-  const formik = useFormik({
-    initialValues: { otp: "" },
-    validationSchema: otp_schema,
-    onSubmit: (values) => {
-      router.push("/(auth)/reset-password");
-    },
-  });
-  const { handleSubmit, isValid, setFieldValue, values } = formik;
+  const [isChecking, setIsChecking] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   // Countdown timer logic
   useEffect(() => {
@@ -46,14 +45,92 @@ const OtpScreen = () => {
     return () => clearInterval(timer);
   }, [seconds, minutes]);
 
-  const handleResend = () => {
-    setSeconds(59);
-    setMinutes(0);
-    setCanResend(false);
-    setFieldValue("otp", "");
-    // Add your resend OTP API call here
-    console.log("Resend OTP");
+  // Auto-check email verification periodically
+  useEffect(() => {
+    const checkInterval = setInterval(async () => {
+      try {
+        const isVerified = await checkEmailVerification();
+        if (isVerified) {
+          clearInterval(checkInterval);
+          toast.show({
+            type: "success",
+            text1: "Email Verified",
+            text2: "Your email has been verified successfully. Please login.",
+          });
+          await logout();
+          router.replace("/(auth)");
+        }
+      } catch (error) {
+        // Silently fail on background checks
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(checkInterval);
+  }, []);
+
+  const handleResend = async () => {
+    try {
+      setIsResending(true);
+      await resendVerificationEmail();
+      setSeconds(59);
+      setMinutes(0);
+      setCanResend(false);
+      toast.show({
+        type: "success",
+        text1: "Email Sent",
+        text2: "Verification email has been resent",
+      });
+    } catch (error: any) {
+      toast.show({
+        type: "error",
+        text1: error.text1 || "Error",
+        text2: error.text2 || "Failed to resend verification email",
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
+
+  const handleCheckVerification = async () => {
+    try {
+      setIsChecking(true);
+      const isVerified = await checkEmailVerification();
+
+      if (isVerified) {
+        toast.show({
+          type: "success",
+          text1: "Email Verified",
+          text2: "Your email has been verified successfully. Please login.",
+        });
+        await logout();
+        router.replace("/(auth)");
+      } else {
+        toast.show({
+          type: "warning",
+          text1: "Not Verified Yet",
+          text2: "Please check your email and click the verification link",
+        });
+      }
+    } catch (error: any) {
+      toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to check verification status",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const handleBackToLogin = async () => {
+    try {
+      await logout();
+      router.replace("/(auth)");
+    } catch (error) {
+      router.replace("/(auth)");
+    }
+  };
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       <KeyboardAwareScrollView
@@ -63,80 +140,124 @@ const OtpScreen = () => {
         enableOnAndroid={true}
       >
         <View>
-          {/* Icon */}
+          {/* Icon with gradient background */}
           <View style={styles.iconContainer}>
-            <Ionicons name="mail-outline" size={64} color={colors.primary} />
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientCircle}
+            >
+              <Ionicons name="mail-outline" size={56} color={colors.white} />
+            </LinearGradient>
           </View>
 
           <Text style={[appStyles.h3, { textAlign: "center", marginTop: 24 }]}>
-            Verify your email
+            Verify your Email
           </Text>
           <Text
-            style={[appStyles.body1, { textAlign: "center", marginTop: 8, color: colors.gray, paddingHorizontal: 16 }]}
+            style={[
+              appStyles.body1,
+              { textAlign: "center", marginTop: 8, color: colors.gray, paddingHorizontal: 16 },
+            ]}
           >
-            We sent a verification code to your email address. Please enter it
-            below.
+            We've sent a verification link to{"\n"}
+            <Text style={{ fontFamily: Fonts.semiBold, color: colors.primary }}>
+              {email || "your email"}
+            </Text>
           </Text>
-          <OtpInput
-            numberOfDigits={4}
-            focusColor={colors.primary}
-            autoFocus={false}
-            theme={{
-              containerStyle: styles.otpContainerStyle,
-              pinCodeContainerStyle: styles.pinCodeStyle,
-              pinCodeTextStyle: styles.pinCodeTextStyle,
-            }}
-            onTextChange={(text) => {
-              setFieldValue("otp", text);
-            }}
-            onFilled={(code) => {
-              setFieldValue("otp", code);
-              console.log("OTP Filled:", code);
-            }}
-          />
+
+          {/* Instructions */}
+          <View style={styles.instructionsContainer}>
+            <View style={styles.instructionItem}>
+              <View style={styles.instructionNumber}>
+                <Text style={styles.instructionNumberText}>1</Text>
+              </View>
+              <Text style={styles.instructionText}>Open your email inbox</Text>
+            </View>
+            <View style={styles.instructionItem}>
+              <View style={styles.instructionNumber}>
+                <Text style={styles.instructionNumberText}>2</Text>
+              </View>
+              <Text style={styles.instructionText}>Find the email from HealthNest</Text>
+            </View>
+            <View style={styles.instructionItem}>
+              <View style={styles.instructionNumber}>
+                <Text style={styles.instructionNumberText}>3</Text>
+              </View>
+              <Text style={styles.instructionText}>Click the verification link</Text>
+            </View>
+            <View style={styles.instructionItem}>
+              <View style={styles.instructionNumber}>
+                <Text style={styles.instructionNumberText}>4</Text>
+              </View>
+              <Text style={styles.instructionText}>Come back and tap "I've Verified"</Text>
+            </View>
+          </View>
+
           {/* Timer */}
           <View style={styles.timerSection}>
-            <Text style={[appStyles.body1, { color: colors.gray, marginBottom: 8 }]}>
-              Code expires in
+            <Text style={[appStyles.body1, { color: colors.gray }]}>
+              {canResend
+                ? "You can resend the email now"
+                : `Resend email in ${minutes}:${seconds.toString().padStart(2, "0")}`}
             </Text>
-            <View style={styles.otpCardContainer}>
-              <OtpCompnent text={minutes.toString().padStart(2, "0")} label="Minutes" />
-              <View style={styles.colonContainer}>
-                <Text style={styles.colonText}>:</Text>
-              </View>
-              <OtpCompnent text={seconds.toString().padStart(2, "0")} label="Seconds" />
-            </View>
           </View>
         </View>
 
         <View>
           <AppButton
-            title="Verify"
-            disabled={!isValid || values.otp.length < 4}
-            onPress={handleSubmit}
-          />
+            title={isChecking ? "Checking..." : "I've Verified My Email"}
+            disabled={isChecking}
+            onPress={handleCheckVerification}
+          >
+            {isChecking && (
+              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+            )}
+          </AppButton>
+
           <View style={styles.resendContainer}>
             <Text style={[appStyles.body1, { color: colors.gray }]}>
-              Didn't receive the code?
+              Didn't receive the email?
             </Text>
             <TouchableOpacity
               onPress={handleResend}
-              disabled={!canResend}
+              disabled={!canResend || isResending}
               style={{ marginTop: 8 }}
             >
-              <Text
-                style={[
-                  appStyles.body1,
-                  {
-                    color: canResend ? colors.primary : colors.lightGreen,
-                    fontFamily: Fonts.semiBold,
-                  },
-                ]}
-              >
-                {canResend ? "Resend Code" : `Resend in ${minutes}:${seconds.toString().padStart(2, "0")}`}
-              </Text>
+              {isResending ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : (
+                <Text
+                  style={[
+                    appStyles.body1,
+                    {
+                      color: canResend ? colors.primary : colors.gray,
+                      fontFamily: Fonts.semiBold,
+                    },
+                  ]}
+                >
+                  Resend Email
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
+
+          {/* Check Spam Notice */}
+          <View style={styles.spamNotice}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.gray} />
+            <Text style={styles.spamNoticeText}>
+              Check your spam folder if you don't see the email
+            </Text>
+          </View>          {/* Back to Login */}
+          <TouchableOpacity
+            onPress={handleBackToLogin}
+            style={styles.backToLoginButton}
+          >
+            <Text style={[appStyles.body1, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+              Back to Login
+            </Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
@@ -148,78 +269,89 @@ export default OtpScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   iconContainer: {
     alignSelf: "center",
     marginTop: 32,
-    backgroundColor: colors.lightGreen,
+  },
+  gradientCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-  },
-  otpContainerStyle: {
-    width: "80%",
-    alignSelf: "center",
-    marginTop: 32,
-  },
-  pinCodeStyle: {
-    height: 52,
-    width: 44,
-    borderRadius: 12,
-  },
-  pinCodeTextStyle: {
-    fontSize: 20,
-    fontFamily: Fonts.regular,
-    color: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   scrollContainer: {
     paddingHorizontal: sizes.paddingHorizontal,
     flexGrow: 1,
     justifyContent: "space-between",
-    backgroundColor: colors.white,
     marginBottom: 20,
   },
-  card: {
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: "#E5F5F0",
-    flex: 1,
-    marginHorizontal: 4,
-    marginTop: 24,
+  instructionsContainer: {
+    marginTop: 32,
+    backgroundColor: colors.lightGreen,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.primary + "20",
   },
-  text: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-
+  instructionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  instructionNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
     justifyContent: "center",
-    textAlign: "center",
-    lineHeight: 60,
+    alignItems: "center",
+  },
+  instructionNumberText: {
+    color: colors.white,
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+  },
+  instructionText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: colors.black,
+    flex: 1,
   },
   timerSection: {
     alignItems: "center",
-    marginTop: 32,
-  },
-  otpCardContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  colonContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: 24,
-  },
-  colonText: {
-    fontSize: 32,
-    fontFamily: Fonts.bold,
-    color: colors.primary,
+    marginTop: 24,
   },
   resendContainer: {
     alignItems: "center",
     marginTop: 20,
+  },
+  spamNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    gap: 6,
+  },
+  spamNoticeText: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: colors.gray,
+  },
+  backToLoginButton: {
+    alignItems: "center",
+    marginTop: 16,
+    paddingVertical: 12,
   },
 });
