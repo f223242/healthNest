@@ -15,11 +15,13 @@ import { CountryPicker } from "react-native-country-codes-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
 
+import { DropDownIcon, Email, Person } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ----------------------
 // Yup Validation Schema
@@ -80,17 +82,28 @@ export default function SignupScreen() {
       confirmPassword: "",
       role: "",
       phoneNumber: "",
-      dateOfBirth: "2000-01-01T00:00:00.000Z",
+      dateOfBirth: "",
     },
     validationSchema: SignupSchema,
+    validateOnMount: true,
+    validateOnChange: true,
+    validateOnBlur: true,
 
     onSubmit: async (values, { setSubmitting }) => {
       try {
         const formattedPhone = `${countryCode}${values.phoneNumber}`;
         const payload = { ...values, phoneNumber: formattedPhone };
-        await register(payload);
-      } catch (error) {
-        showToast("Failed to sign up", "error");
+        const result = await register(payload);
+        
+        // Navigate to email verification screen after successful registration
+        if (result?.requiresVerification) {
+          router.replace({
+            pathname: "/(auth)/otp-screen",
+            params: { email: values.email }
+          });
+        }
+      } catch (error: any) {
+        showToast(error?.text2 || "Failed to sign up", "error");
       } finally {
         setSubmitting(false);
       }
@@ -102,8 +115,10 @@ export default function SignupScreen() {
     errors,
     touched,
     handleChange,
+    handleBlur,
     handleSubmit,
     setFieldValue,
+    setFieldTouched,
     isValid,
     dirty,
     isSubmitting,
@@ -129,6 +144,7 @@ export default function SignupScreen() {
   };
 
   return (
+    <SafeAreaView edges={['bottom']} style={{flex:1}}>
     <KeyboardAwareScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
@@ -152,24 +168,30 @@ export default function SignupScreen() {
 
       <FormInput
         label="First Name"
+        LeftIcon={Person}
         value={values.firstname}
         onChangeText={handleChange("firstname")}
+        onBlur={handleBlur("firstname")}
         error={touched.firstname && errors.firstname ? errors.firstname : ""}
         placeholder="Enter your first name"
       />
 
       <FormInput
         label="Last Name"
+        LeftIcon={Person}
         value={values.lastname}
         onChangeText={handleChange("lastname")}
+        onBlur={handleBlur("lastname")}
         error={touched.lastname && errors.lastname ? errors.lastname : ""}
         placeholder="Enter your last name"
       />
 
       <FormInput
         label="Email"
+        LeftIcon={Email}
         value={values.email}
         onChangeText={handleChange("email")}
+        onBlur={handleBlur("email")}
         error={touched.email && errors.email ? errors.email : ""}
         keyboardType="email-address"
         placeholder="Enter your email"
@@ -192,8 +214,10 @@ export default function SignupScreen() {
 
           <View style={styles.phoneInputWrapper}>
             <FormInput
+            LeftIcon={ <Ionicons name="call-outline" size={20} color={colors.gray} />}
               value={values.phoneNumber}
               onChangeText={handlePhone}
+              onBlur={handleBlur("phoneNumber")}
               placeholder="3123456789"
               error={
                 touched.phoneNumber && errors.phoneNumber
@@ -224,6 +248,7 @@ export default function SignupScreen() {
         value={values.password}
         isPassword
         onChangeText={handleChange("password")}
+        onBlur={handleBlur("password")}
         error={touched.password && errors.password ? errors.password : ""}
         placeholder="Enter password"
       />
@@ -233,6 +258,7 @@ export default function SignupScreen() {
         value={values.confirmPassword}
         isPassword
         onChangeText={handleChange("confirmPassword")}
+        onBlur={handleBlur("confirmPassword")}
         error={
           touched.confirmPassword && errors.confirmPassword
             ? errors.confirmPassword
@@ -250,55 +276,67 @@ export default function SignupScreen() {
         onDropdownChange={(item) => setFieldValue("role", item.value)}
         error={touched.role && errors.role ? errors.role : ""}
         placeholder="Select your role"
+        RightIcon={DropDownIcon}
       />
 
       {/* DATE PICKER */}
-      <TouchableOpacity
-        style={[
-          styles.datePickerButton,
-          {
-            borderColor:
-              touched.dateOfBirth && errors.dateOfBirth
-                ? colors.danger
-                : values.dateOfBirth
-                ? colors.primary
-                : colors.white,
-          },
-        ]}
-        onPress={() => setShowPicker(true)}
-      >
-        <View>
-          <Text style={styles.dateLabel}>Date of Birth</Text>
-          <Text style={styles.dateValue}>
-            {new Date(values.dateOfBirth).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+      <View style={styles.datePickerContainer}>
+        <Text style={styles.datePickerLabel}>Date of Birth</Text>
+        <TouchableOpacity
+          style={[
+            styles.datePickerButton,
+            {
+              borderColor:
+                touched.dateOfBirth && errors.dateOfBirth
+                  ? colors.danger
+                  : values.dateOfBirth
+                  ? colors.primary
+                  : colors.borderGray,
+            },
+          ]}
+          onPress={() => {
+            setShowPicker(true);
+            setFieldTouched("dateOfBirth", true);
+          }}
+        >
+          <Text style={[styles.dateValue, !values.dateOfBirth && styles.datePlaceholder]}>
+            {values.dateOfBirth
+              ? new Date(values.dateOfBirth).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "Select your date of birth"}
           </Text>
-        </View>
-        <Ionicons name="calendar-outline" size={24} color={colors.primary} />
-      </TouchableOpacity>
+          <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
 
       {touched.dateOfBirth && errors.dateOfBirth && (
         <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
       )}
 
-      {showPicker && (
-        <DateTimePicker
-          value={new Date(values.dateOfBirth)}
-          mode="date"
-          display="spinner"
-          onChange={onDateSelect}
-          maximumDate={new Date()}
-        />
-      )}
+    {showPicker && (
+  <DateTimePicker
+    value={
+      values.dateOfBirth
+        ? new Date(values.dateOfBirth)
+        : new Date(2010, 12,31) // default selected date
+    }
+    mode="date"
+    display="calendar"
+    onChange={onDateSelect}
+    minimumDate={new Date(1950, 0, 1)} // Jan 1, 1950
+    maximumDate={new Date(2010, 11, 31)} // Dec 31, 2010
+  />
+)}
+
 
       {/* SUBMIT BUTTON */}
       <AppButton
         title={isSubmitting ? <ActivityIndicator color="#fff" /> : "Sign Up"}
         onPress={handleSubmit}
-        disabled={!isValid || !dirty || isSubmitting}
+        disabled={!isValid || isSubmitting}
         style={styles.submitButton}
       />
 
@@ -310,6 +348,7 @@ export default function SignupScreen() {
         </TouchableOpacity>
       </View>
     </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -345,6 +384,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: colors.gray,
   },
+  datePickerContainer: {
+    marginTop: 15,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+    marginBottom: 8,
+  },
   datePickerButton: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -352,7 +400,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGreen,
     borderRadius: 12,
     padding: 16,
-    marginTop: 15,
     borderWidth: 1,
   },
   dateLabel: {
@@ -365,6 +412,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: colors.primary,
+  },
+  datePlaceholder: {
+    color: colors.gray,
   },
   errorText: {
     color: colors.danger,

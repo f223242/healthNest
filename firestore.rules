@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    match /users/{userId} {
+      // Allow read if authenticated and accessing own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow create during registration (user creates their own document)
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow update if authenticated and updating own document
+      allow update: if request.auth != null && request.auth.uid == userId;
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+    
+    // Password Reset OTPs collection (separate collection for security)
+    match /passwordResetOTPs/{docId} {
+      // Anyone can create (for password reset flow when user is not authenticated)
+      allow create: if true;
+      
+      // Anyone can read (to verify OTP)
+      allow read: if true;
+      
+      // Anyone can update (to mark OTP as used)
+      allow update: if true;
+      
+      // Allow delete after verification
+      allow delete: if true;
+    }
+    
+    // Phone number lookup (for forgot password)
+    match /users/{userId} {
+      // Allow querying by phone number for password reset (unauthenticated)
+      allow read: if request.query.limit <= 1 
+                   && 'phoneNumber' in resource.data;
+    }
+  }
+}
