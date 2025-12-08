@@ -20,6 +20,7 @@ export const colors = {
   lightGray: "#F8F8F8",
   borderGray: "#E5E5E5",
   danger: "#FF4444",
+  error: "#FF3B30",
   yellow: "#FFA500",
   success: "#4CAF50",
   warning: "#FF9800",

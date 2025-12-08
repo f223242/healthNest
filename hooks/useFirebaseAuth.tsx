@@ -9,7 +9,7 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signOut,
+  signOut
 } from "firebase/auth";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -36,11 +36,75 @@ const generateOTP = () => {
 // Define user roles
 export type UserRole = "user" | "admin" | "nurse" | "delivery" | "lab";
 
+// Additional info interfaces for each role
+export interface PatientInfo {
+  address: string;
+  city: string;
+  emergencyContact: string;
+  bloodGroup: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
+}
+
+export interface NurseInfo {
+  specialization: string;
+  experience: string;
+  hourlyRate: string;
+  availability: string;
+  address: string;
+  city: string;
+  certifications: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
+}
+
+export interface LabInfo {
+  labName: string;
+  address: string;
+  city: string;
+  licenseNumber: string;
+  homeSampling: boolean;
+  operatingHours: string;
+  servicesOffered: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
+}
+
+export interface DeliveryInfo {
+  vehicleType: string;
+  vehicleNumber: string;
+  licenseNumber: string;
+  address: string;
+  city: string;
+  availability: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
+}
+
+export type AdditionalInfo = PatientInfo | NurseInfo | LabInfo | DeliveryInfo;
+
 // Define what your context provides
-interface User {
+export interface User {
   uid: string;
   email: string;
   role: UserRole;
+  profileCompleted?: boolean;
+  additionalInfo?: AdditionalInfo;
+  firstname?: string;
+  lastname?: string;
+  phoneNumber?: string;
 }
 
 interface PendingUser {
@@ -68,6 +132,8 @@ interface AuthContextType {
   verifyPasswordResetOTP: (otp: string) => Promise<boolean>;
   resendPasswordResetOTP: () => Promise<string>;
   updatePassword: (newPassword: string) => Promise<void>;
+  saveAdditionalInfo: (info: AdditionalInfo) => Promise<void>;
+  getUserProfile: () => Promise<User | null>;
   isLoading: boolean;
 }
 
@@ -161,13 +227,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           await saveRoleLocally(role);
         }
         
-        setUser({
-          uid: fbUser.uid,
-          email: fbUser.email || "",
-          role: role,
-        });
-        
-        console.log("User set:", fbUser.email, "Role:", role);
+        // Fetch full user profile including profileCompleted status
+        try {
+          const userDocRef = doc(db, "users", fbUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          const userData = userDoc.exists() ? userDoc.data() : {};
+          
+          setUser({
+            uid: fbUser.uid,
+            email: fbUser.email || "",
+            role: role,
+            profileCompleted: userData.profileCompleted || false,
+            additionalInfo: userData.additionalInfo,
+            firstname: userData.firstname,
+            lastname: userData.lastname,
+            phoneNumber: userData.phoneNumber,
+          });
+          
+          console.log("User set:", fbUser.email, "Role:", role, "ProfileCompleted:", userData.profileCompleted);
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUser({
+            uid: fbUser.uid,
+            email: fbUser.email || "",
+            role: role,
+            profileCompleted: false,
+          });
+        }
       } else {
         setFirebaseUser(null);
         setUser(null);
@@ -210,11 +296,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const role = await getUserRole(userCredential.user.uid);
       await saveRoleLocally(role);
       
-      // Set user state manually for verified users
+      // Clear any pending user data (in case user is logging in after verification)
+      await AsyncStorage.removeItem(PENDING_USER_KEY);
+      
+      // Fetch full user profile from Firestore
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      
+      // Set user state with full profile data
       setUser({
         uid: userCredential.user.uid,
         email: userCredential.user.email || "",
         role: role,
+        profileCompleted: userData.profileCompleted || false,
+        additionalInfo: userData.additionalInfo,
+        firstname: userData.firstname,
+        lastname: userData.lastname,
+        phoneNumber: userData.phoneNumber,
       });
       setFirebaseUser(userCredential.user);
       setIsLoading(false);
@@ -407,10 +506,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (!pendingUserStr) {
+        console.log("No pending user found");
         return false;
       }
       
       const pendingUser = JSON.parse(pendingUserStr);
+      
+      // Check if this is a password reset flow (not email verification)
+      if (pendingUser.isPasswordReset) {
+        console.log("This is a password reset flow, not email verification");
+        return false;
+      }
+      
+      // Check if password exists
+      if (!pendingUser.password || !pendingUser.email) {
+        console.log("Missing email or password in pending user data");
+        return false;
+      }
       
       // Set flag to skip auth handling during this check
       skipAuthHandlingRef.current = true;
@@ -439,6 +551,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           phoneNumber: pendingUser.phoneNumber,
           dateOfBirth: pendingUser.dateOfBirth,
           emailVerified: true,
+          profileCompleted: false, // Initialize profileCompleted as false
           createdAt: new Date().toISOString(),
         });
         
@@ -459,10 +572,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       return isVerified;
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Check verification error:", error);
       // Reset flag on error too
       skipAuthHandlingRef.current = false;
+      
+      // If it's an auth error, don't throw - just return false
+      if (error.code?.startsWith("auth/")) {
+        console.log("Auth error during verification check:", error.code);
+        return false;
+      }
+      
       return false;
     }
   };
@@ -509,7 +629,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         uid: userDoc.id,
         phoneNumber: phoneNumber,
         isPasswordReset: true,
+        createdAt: new Date().toISOString(),
       }));
+      
+      // TODO: In production, send SMS via backend service (Twilio, Firebase Cloud Functions, etc.)
+      // For development, OTP is logged to console and stored in Firestore
+      // The OTP can be retrieved from Firestore or console for testing
+      console.log("========================================");
+      console.log("PASSWORD RESET OTP:", otp);
+      console.log("Phone Number:", phoneNumber);
+      console.log("========================================");
       
       return otp;
     } catch (error: any) {
@@ -529,6 +658,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const storedOTP = await AsyncStorage.getItem(OTP_KEY);
       if (enteredOTP === storedOTP) {
         console.log("Password reset OTP verified");
+        
+        // Get pending user to update Firestore
+        const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
+        if (pendingUserStr) {
+          const pendingUser = JSON.parse(pendingUserStr);
+          // Mark OTP as verified in Firestore (Cloud Function will check this)
+          const otpDocRef = doc(db, "passwordResetOTPs", pendingUser.phoneNumber.replace(/\+/g, ""));
+          await setDoc(otpDocRef, {
+            verified: true,
+            verifiedAt: new Date().toISOString(),
+          }, { merge: true });
+        }
+        
         return true;
       }
       // Throw error for invalid OTP
@@ -579,6 +721,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         used: false,
       });
       
+      // TODO: In production, send SMS via backend service
+      console.log("========================================");
+      console.log("RESENT PASSWORD RESET OTP:", otp);
+      console.log("Phone Number:", pendingUser.phoneNumber);
+      console.log("========================================");
+      
       return otp;
     } catch (error: any) {
       console.error("Resend password reset OTP error:", error);
@@ -605,21 +753,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       const pendingUser = JSON.parse(pendingUserStr);
       const email = pendingUser.email;
+      const phoneNumber = pendingUser.phoneNumber;
       
-      if (!email) {
-        const errorWithInfo = new Error("Email not found") as any;
+      if (!email || !phoneNumber) {
+        const errorWithInfo = new Error("Required info not found") as any;
         errorWithInfo.text1 = "Error";
-        errorWithInfo.text2 = "Email not found. Please try again.";
+        errorWithInfo.text2 = "Required information not found. Please try again.";
         errorWithInfo.type = "error";
         throw errorWithInfo;
+      }
+      
+      // Try to sign in with the new password to check if it's the same as current
+      // Use skipAuthHandlingRef to prevent auth state changes
+      try {
+        skipAuthHandlingRef.current = true;
+        await signInWithEmailAndPassword(auth, email, newPassword);
+        // If login succeeds, the password is the same as the current one
+        await signOut(auth);
+        skipAuthHandlingRef.current = false;
+        
+        const errorWithInfo = new Error("Same password") as any;
+        errorWithInfo.text1 = "Same Password";
+        errorWithInfo.text2 = "New password cannot be the same as your current password. Please choose a different password.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      } catch (signInError: any) {
+        skipAuthHandlingRef.current = false;
+        // If sign in fails with wrong-password, it means the new password is different (good!)
+        if (signInError.code === "auth/wrong-password" || signInError.code === "auth/invalid-credential") {
+          // Password is different, proceed with reset via Cloud Function
+          console.log("New password is different from current password - proceeding with reset");
+        } else if (signInError.text1 === "Same Password") {
+          // This is our custom error, re-throw it
+          throw signInError;
+        } else {
+          // Some other error occurred during sign in attempt
+          console.log("Sign in check error:", signInError.code);
+        }
       }
       
       // Send Firebase password reset email
       // User will click the link in email to set new password
       await sendPasswordResetEmail(auth, email);
       
-      // Mark OTP as used in passwordResetOTPs collection (public access)
-      const otpDocRef = doc(db, "passwordResetOTPs", pendingUser.phoneNumber.replace(/\\+/g, ""));
+      // Mark OTP as used in passwordResetOTPs collection
+      const otpDocRef = doc(db, "passwordResetOTPs", phoneNumber.replace(/\+/g, ""));
       await setDoc(otpDocRef, {
         used: true,
         usedAt: new Date().toISOString(),
@@ -631,8 +809,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       console.log("Password reset email sent successfully to:", email);
     } catch (error: any) {
+      // Ensure flag is reset on any error
+      skipAuthHandlingRef.current = false;
       console.error("Update password error:", error);
+      
       if (error.text1) throw error;
+      
       const errorWithInfo = new Error("Failed to update password") as any;
       errorWithInfo.text1 = "Error";
       errorWithInfo.text2 = "Failed to send password reset email. Please try again.";
@@ -647,6 +829,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Logging out user");
       await signOut(auth);
       await clearLocalRole();
+      // Clear pending user data to prevent redirect to reset-password
+      await AsyncStorage.removeItem(PENDING_USER_KEY);
+      await AsyncStorage.removeItem(OTP_KEY);
       setUser(null);
       setFirebaseUser(null);
     } catch (error: any) {
@@ -658,6 +843,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       errorWithInfo.type = errorInfo.type;
       
       throw errorWithInfo;
+    }
+  };
+
+  // Save additional info for user profile
+  const saveAdditionalInfo = async (info: AdditionalInfo): Promise<void> => {
+    try {
+      if (!user) {
+        console.log("saveAdditionalInfo: No user found in context");
+        const errorWithInfo = new Error("Not authenticated") as any;
+        errorWithInfo.text1 = "Error";
+        errorWithInfo.text2 = "You must be logged in to update profile.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      console.log("saveAdditionalInfo: Saving for user:", user.uid, "role:", user.role);
+
+      const userDocRef = doc(db, "users", user.uid);
+      
+      // Check if document exists first
+      const existingDoc = await getDoc(userDocRef);
+      console.log("saveAdditionalInfo: Document exists:", existingDoc.exists());
+      
+      await setDoc(userDocRef, {
+        additionalInfo: info,
+        profileCompleted: true,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      // Update local user state
+      setUser({
+        ...user,
+        additionalInfo: info,
+        profileCompleted: true,
+      });
+
+      console.log("Additional info saved successfully for role:", user.role);
+    } catch (error: any) {
+      console.error("Save additional info error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      if (error.text1) throw error;
+      const errorWithInfo = new Error("Failed to save info") as any;
+      errorWithInfo.text1 = "Error";
+      errorWithInfo.text2 = "Failed to save additional information. Please try again.";
+      errorWithInfo.type = "error";
+      throw errorWithInfo;
+    }
+  };
+
+  // Get full user profile from Firestore
+  const getUserProfile = async (): Promise<User | null> => {
+    try {
+      if (!user) return null;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const fullUser: User = {
+          uid: user.uid,
+          email: user.email,
+          role: user.role,
+          profileCompleted: data.profileCompleted || false,
+          additionalInfo: data.additionalInfo,
+          firstname: data.firstname,
+          lastname: data.lastname,
+          phoneNumber: data.phoneNumber,
+        };
+
+        // Update local state
+        setUser(fullUser);
+        return fullUser;
+      }
+
+      return user;
+    } catch (error: any) {
+      console.error("Get user profile error:", error);
+      return user;
     }
   };
 
@@ -675,6 +940,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         verifyPasswordResetOTP,
         resendPasswordResetOTP,
         updatePassword,
+        saveAdditionalInfo,
+        getUserProfile,
         isLoading 
       }}
     >

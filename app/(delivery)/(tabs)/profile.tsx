@@ -3,10 +3,11 @@ import ProfileOptions from "@/component/ProfileOptions";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { firebaseMessages } from "@/constant/messages";
 import { colors, Fonts, sizes } from "@/constant/theme";
-import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import { DeliveryInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,6 +16,36 @@ const DeliveryProfile = () => {
   const toast = useToast();
   const { user, logout } = useAuthContext();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Extract delivery info from additionalInfo
+  const deliveryInfo = useMemo(() => {
+    const additionalInfo = user?.additionalInfo as DeliveryInfo | undefined;
+    const firstName = user?.firstname || "";
+    const lastName = user?.lastname || "";
+    const fullName = `${firstName} ${lastName}`.trim() || user?.email?.split("@")[0] || "Delivery Person";
+    const profileImage = additionalInfo?.profileImage || null;
+    const email = user?.email || "delivery@healthnest.com";
+    const vehicleType = additionalInfo?.vehicleType || null;
+    const vehicleNumber = additionalInfo?.vehicleNumber || null;
+    const licenseNumber = additionalInfo?.licenseNumber || null;
+    const availability = additionalInfo?.availability || null;
+    const address = additionalInfo?.address || null;
+    const city = additionalInfo?.city || null;
+    
+    return {
+      fullName,
+      firstName,
+      lastName,
+      profileImage,
+      email,
+      vehicleType,
+      vehicleNumber,
+      licenseNumber,
+      availability,
+      address,
+      city,
+    };
+  }, [user]);
 
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
@@ -42,18 +73,72 @@ const DeliveryProfile = () => {
         
         {/* User Profile Card */}
         <View style={styles.profileCard}>
-          <Image
-            source={{ uri: "https://i.pravatar.cc/150?img=68" }}
-            style={styles.profileImage}
-          />
+          {deliveryInfo.profileImage ? (
+            <Image
+              source={{ uri: deliveryInfo.profileImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileImagePlaceholder}
+            >
+              <Ionicons name="person" size={32} color={colors.white} />
+            </LinearGradient>
+          )}
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.email?.split("@")[0] || "Delivery Person"}</Text>
-            <Text style={styles.profileEmail}>{user?.email || "delivery@healthnest.com"}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>DELIVERY</Text>
+            <Text style={styles.profileName}>{deliveryInfo.fullName}</Text>
+            <Text style={styles.profileEmail}>{deliveryInfo.email}</Text>
+            <View style={styles.badgesRow}>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>DELIVERY</Text>
+              </View>
+              {deliveryInfo.vehicleType && (
+                <View style={[styles.roleBadge, { backgroundColor: colors.secondary + "15" }]}>
+                  <Text style={[styles.roleText, { color: colors.secondary }]}>{deliveryInfo.vehicleType}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
+
+        {/* Quick Info Section */}
+        {(deliveryInfo.vehicleNumber || deliveryInfo.availability || deliveryInfo.licenseNumber) && (
+          <View style={styles.quickInfoCard}>
+            {deliveryInfo.vehicleNumber && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="car-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>Vehicle: {deliveryInfo.vehicleNumber}</Text>
+              </View>
+            )}
+            {deliveryInfo.licenseNumber && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="card-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>License: {deliveryInfo.licenseNumber}</Text>
+              </View>
+            )}
+            {deliveryInfo.availability && (
+              <View style={styles.quickInfoItem}>
+                <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickInfoText}>{deliveryInfo.availability}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Location Info */}
+        {(deliveryInfo.address || deliveryInfo.city) && (
+          <View style={styles.quickInfoCard}>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="location-outline" size={18} color={colors.primary} />
+              <Text style={styles.quickInfoText} numberOfLines={2}>
+                {deliveryInfo.address}{deliveryInfo.city ? `, ${deliveryInfo.city}` : ""}
+              </Text>
+            </View>
+          </View>
+        )}
         
         {/* Account Settings */}
         <View style={styles.section}>
@@ -130,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     elevation: 3,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
@@ -141,6 +226,15 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  profileImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
     borderColor: colors.primary,
   },
@@ -158,20 +252,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.regular,
     color: colors.gray,
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  badgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
   roleBadge: {
     backgroundColor: colors.primary + "15",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: "flex-start",
   },
   roleText: {
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
     letterSpacing: 0.5,
+  },
+  quickInfoCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    gap: 12,
+  },
+  quickInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  quickInfoText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.text,
   },
   section: {
     marginBottom: 22,

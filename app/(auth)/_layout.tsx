@@ -19,7 +19,7 @@ const _layout = () => {
       <Stack.Screen
         name="index"
         options={{
-          headerTitle: "Login",
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -44,6 +44,7 @@ const _layout = () => {
         name="reset-password"
         options={{
           headerTitle: "Reset Password",
+        
         }}
       />
     </Stack>

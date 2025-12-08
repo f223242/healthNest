@@ -5,6 +5,7 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Allow read if authenticated and accessing own document
+      // Also allow querying by phone number for password reset (unauthenticated)
       allow read: if request.auth != null && request.auth.uid == userId;
       
       // Allow create during registration (user creates their own document)
@@ -15,6 +16,21 @@ service cloud.firestore {
       
       // Don't allow delete
       allow delete: if false;
+    }
+    
+    // Pending Users collection (for unverified users)
+    match /pendingUsers/{userId} {
+      // Allow create during registration
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow read for checking verification status
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow delete when moving to users collection
+      allow delete: if request.auth != null && request.auth.uid == userId;
+      
+      // No updates needed
+      allow update: if false;
     }
     
     // Password Reset OTPs collection (separate collection for security)
@@ -30,13 +46,6 @@ service cloud.firestore {
       
       // Allow delete after verification
       allow delete: if true;
-    }
-    
-    // Phone number lookup (for forgot password)
-    match /users/{userId} {
-      // Allow querying by phone number for password reset (unauthenticated)
-      allow read: if request.query.limit <= 1 
-                   && 'phoneNumber' in resource.data;
     }
   }
 }

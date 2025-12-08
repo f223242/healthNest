@@ -70,7 +70,7 @@ const index = () => {
   } = formik;
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
+    <SafeAreaView edges={["bottom",'top']} style={styles.container}>
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"

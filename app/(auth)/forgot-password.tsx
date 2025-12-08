@@ -1,5 +1,5 @@
 import AppButton from "@/component/AppButton";
-import FormInput from "@/component/FormInput";
+import PhoneInput from "@/component/PhoneInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
@@ -8,8 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { CountryPicker } from "react-native-country-codes-picker";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { object, string } from "yup";
@@ -25,7 +24,6 @@ const ForgotPassword = () => {
   const { sendPasswordResetOTP } = useAuthContext();
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [countryCode, setCountryCode] = useState("+92");
   const [countryFlag, setCountryFlag] = useState("🇵🇰");
 
@@ -37,7 +35,7 @@ const ForgotPassword = () => {
       toast.show({
         type: "success",
         text1: "OTP Sent",
-        text2: "Check your phone for the verification code",
+        text2: "A verification code has been sent to your phone",
       });
       // Navigate to reset password screen for OTP verification
       router.push({
@@ -65,6 +63,7 @@ const ForgotPassword = () => {
   const {
     handleBlur,
     handleChange,
+    setFieldValue,
     values,
     touched,
     errors,
@@ -102,44 +101,20 @@ const ForgotPassword = () => {
           </Text>
           
           <View style={styles.inputContainer}>
-            {/* Phone Number with Country Code */}
-            <View style={styles.phoneContainer}>
-              <TouchableOpacity
-                style={styles.countryCodeButton}
-                onPress={() => setShowCountryPicker(true)}
-              >
-                <Text style={styles.countryFlag}>{countryFlag}</Text>
-                <Text style={styles.countryCodeText}>{countryCode}</Text>
-                <Ionicons name="chevron-down" size={16} color={colors.gray} />
-              </TouchableOpacity>
-              <View style={styles.phoneInputContainer}>
-                <FormInput
-                  placeholder="Phone Number"
-                  onChangeText={handleChange("phoneNumber")}
-                  onBlur={handleBlur("phoneNumber")}
-                  value={values.phoneNumber}
-                  keyboardType="phone-pad"
-                  containerStyle={styles.phoneInput}
-                  error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : undefined}
-                />
-              </View>
-            </View>
-
-            {/* Country Picker Modal */}
-            <CountryPicker
-              show={showCountryPicker}
-              lang="en"
-              pickerButtonOnPress={(item) => {
-                setCountryCode(item.dial_code);
-                setCountryFlag(item.flag);
-                setShowCountryPicker(false);
+            <PhoneInput
+              label="Phone Number"
+              value={values.phoneNumber}
+              onChangeText={(text) => setFieldValue("phoneNumber", text)}
+              onBlur={() => handleBlur("phoneNumber")}
+              error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
+              countryCode={countryCode}
+              countryFlag={countryFlag}
+              onCountryChange={(code, flag) => {
+                setCountryCode(code);
+                setCountryFlag(flag);
               }}
-              onBackdropPress={() => setShowCountryPicker(false)}
-              style={{
-                modal: {
-                  height: 500,
-                },
-              }}
+              placeholder="3123456789"
+              maxLength={15}
             />
           </View>
         </View>
@@ -153,10 +128,10 @@ const ForgotPassword = () => {
               <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
             )}
           </AppButton>
-          <Text style={styles.infoText}>
+          <View style={styles.infoText}>
             <Ionicons name="information-circle-outline" size={16} color={colors.gray} />
-            {"  "}You will receive an OTP on your phone
-          </Text>
+            <Text style={styles.infoTextLabel}>You will receive an OTP on your phone</Text>
+          </View>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
@@ -174,7 +149,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: sizes.paddingHorizontal,
     justifyContent: "space-between",
     backgroundColor: colors.white,
-    marginBottom: 20,
+    paddingBottom: 20,
   },
   iconContainer: {
     alignSelf: "center",
@@ -196,47 +171,18 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   inputContainer: {
-    marginTop: 32,
-  },
-  phoneContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  countryCodeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.lightGray,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: colors.borderGray,
-    height: 56,
     marginTop: 16,
   },
-  countryFlag: {
-    fontSize: 20,
-    marginRight: 6,
-  },
-  countryCodeText: {
-    fontSize: 14,
-    color: colors.black,
-    fontFamily: Fonts.medium,
-    marginRight: 4,
-  },
-  phoneInputContainer: {
-    flex: 1,
-  },
-  phoneInput: {
-    marginTop: 0,
-  },
   infoText: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    gap: 6,
+  },
+  infoTextLabel: {
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: colors.gray,
-    textAlign: "center",
-    marginTop: 16,
-    alignItems: "center",
   },
 });
