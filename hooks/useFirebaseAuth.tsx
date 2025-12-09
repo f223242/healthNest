@@ -2,16 +2,16 @@ import { auth, db } from "@/config/firebase";
 import { firebaseMessages } from "@/constant/messages";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-    createUserWithEmailAndPassword,
-    fetchSignInMethodsForEmail,
-    User as FirebaseUser,
-    onAuthStateChanged,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signInWithEmailAndPassword,
-    signOut,
+  createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  User as FirebaseUser,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 // Helper function to get error message from firebaseMessages
@@ -127,11 +127,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Flag to skip auth state handling during verification check
+  const skipAuthHandlingRef = React.useRef(false);
 
   // Listen to Firebase auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       console.log("Auth state changed:", fbUser?.email);
+      
+      // Skip auth handling when checking verification status
+      if (skipAuthHandlingRef.current) {
+        console.log("Skipping auth handling during verification check");
+        return;
+      }
       
       if (fbUser) {
         setFirebaseUser(fbUser);
@@ -140,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!fbUser.emailVerified) {
           console.log("Email not verified, not setting user state");
           setUser(null);
-          setIsLoading(false);
+          setIsLoading(false);;
           return;
         }
         
@@ -230,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Register function
+  // Register function - stores data temporarily until email is verified
   const register = async (values: {
     email: string;
     password: string;
@@ -254,19 +262,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw errorWithInfo;
       }
       
-      // Create user in Firebase Auth
+      // Create user in Firebase Auth (required to send verification email)
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
       
-      console.log("User created:", userCredential.user.email);
+      console.log("User created in Auth:", userCredential.user.email);
       
-      // Send email verification with action code settings
+      // Send email verification
       const actionCodeSettings = {
-        url: 'https://healthnest-812ab.firebaseapp.com', // Your Firebase app URL
-        handleCodeInApp: false, // Set to true if handling verification in-app
+        url: 'https://healthnest-812ab.firebaseapp.com',
+        handleCodeInApp: false,
       };
       
       await sendEmailVerification(userCredential.user, actionCodeSettings);
@@ -281,10 +289,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       };
       
       const userRole = roleMap[values.role] || "user";
-      console.log("Mapping role:", values.role, "->", userRole);
       
-      // Save user data to Firestore
-      await setDoc(doc(db, "users", userCredential.user.uid), {
+      // Store user data in pendingUsers collection (will be moved to users after verification)
+      await setDoc(doc(db, "pendingUsers", userCredential.user.uid), {
         uid: userCredential.user.uid,
         email: values.email,
         firstname: values.firstname,
@@ -292,36 +299,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         role: userRole,
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
-        emailVerified: false,
         createdAt: new Date().toISOString(),
+        verified: false,
       });
       
-      console.log("User data saved to Firestore with role:", userRole);
+      console.log("User data saved to pendingUsers collection");
       
-      // Save role locally
-      await saveRoleLocally(userRole);
-      console.log("Role saved locally:", userRole);
-      
-      // Sign out the user - they need to verify email first
+      // Sign out - they need to verify email first
       await signOut(auth);
       
-      // Store pending user info for resend functionality
+      // Store pending user info locally for verification flow
       await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
         email: values.email,
         password: values.password,
         uid: userCredential.user.uid,
+        role: userRole,
+        firstname: values.firstname,
+        lastname: values.lastname,
+        phoneNumber: values.phoneNumber,
+        dateOfBirth: values.dateOfBirth,
       }));
       
       setIsLoading(false);
-      
-      // Return that verification is required
       return { requiresVerification: true };
       
     } catch (error: any) {
       console.error("Registration error:", error);
       setIsLoading(false);
       
-      // If it's our custom error, rethrow it
       if (error.text1) {
         throw error;
       }
@@ -397,39 +402,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Check if email is verified
+  // Check if email is verified and move user to users collection
   const checkEmailVerification = async (): Promise<boolean> => {
     try {
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
-      if (pendingUserStr) {
-        const pendingUser = JSON.parse(pendingUserStr);
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          pendingUser.email,
-          pendingUser.password
-        );
-        
-        // Reload user to get latest verification status
-        await userCredential.user.reload();
-        const isVerified = userCredential.user.emailVerified;
-        
-        if (isVerified) {
-          // Update Firestore
-          await setDoc(doc(db, "users", userCredential.user.uid), {
-            emailVerified: true,
-          }, { merge: true });
-          
-          // Clear pending user
-          await AsyncStorage.removeItem(PENDING_USER_KEY);
-        }
-        
-        // Sign out - user will login manually
-        await signOut(auth);
-        return isVerified;
+      if (!pendingUserStr) {
+        return false;
       }
-      return false;
+      
+      const pendingUser = JSON.parse(pendingUserStr);
+      
+      // Set flag to skip auth handling during this check
+      skipAuthHandlingRef.current = true;
+      
+      // Sign in to check verification status
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        pendingUser.email,
+        pendingUser.password
+      );
+      
+      // Reload user to get latest verification status
+      await userCredential.user.reload();
+      const isVerified = userCredential.user.emailVerified;
+      
+      if (isVerified) {
+        console.log("Email verified! Moving user to users collection...");
+        
+        // Move user data from pendingUsers to users collection
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          uid: userCredential.user.uid,
+          email: pendingUser.email,
+          firstname: pendingUser.firstname,
+          lastname: pendingUser.lastname,
+          role: pendingUser.role,
+          phoneNumber: pendingUser.phoneNumber,
+          dateOfBirth: pendingUser.dateOfBirth,
+          emailVerified: true,
+          createdAt: new Date().toISOString(),
+        });
+        
+        // Delete from pendingUsers collection
+        await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+        
+        // Clear pending user from AsyncStorage
+        await AsyncStorage.removeItem(PENDING_USER_KEY);
+        
+        console.log("User moved to users collection successfully");
+      }
+      
+      // Sign out - user will login manually after verification
+      await signOut(auth);
+      
+      // Reset flag after sign out
+      skipAuthHandlingRef.current = false;
+      
+      return isVerified;
+      
     } catch (error) {
       console.error("Check verification error:", error);
+      // Reset flag on error too
+      skipAuthHandlingRef.current = false;
       return false;
     }
   };

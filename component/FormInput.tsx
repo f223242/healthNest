@@ -18,8 +18,8 @@ interface FormInputProps extends TextInputProps {
   value?: string;
   label?: string;
   error?: string;
-  LeftIcon?: React.FC<SvgProps>;
-  RightIcon?: React.FC<SvgProps>;
+  LeftIcon?: React.FC<SvgProps> | React.ReactNode;
+  RightIcon?: React.FC<SvgProps> | React.ReactNode;
   isPassword?: boolean;
   isDropdown?: boolean;
   data?: Array<{ label: string; value: string }>;
@@ -28,6 +28,7 @@ interface FormInputProps extends TextInputProps {
   valueField?: string;
   containerStyle?: ViewStyle;
   textStyle?: ViewStyle;
+  multiline?: boolean;
 }
 
 const FormInput: React.FC<FormInputProps> = ({
@@ -77,14 +78,14 @@ const FormInput: React.FC<FormInputProps> = ({
         }),
       ]).start();
 
-      // Fade in animation
+      // Fade in
       Animated.timing(fadeAnimation, {
         toValue: 1,
         duration: 200,
         useNativeDriver: true,
       }).start();
     } else {
-      // Fade out animation
+      // Fade out
       Animated.timing(fadeAnimation, {
         toValue: 0,
         duration: 200,
@@ -92,18 +93,21 @@ const FormInput: React.FC<FormInputProps> = ({
       }).start();
     }
   }, [error]);
-  
+
   return (
     <View style={styles.wrapper}>
-      {label && (
-        <Text style={styles.labelText}>{label}</Text>
-      )}
+      {label && <Text style={styles.labelText}>{label}</Text>}
+
       <Animated.View
         style={[
           styles.container,
           containerStyle,
           {
-            borderColor: error ? colors.danger : (value ? colors.primary : colors.white),
+            borderColor: error
+              ? colors.danger
+              : value
+              ? colors.primary
+              : colors.white,
             borderWidth: 1,
             transform: [{ translateX: shakeAnimation }],
           },
@@ -111,8 +115,11 @@ const FormInput: React.FC<FormInputProps> = ({
           textStyle,
         ]}
       >
-        <View style={[styles.inputStyle, multiline && styles.multilineInputStyle]}>
-          {LeftIcon && <LeftIcon />}
+        <View
+          style={[styles.inputStyle, multiline && styles.multilineInputStyle]}
+        >
+          {LeftIcon && typeof LeftIcon === "function" ? <LeftIcon /> : LeftIcon}
+
           {isDropdown ? (
             <Dropdown
               data={data || []}
@@ -121,10 +128,7 @@ const FormInput: React.FC<FormInputProps> = ({
               placeholder={rest.placeholder}
               value={value}
               onChange={onDropdownChange || (() => {})}
-              style={{ 
-                flex: 1,
-                marginLeft: LeftIcon ? 8 : 0,
-              }}
+              style={{ flex: 1, marginLeft: LeftIcon ? 8 : 0 }}
               placeholderStyle={{
                 fontFamily: Fonts.regular,
                 fontSize: 16,
@@ -141,7 +145,15 @@ const FormInput: React.FC<FormInputProps> = ({
                 color: colors.black,
               }}
               activeColor={colors.lightGreen}
-              renderRightIcon={() => RightIcon ? <RightIcon width={20} height={20} /> : null}
+              renderRightIcon={() =>
+                RightIcon ? (
+                  typeof RightIcon === "function" ? (
+                    <RightIcon width={20} height={20} />
+                  ) : (
+                    RightIcon
+                  )
+                ) as React.ReactElement : null
+              }
             />
           ) : (
             <TextInput
@@ -160,21 +172,22 @@ const FormInput: React.FC<FormInputProps> = ({
               {...rest}
             />
           )}
-          {!isDropdown && (
-            isPassword ? (
-              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
-                <Ionicons
-                  name={showPassword ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color="#555"
-                />
-              </TouchableOpacity>
-            ) : (
-              RightIcon && <RightIcon />
-            )
+
+          {!isDropdown && isPassword && (
+            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+              <Ionicons
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                size={20}
+                color="#555"
+              />
+            </TouchableOpacity>
+          )}
+          {!isDropdown && !isPassword && RightIcon && (
+            <>{typeof RightIcon === "function" ? <RightIcon /> : RightIcon}</>
           )}
         </View>
       </Animated.View>
+
       {error && (
         <Animated.View style={{ opacity: fadeAnimation }}>
           <Text style={[appStyles.errorStyle, styles.errorText]}>{error}</Text>
@@ -187,9 +200,7 @@ const FormInput: React.FC<FormInputProps> = ({
 export default FormInput;
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginTop: 15,
-  },
+  wrapper: { marginTop: 15 },
   labelText: {
     fontSize: 14,
     fontFamily: Fonts.medium,
@@ -213,20 +224,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
   },
-  multilineInputStyle: {
-    alignItems: "flex-start",
-    paddingVertical: 0,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
+  multilineInputStyle: { alignItems: "flex-start", paddingVertical: 0 },
   errorText: {
     marginTop: 4,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.danger,
   },
-  // error: {
-  //   color: "red",
-  //   marginTop: 4,
-  // },
 });

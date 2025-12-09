@@ -15,6 +15,7 @@ import { CountryPicker } from "react-native-country-codes-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
 
+import { DropDownIcon, Email, Person } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
@@ -167,6 +168,7 @@ export default function SignupScreen() {
 
       <FormInput
         label="First Name"
+        LeftIcon={Person}
         value={values.firstname}
         onChangeText={handleChange("firstname")}
         onBlur={handleBlur("firstname")}
@@ -176,6 +178,7 @@ export default function SignupScreen() {
 
       <FormInput
         label="Last Name"
+        LeftIcon={Person}
         value={values.lastname}
         onChangeText={handleChange("lastname")}
         onBlur={handleBlur("lastname")}
@@ -185,6 +188,7 @@ export default function SignupScreen() {
 
       <FormInput
         label="Email"
+        LeftIcon={Email}
         value={values.email}
         onChangeText={handleChange("email")}
         onBlur={handleBlur("email")}
@@ -210,6 +214,7 @@ export default function SignupScreen() {
 
           <View style={styles.phoneInputWrapper}>
             <FormInput
+            LeftIcon={ <Ionicons name="call-outline" size={20} color={colors.gray} />}
               value={values.phoneNumber}
               onChangeText={handlePhone}
               onBlur={handleBlur("phoneNumber")}
@@ -271,6 +276,7 @@ export default function SignupScreen() {
         onDropdownChange={(item) => setFieldValue("role", item.value)}
         error={touched.role && errors.role ? errors.role : ""}
         placeholder="Select your role"
+        RightIcon={DropDownIcon}
       />
 
       {/* DATE PICKER */}
@@ -310,15 +316,21 @@ export default function SignupScreen() {
         <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
       )}
 
-      {showPicker && (
-        <DateTimePicker
-          value={values.dateOfBirth ? new Date(values.dateOfBirth) : new Date(2000, 0, 1)}
-          mode="date"
-          display="spinner"
-          onChange={onDateSelect}
-          maximumDate={new Date()}
-        />
-      )}
+    {showPicker && (
+  <DateTimePicker
+    value={
+      values.dateOfBirth
+        ? new Date(values.dateOfBirth)
+        : new Date(2010, 12,31) // default selected date
+    }
+    mode="date"
+    display="calendar"
+    onChange={onDateSelect}
+    minimumDate={new Date(1950, 0, 1)} // Jan 1, 1950
+    maximumDate={new Date(2010, 11, 31)} // Dec 31, 2010
+  />
+)}
+
 
       {/* SUBMIT BUTTON */}
       <AppButton
