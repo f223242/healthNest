@@ -1,59 +1,62 @@
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
+import LocationPicker, { LocationData } from "@/component/LocationPicker";
+import ProfileImagePicker from "@/component/ProfileImagePicker";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
 
-// Validation schemas for different roles
+// Phone number validation regex (Pakistani format and international)
+const phoneRegex = /^[\+]?[0-9]{10,14}$/;
+
+// Validation schemas for different roles (address/city validated separately via LocationPicker)
 const patientSchema = Yup.object({
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
-  emergencyContact: Yup.string().required("Emergency contact is required"),
-  bloodGroup: Yup.string().required("Blood group is required"),
+  emergencyContact: Yup.string()
+    .matches(phoneRegex, "Please enter a valid phone number")
+    .required("Emergency contact is required"),
 });
 
 const nurseSchema = Yup.object({
-  specialization: Yup.string().required("Specialization is required"),
-  experience: Yup.string().required("Experience is required"),
-  hourlyRate: Yup.string().required("Hourly rate is required"),
-  availability: Yup.string().required("Availability is required"),
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
+  experience: Yup.string()
+    .required("Experience is required"),
+  hourlyRate: Yup.string()
+    .required("Hourly rate is required"),
   certifications: Yup.string().required("Certifications are required"),
 });
 
 const labSchema = Yup.object({
-  labName: Yup.string().required("Lab name is required"),
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
-  licenseNumber: Yup.string().required("License number is required"),
-  homeSampling: Yup.boolean(),
-  operatingHours: Yup.string().required("Operating hours are required"),
+  labName: Yup.string()
+    .min(3, "Lab name must be at least 3 characters")
+    .required("Lab name is required"),
+  licenseNumber: Yup.string()
+    .min(5, "License number must be at least 5 characters")
+    .required("License number is required"),
+  operatingHours: Yup.string()
+    .required("Operating hours are required"),
   servicesOffered: Yup.string().required("Services are required"),
 });
 
 const deliverySchema = Yup.object({
-  vehicleType: Yup.string().required("Vehicle type is required"),
-  vehicleNumber: Yup.string().required("Vehicle number is required"),
-  licenseNumber: Yup.string().required("License number is required"),
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
-  availability: Yup.string().required("Availability is required"),
+  vehicleNumber: Yup.string()
+    .min(4, "Vehicle number must be at least 4 characters")
+    .required("Vehicle number is required"),
+  licenseNumber: Yup.string()
+    .min(5, "License number must be at least 5 characters")
+    .required("License number is required"),
 });
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -79,6 +82,9 @@ const AdditionalInfoScreen = () => {
   const [selectedAvailability, setSelectedAvailability] = useState("");
   const [selectedSpecialization, setSelectedSpecialization] = useState("");
   const [homeSampling, setHomeSampling] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [locationError, setLocationError] = useState<string | undefined>(undefined);
 
   const role = user?.role || "user";
 
@@ -99,39 +105,25 @@ const AdditionalInfoScreen = () => {
     switch (role) {
       case "nurse":
         return {
-          specialization: "",
           experience: "",
           hourlyRate: "",
-          availability: "",
-          address: "",
-          city: "",
           certifications: "",
         };
       case "lab":
         return {
           labName: "",
-          address: "",
-          city: "",
           licenseNumber: "",
-          homeSampling: false,
           operatingHours: "",
           servicesOffered: "",
         };
       case "delivery":
         return {
-          vehicleType: "",
           vehicleNumber: "",
           licenseNumber: "",
-          address: "",
-          city: "",
-          availability: "",
         };
       default:
         return {
-          address: "",
-          city: "",
           emergencyContact: "",
-          bloodGroup: "",
         };
     }
   };
@@ -140,11 +132,79 @@ const AdditionalInfoScreen = () => {
     initialValues: getInitialValues(),
     validationSchema: getSchema(),
     onSubmit: async (values) => {
+      // Validate location
+      if (!location) {
+        setLocationError("Please select your location");
+        toast.show({
+          type: "error",
+          text1: "Location Required",
+          text2: "Please select your location to continue.",
+        });
+        return;
+      }
+      setLocationError(undefined);
+
+      // Validate dropdown selections based on role
+      if (role === "user" && !selectedBloodGroup) {
+        toast.show({
+          type: "error",
+          text1: "Blood Group Required",
+          text2: "Please select your blood group.",
+        });
+        return;
+      }
+      
+      if (role === "nurse" && !selectedSpecialization) {
+        toast.show({
+          type: "error",
+          text1: "Specialization Required",
+          text2: "Please select your specialization.",
+        });
+        return;
+      }
+      
+      if (role === "nurse" && !selectedAvailability) {
+        toast.show({
+          type: "error",
+          text1: "Availability Required",
+          text2: "Please select your availability.",
+        });
+        return;
+      }
+      
+      if (role === "delivery" && !selectedVehicle) {
+        toast.show({
+          type: "error",
+          text1: "Vehicle Type Required",
+          text2: "Please select your vehicle type.",
+        });
+        return;
+      }
+      
+      if (role === "delivery" && !selectedAvailability) {
+        toast.show({
+          type: "error",
+          text1: "Availability Required",
+          text2: "Please select your availability.",
+        });
+        return;
+      }
+
       try {
         setIsSubmitting(true);
         
         // Add selected values from dropdowns
-        const additionalData: any = { ...values };
+        const additionalData: any = { 
+          ...values,
+          address: location.address,
+          city: location.city,
+          coordinates: location.latitude && location.longitude ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          } : null,
+          profileImage: profileImage,
+        };
+        
         if (role === "user") {
           additionalData.bloodGroup = selectedBloodGroup;
         } else if (role === "nurse") {
@@ -176,6 +236,7 @@ const AdditionalInfoScreen = () => {
           router.replace("/(protected)/(tabs)");
         }
       } catch (error: any) {
+        console.error("Save additional info error:", error);
         toast.show({
           type: "error",
           text1: error.text1 || "Error",
@@ -249,26 +310,16 @@ const AdditionalInfoScreen = () => {
 
   const renderPatientFields = () => (
     <>
-      <FormInput
-        value={values.address as string}
-        onChangeText={handleChange("address")}
-        onBlur={handleBlur("address")}
-        placeholder="Home Address"
-        LeftIcon={() => (
-          <Ionicons name="home-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.address && errors.address ? String(errors.address) : undefined}
-      />
-
-      <FormInput
-        value={values.city as string}
-        onChangeText={handleChange("city")}
-        onBlur={handleBlur("city")}
-        placeholder="City"
-        LeftIcon={() => (
-          <Ionicons name="location-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.city && errors.city ? String(errors.city) : undefined}
+      {/* Location Picker */}
+      <LocationPicker
+        label="Home Address"
+        value={location || undefined}
+        onLocationSelect={(loc) => {
+          setLocation(loc);
+          setLocationError(undefined);
+        }}
+        placeholder="Select your home address"
+        error={locationError}
       />
 
       <FormInput
@@ -330,26 +381,16 @@ const AdditionalInfoScreen = () => {
         "Availability"
       )}
 
-      <FormInput
-        value={values.address as string}
-        onChangeText={handleChange("address")}
-        onBlur={handleBlur("address")}
-        placeholder="Address"
-        LeftIcon={() => (
-          <Ionicons name="home-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.address && errors.address ? String(errors.address) : undefined}
-      />
-
-      <FormInput
-        value={values.city as string}
-        onChangeText={handleChange("city")}
-        onBlur={handleBlur("city")}
-        placeholder="City"
-        LeftIcon={() => (
-          <Ionicons name="location-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.city && errors.city ? String(errors.city) : undefined}
+      {/* Location Picker */}
+      <LocationPicker
+        label="Your Address"
+        value={location || undefined}
+        onLocationSelect={(loc) => {
+          setLocation(loc);
+          setLocationError(undefined);
+        }}
+        placeholder="Select your address"
+        error={locationError}
       />
 
       <FormInput
@@ -382,26 +423,16 @@ const AdditionalInfoScreen = () => {
         error={touched.labName && errors.labName ? String(errors.labName) : undefined}
       />
 
-      <FormInput
-        value={values.address as string}
-        onChangeText={handleChange("address")}
-        onBlur={handleBlur("address")}
-        placeholder="Lab Address"
-        LeftIcon={() => (
-          <Ionicons name="home-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.address && errors.address ? String(errors.address) : undefined}
-      />
-
-      <FormInput
-        value={values.city as string}
-        onChangeText={handleChange("city")}
-        onBlur={handleBlur("city")}
-        placeholder="City"
-        LeftIcon={() => (
-          <Ionicons name="location-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.city && errors.city ? String(errors.city) : undefined}
+      {/* Location Picker */}
+      <LocationPicker
+        label="Lab Address"
+        value={location || undefined}
+        onLocationSelect={(loc) => {
+          setLocation(loc);
+          setLocationError(undefined);
+        }}
+        placeholder="Select your lab address"
+        error={locationError}
       />
 
       <FormInput
@@ -515,26 +546,16 @@ const AdditionalInfoScreen = () => {
         }
       />
 
-      <FormInput
-        value={values.address as string}
-        onChangeText={handleChange("address")}
-        onBlur={handleBlur("address")}
-        placeholder="Address"
-        LeftIcon={() => (
-          <Ionicons name="home-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.address && errors.address ? String(errors.address) : undefined}
-      />
-
-      <FormInput
-        value={values.city as string}
-        onChangeText={handleChange("city")}
-        onBlur={handleBlur("city")}
-        placeholder="City"
-        LeftIcon={() => (
-          <Ionicons name="location-outline" size={20} color={colors.gray} />
-        )}
-        error={touched.city && errors.city ? String(errors.city) : undefined}
+      {/* Location Picker */}
+      <LocationPicker
+        label="Your Address"
+        value={location || undefined}
+        onLocationSelect={(loc) => {
+          setLocation(loc);
+          setLocationError(undefined);
+        }}
+        placeholder="Select your address"
+        error={locationError}
       />
 
       {renderSelectOption(
@@ -559,19 +580,6 @@ const AdditionalInfoScreen = () => {
     }
   };
 
-  const getIcon = () => {
-    switch (role) {
-      case "nurse":
-        return "medkit-outline";
-      case "lab":
-        return "flask-outline";
-      case "delivery":
-        return "bicycle-outline";
-      default:
-        return "person-outline";
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -581,14 +589,12 @@ const AdditionalInfoScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <LinearGradient
-            colors={[colors.primary, "#00D68F"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.iconCircle}
-          >
-            <Ionicons name={getIcon() as any} size={40} color={colors.white} />
-          </LinearGradient>
+          {/* Profile Image Picker */}
+          <ProfileImagePicker
+            value={profileImage}
+            onImageSelect={setProfileImage}
+            size={100}
+          />
           <Text style={[appStyles.h3, styles.title]}>{getTitle()}</Text>
           <Text style={styles.subtitle}>{getSubtitle()}</Text>
         </View>
@@ -633,22 +639,10 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 30,
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
   title: {
     textAlign: "center",
     marginBottom: 8,
+    marginTop: 16,
   },
   subtitle: {
     fontFamily: Fonts.regular,

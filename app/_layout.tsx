@@ -2,8 +2,8 @@ import { ToastProvider } from "@/component/Toast/ToastProvider";
 import { AuthProvider, useAuthContext } from "@/hooks/useFirebaseAuth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 const PENDING_USER_KEY = "@healthnest_pending_user";
@@ -29,7 +29,12 @@ function InnerLayout() {
   const { user, isLoading } = useAuthContext();
   const router = useRouter();
   const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
   const [hasPendingUser, setHasPendingUser] = useState<boolean | null>(null);
+  
+  // Track if we've already navigated to prevent loops
+  const hasNavigatedRef = useRef(false);
+  const lastNavigationRef = useRef<string>("");
 
   const role = user?.role || "user";
   
@@ -87,18 +92,41 @@ function InnerLayout() {
     return () => clearInterval(interval);
   }, []);
 
+  // Reset navigation ref when user changes
+  useEffect(() => {
+    hasNavigatedRef.current = false;
+    lastNavigationRef.current = "";
+  }, [user?.uid, user?.profileCompleted]);
+
+  // Safe navigation helper
+  const safeNavigate = useCallback((route: string) => {
+    // Prevent duplicate navigations
+    if (lastNavigationRef.current === route) {
+      return;
+    }
+    lastNavigationRef.current = route;
+    
+    // Use setTimeout to ensure navigation happens after current render cycle
+    setTimeout(() => {
+      router.replace(route as any);
+    }, 0);
+  }, [router]);
+
   // Navigation logic
   useEffect(() => {
+    // Wait for navigation state to be ready
+    if (!rootNavigationState?.key) return;
     if (!fontsLoaded || isLoading || hasPendingUser === null || pendingUserType === null) return;
 
     const currentGroup = segments[0] as string | undefined;
     const currentScreen = segments[1] as string | undefined;
+    const fullPath = segments.join("/");
 
     // User is NOT logged in
     if (!user) {
       // If there's a pending user awaiting email verification, go to OTP screen
       if (pendingUserType === "verification" && currentScreen !== "otp-screen") {
-        router.replace("/(auth)/otp-screen");
+        safeNavigate("/(auth)/otp-screen");
         return;
       }
       
@@ -106,7 +134,7 @@ function InnerLayout() {
       if (pendingUserType === "passwordReset" && currentScreen !== "reset-password") {
         // Don't force redirect - they might be on forgot-password navigating to reset-password
         if (currentScreen !== "forgot-password") {
-          router.replace("/(auth)/reset-password");
+          safeNavigate("/(auth)/reset-password");
           return;
         }
       }
@@ -117,43 +145,52 @@ function InnerLayout() {
       }
 
       // Otherwise redirect to login
-      router.replace("/(auth)");
+      safeNavigate("/(auth)");
       return;
     }
 
     // User IS logged in - check if profile is completed (skip for admin)
-    if (role !== "admin" && !user.profileCompleted && currentScreen !== "additional-info") {
+    // Check both segment positions for additional-info (could be at different positions)
+    const isOnAdditionalInfo = currentScreen === "additional-info" || 
+                               fullPath.includes("additional-info");
+    
+    if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo) {
       // Redirect to additional info screen
-      router.replace("/(protected)/additional-info");
+      safeNavigate("/(protected)/additional-info");
+      return;
+    }
+
+    // If profile is not completed, don't redirect to role-specific screens
+    if (role !== "admin" && !user.profileCompleted) {
       return;
     }
 
     // User IS logged in and profile is completed - redirect based on role
     if (role === "admin" && currentGroup !== "(admin)") {
-      router.replace("/(admin)/(dashboard)");
+      safeNavigate("/(admin)/(dashboard)");
       return;
     }
 
     if (role === "nurse" && currentGroup !== "(nurse)") {
-      router.replace("/(nurse)/(tabs)");
+      safeNavigate("/(nurse)/(tabs)");
       return;
     }
 
     if (role === "delivery" && currentGroup !== "(delivery)") {
-      router.replace("/(delivery)/(tabs)");
+      safeNavigate("/(delivery)/(tabs)");
       return;
     }
 
     if (role === "lab" && currentGroup !== "(lab)") {
-      router.replace("/(lab)/(tabs)");
+      safeNavigate("/(lab)/(tabs)");
       return;
     }
 
     if (role === "user" && currentGroup !== "(protected)") {
-      router.replace("/(protected)/(tabs)");
+      safeNavigate("/(protected)/(tabs)");
       return;
     }
-  }, [user, isLoading, fontsLoaded, segments, hasPendingUser, pendingUserType, role]);
+  }, [user, isLoading, fontsLoaded, segments, hasPendingUser, pendingUserType, role, rootNavigationState?.key, safeNavigate]);
 
   // Show loading while initializing
   if (!fontsLoaded || isLoading || hasPendingUser === null || pendingUserType === null) {

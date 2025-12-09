@@ -1,5 +1,7 @@
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
+import LocationPicker, { LocationData } from "@/component/LocationPicker";
+import ProfileImagePicker from "@/component/ProfileImagePicker";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { PatientInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
@@ -7,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -18,8 +20,6 @@ const profileSchema = Yup.object({
   phone: Yup.string()
     .required("Phone number is required")
     .matches(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/, "Invalid phone number"),
-  address: Yup.string().required("Address is required"),
-  city: Yup.string().required("City is required"),
   emergencyContact: Yup.string().required("Emergency contact is required"),
   bloodGroup: Yup.string().required("Blood group is required"),
 });
@@ -37,13 +37,25 @@ const EditProfile = () => {
 
   const patientInfo = user?.additionalInfo as PatientInfo | undefined;
 
+  const [profileImage, setProfileImage] = useState<string | null>(
+    patientInfo?.profileImage || null
+  );
+  const [location, setLocation] = useState<LocationData | null>(
+    patientInfo?.address
+      ? {
+          address: patientInfo.address,
+          city: patientInfo.city || "",
+          latitude: (patientInfo as any)?.coordinates?.latitude,
+          longitude: (patientInfo as any)?.coordinates?.longitude,
+        }
+      : null
+  );
+
   const formik = useFormik({
     initialValues: {
       fullName: `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || "User",
       email: user?.email || "",
       phone: user?.phoneNumber || "",
-      address: patientInfo?.address || "",
-      city: patientInfo?.city || "",
       emergencyContact: patientInfo?.emergencyContact || "",
       bloodGroup: patientInfo?.bloodGroup || "",
     },
@@ -52,10 +64,15 @@ const EditProfile = () => {
       try {
         setIsSubmitting(true);
         await saveAdditionalInfo({
-          address: values.address,
-          city: values.city,
+          address: location?.address || "",
+          city: location?.city || "",
+          coordinates: location?.latitude && location?.longitude ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          } : null,
           emergencyContact: values.emergencyContact,
           bloodGroup: selectedBloodGroup || values.bloodGroup,
+          profileImage: profileImage,
         } as PatientInfo);
         
         toast.show({
@@ -89,16 +106,11 @@ const EditProfile = () => {
       >
         {/* Profile Image */}
         <View style={styles.imageContainer}>
-          <Image
-            source={{
-              uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-            }}
-            style={styles.imageStyle}
-            resizeMode="cover"
+          <ProfileImagePicker
+            value={profileImage}
+            onImageSelect={setProfileImage}
+            size={120}
           />
-          <TouchableOpacity style={styles.editIconContainer}>
-            <Ionicons name="pencil" size={20} color={colors.primary} />
-          </TouchableOpacity>
         </View>
 
         {/* Form Inputs */}
@@ -137,22 +149,12 @@ const EditProfile = () => {
             error={touched.phone && errors.phone ? errors.phone : undefined}
           />
 
-          <FormInput
-            value={values.address}
-            onChangeText={handleChange("address")}
-            onBlur={handleBlur("address")}
-            placeholder="Home Address"
-            LeftIcon={() => <Ionicons name="home-outline" size={20} color={colors.gray} />}
-            error={touched.address && errors.address ? errors.address : undefined}
-          />
-
-          <FormInput
-            value={values.city}
-            onChangeText={handleChange("city")}
-            onBlur={handleBlur("city")}
-            placeholder="City"
-            LeftIcon={() => <Ionicons name="location-outline" size={20} color={colors.gray} />}
-            error={touched.city && errors.city ? errors.city : undefined}
+          {/* Location Picker */}
+          <LocationPicker
+            label="Home Address"
+            value={location || undefined}
+            onLocationSelect={setLocation}
+            placeholder="Select your home address"
           />
 
           <FormInput
@@ -223,23 +225,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     alignItems: "center",
     marginTop: 16,
-  },
-  imageStyle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  editIconContainer: {
-    position: "absolute",
-    bottom: 0,
-    right: "35%",
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    padding: 8,
-    borderWidth: 3,
-    borderColor: colors.white,
   },
   selectContainer: {
     marginTop: 8,

@@ -5,14 +5,14 @@ import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,15 +27,26 @@ const verificationSteps = [
 
 const OtpScreen = () => {
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
   const { email } = useLocalSearchParams<{ email: string }>();
   const { resendVerificationEmail, checkEmailVerification, logout } = useAuthContext();
   const toast = useToast();
+  const hasNavigatedRef = useRef(false);
 
   const [seconds, setSeconds] = useState(59);
   const [minutes, setMinutes] = useState(0);
   const [canResend, setCanResend] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isResending, setIsResending] = useState(false);
+
+  // Helper to safely navigate
+  const safeNavigate = (route: string) => {
+    if (!rootNavigationState?.key || hasNavigatedRef.current) return;
+    hasNavigatedRef.current = true;
+    setTimeout(() => {
+      router.replace(route as any);
+    }, 100);
+  };
 
   // Countdown timer logic
   useEffect(() => {
@@ -56,6 +67,9 @@ const OtpScreen = () => {
 
   // Auto-check email verification periodically
   useEffect(() => {
+    // Don't start checking until navigation is ready
+    if (!rootNavigationState?.key) return;
+    
     const checkInterval = setInterval(async () => {
       try {
         const isVerified = await checkEmailVerification();
@@ -66,10 +80,7 @@ const OtpScreen = () => {
             text1: "Email Verified",
             text2: "Your email has been verified successfully. Please login.",
           });
-          // Small delay to ensure sign out completes before navigation
-          setTimeout(() => {
-            router.replace("/(auth)");
-          }, 500);
+          safeNavigate("/(auth)");
         }
       } catch (error) {
         // Silently fail on background checks
@@ -77,7 +88,7 @@ const OtpScreen = () => {
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(checkInterval);
-  }, []);
+  }, [rootNavigationState?.key]);
 
   const handleResend = async () => {
     try {
@@ -113,10 +124,7 @@ const OtpScreen = () => {
           text1: "Email Verified",
           text2: "Your email has been verified successfully. Please login.",
         });
-        // Small delay to ensure everything completes
-        setTimeout(() => {
-          router.replace("/(auth)");
-        }, 500);
+        safeNavigate("/(auth)");
       } else {
         toast.show({
           type: "warning",
@@ -138,9 +146,11 @@ const OtpScreen = () => {
   const handleBackToLogin = async () => {
     try {
       await logout();
-      router.replace("/(auth)");
+      hasNavigatedRef.current = false; // Reset for manual navigation
+      safeNavigate("/(auth)");
     } catch (error) {
-      router.replace("/(auth)");
+      hasNavigatedRef.current = false;
+      safeNavigate("/(auth)");
     }
   };
 

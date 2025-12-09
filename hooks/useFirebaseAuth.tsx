@@ -42,6 +42,11 @@ export interface PatientInfo {
   city: string;
   emergencyContact: string;
   bloodGroup: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
 }
 
 export interface NurseInfo {
@@ -52,6 +57,11 @@ export interface NurseInfo {
   address: string;
   city: string;
   certifications: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
 }
 
 export interface LabInfo {
@@ -62,6 +72,11 @@ export interface LabInfo {
   homeSampling: boolean;
   operatingHours: string;
   servicesOffered: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
 }
 
 export interface DeliveryInfo {
@@ -71,6 +86,11 @@ export interface DeliveryInfo {
   address: string;
   city: string;
   availability: string;
+  profileImage?: string | null;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
 }
 
 export type AdditionalInfo = PatientInfo | NurseInfo | LabInfo | DeliveryInfo;
