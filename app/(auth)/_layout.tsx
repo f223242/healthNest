@@ -44,6 +44,7 @@ const _layout = () => {
         name="reset-password"
         options={{
           headerTitle: "Reset Password",
+        
         }}
       />
     </Stack>

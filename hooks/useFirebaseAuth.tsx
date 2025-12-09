@@ -649,10 +649,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       
       // Try to sign in with the new password to check if it's the same as current
+      // Use skipAuthHandlingRef to prevent auth state changes
       try {
+        skipAuthHandlingRef.current = true;
         await signInWithEmailAndPassword(auth, email, newPassword);
         // If login succeeds, the password is the same as the current one
         await signOut(auth);
+        skipAuthHandlingRef.current = false;
         
         const errorWithInfo = new Error("Same password") as any;
         errorWithInfo.text1 = "Same Password";
@@ -660,6 +663,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         errorWithInfo.type = "error";
         throw errorWithInfo;
       } catch (signInError: any) {
+        skipAuthHandlingRef.current = false;
         // If sign in fails with wrong-password, it means the new password is different (good!)
         if (signInError.code === "auth/wrong-password" || signInError.code === "auth/invalid-credential") {
           // Password is different, proceed with reset via email
@@ -690,6 +694,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       console.log("Password reset email sent successfully to:", email);
     } catch (error: any) {
+      // Ensure flag is reset on any error
+      skipAuthHandlingRef.current = false;
       console.error("Update password error:", error);
       if (error.text1) throw error;
       const errorWithInfo = new Error("Failed to update password") as any;
@@ -706,6 +712,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Logging out user");
       await signOut(auth);
       await clearLocalRole();
+      // Clear pending user data to prevent redirect to reset-password
+      await AsyncStorage.removeItem(PENDING_USER_KEY);
+      await AsyncStorage.removeItem(OTP_KEY);
       setUser(null);
       setFirebaseUser(null);
     } catch (error: any) {

@@ -137,6 +137,8 @@ const ResetPassword = () => {
           text1: error.text1 || "Error",
           text2: error.text2 || "Failed to update password",
         });
+        // Stay on current screen - don't navigate or show modal
+        return;
       } finally {
         setIsSubmitting(false);
       }
@@ -154,6 +156,11 @@ const ResetPassword = () => {
     handleSubmit,
   } = formik;
 
+  // Handle back navigation
+  // const handleBack = () => {
+  //   router.back();
+  // };
+
   // OTP Verification Screen
   if (!otpVerified) {
     return (
@@ -165,6 +172,14 @@ const ResetPassword = () => {
           enableOnAndroid={true}
         >
           <View>
+            {/* Back Button
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={handleBack}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.black} />
+            </TouchableOpacity> */}
+
             {/* Icon with gradient background */}
             <View style={styles.iconContainer}>
               <LinearGradient
@@ -248,6 +263,14 @@ const ResetPassword = () => {
         enableOnAndroid={true}
       >
         <View>
+          {/* Back Button */}
+          {/* <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={handleBack}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.black} />
+          </TouchableOpacity> */}
+
           {/* Icon with gradient background */}
           <View style={styles.iconContainer}>
             <LinearGradient
@@ -374,6 +397,15 @@ export default ResetPassword;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.lightGray,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
   },
   scrollContainer: {
     flexGrow: 1,

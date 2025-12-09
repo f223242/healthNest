@@ -316,5 +316,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
     paddingVertical: 12,
+
+    backgroundColor: "red",
   },
 });
