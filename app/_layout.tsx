@@ -33,7 +33,7 @@ function InnerLayout() {
 
   const role = user?.role || "user";
 
-  // Check if there's a pending user (in verification process)
+  // Check for pending user (during email verification)
   useEffect(() => {
     const checkPendingUser = async () => {
       const pendingUser = await AsyncStorage.getItem(PENDING_USER_KEY);
@@ -41,65 +41,64 @@ function InnerLayout() {
     };
     checkPendingUser();
     
-    // Also add listener for storage changes
+    // Periodic check to detect changes quickly
     const interval = setInterval(checkPendingUser, 500);
     return () => clearInterval(interval);
   }, []);
 
-  // -----------------------------
-  //  Navigation Logic
-  // -----------------------------
+  // Navigation logic
   useEffect(() => {
     if (!fontsLoaded || isLoading || hasPendingUser === null) return;
 
-    const current = segments[0];
-    const currentScreen = segments[1];
+    const currentGroup = segments[0] as string | undefined;
+    const currentScreen = segments[1] as string | undefined;
 
-    // Not logged in
+    // User is NOT logged in
     if (!user) {
-      // If in auth group, allow all auth screens (no redirects within auth)
-      if (current === "(auth)") {
+      // If there's a pending user awaiting verification, go to OTP screen
+      if (hasPendingUser && currentScreen !== "otp-screen") {
+        router.replace("/(auth)/otp-screen");
         return;
       }
-      
-      // Redirect to auth if not in auth group
+
+      // If already in auth group, allow navigation within auth screens
+      if (currentGroup === "(auth)") {
+        return;
+      }
+
+      // Otherwise redirect to login
       router.replace("/(auth)");
       return;
     }
 
-    // User is logged in - redirect based on role
-    // Only redirect if not already in the correct group
-    // User is logged in - redirect based on role
-    // Only redirect if not already in the correct group
-    if (role === "admin" && current !== "(admin)") {
+    // User IS logged in - redirect based on role
+    if (role === "admin" && currentGroup !== "(admin)") {
       router.replace("/(admin)/(dashboard)");
       return;
     }
 
-    if (role === "nurse" && current !== "(nurse)") {
+    if (role === "nurse" && currentGroup !== "(nurse)") {
       router.replace("/(nurse)/(tabs)");
       return;
     }
 
-    if (role === "delivery" && current !== "(delivery)") {
+    if (role === "delivery" && currentGroup !== "(delivery)") {
       router.replace("/(delivery)/(tabs)");
       return;
     }
 
-    if (role === "lab" && current !== "(lab)") {
+    if (role === "lab" && currentGroup !== "(lab)") {
       router.replace("/(lab)/(tabs)");
       return;
     }
 
-    if (role === "user" && current !== "(protected)") {
+    if (role === "user" && currentGroup !== "(protected)") {
       router.replace("/(protected)/(tabs)");
       return;
     }
-  }, [user, isLoading, fontsLoaded, segments, hasPendingUser]);
+  }, [user, isLoading, fontsLoaded, segments, hasPendingUser, role]);
 
-  // -----------------------------
-  // Loaders
-  // -----------------------------
+  // Show loading while initializing
   if (!fontsLoaded || isLoading || hasPendingUser === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -108,9 +107,7 @@ function InnerLayout() {
     );
   }
 
-  // -----------------------------
-  // Allowed Screens
-  // -----------------------------
+  // Render all screen groups - navigation logic handles access
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />

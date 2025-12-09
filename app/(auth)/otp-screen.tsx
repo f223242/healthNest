@@ -1,4 +1,5 @@
 import AppButton from "@/component/AppButton";
+import InstructionSteps from "@/component/InstructionSteps";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
@@ -15,6 +16,14 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Verification instructions
+const verificationSteps = [
+  { text: "Open your email inbox" },
+  { text: "Find the email from HealthNest" },
+  { text: "Click the verification link" },
+  { text: "Come back and tap \"I've Verified\"" },
+];
 
 const OtpScreen = () => {
   const router = useRouter();
@@ -172,32 +181,10 @@ const OtpScreen = () => {
           </Text>
 
           {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>1</Text>
-              </View>
-              <Text style={styles.instructionText}>Open your email inbox</Text>
-            </View>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>2</Text>
-              </View>
-              <Text style={styles.instructionText}>Find the email from HealthNest</Text>
-            </View>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>3</Text>
-              </View>
-              <Text style={styles.instructionText}>Click the verification link</Text>
-            </View>
-            <View style={styles.instructionItem}>
-              <View style={styles.instructionNumber}>
-                <Text style={styles.instructionNumberText}>4</Text>
-              </View>
-              <Text style={styles.instructionText}>Come back and tap "I've Verified"</Text>
-            </View>
-          </View>
+          <InstructionSteps
+            steps={verificationSteps}
+            containerStyle={styles.instructionsContainer}
+          />
 
           {/* Timer */}
           <View style={styles.timerSection}>
@@ -277,9 +264,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
+  scrollContainer: {
+    paddingHorizontal: sizes.paddingHorizontal,
+    flexGrow: 1,
+    justifyContent: "space-between",
+    paddingBottom: 20,
+  },
   iconContainer: {
     alignSelf: "center",
-    marginTop: 32,
+    marginTop: 40,
   },
   gradientCircle: {
     width: 120,
@@ -296,44 +289,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  scrollContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    flexGrow: 1,
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
   instructionsContainer: {
     marginTop: 32,
-    backgroundColor: colors.lightGreen,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.primary + "20",
-  },
-  instructionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    gap: 12,
-  },
-  instructionNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  instructionNumberText: {
-    color: colors.white,
-    fontFamily: Fonts.semiBold,
-    fontSize: 14,
-  },
-  instructionText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: colors.black,
-    flex: 1,
   },
   timerSection: {
     alignItems: "center",
