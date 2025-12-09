@@ -5,24 +5,36 @@ import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SettingsScreen = () => {
   const router=useRouter();
   const toast = useToast();
-  const { logout } = useAuthContext();
+  const { logout, user } = useAuthContext();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Get admin info from context
+  const adminInfo = useMemo(() => {
+    const firstName = user?.firstname || "";
+    const lastName = user?.lastname || "";
+    const fullName = `${firstName} ${lastName}`.trim() || "Admin User";
+    const email = user?.email || "admin@healthnest.com";
+    const profileImage = user?.additionalInfo?.profileImage || null;
+    
+    return { fullName, email, profileImage };
+  }, [user]);
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -109,12 +121,19 @@ const SettingsScreen = () => {
       >
         {/* Admin Info Card */}
         <View style={styles.adminCard}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={32} color={colors.white} />
-          </View>
+          {adminInfo.profileImage ? (
+            <Image
+              source={{ uri: adminInfo.profileImage }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View style={styles.avatarContainer}>
+              <Ionicons name="person" size={32} color={colors.white} />
+            </View>
+          )}
           <View style={styles.adminInfo}>
-            <Text style={styles.adminName}>Admin User</Text>
-            <Text style={styles.adminEmail}>admin@healthnest.com</Text>
+            <Text style={styles.adminName}>{adminInfo.fullName}</Text>
+            <Text style={styles.adminEmail}>{adminInfo.email}</Text>
           </View>
         </View>
 
@@ -209,6 +228,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: colors.primary,
     marginRight: 16,
   },
   adminInfo: {
