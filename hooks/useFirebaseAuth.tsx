@@ -9,7 +9,7 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signOut,
+  signOut
 } from "firebase/auth";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -407,10 +407,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (!pendingUserStr) {
+        console.log("No pending user found");
         return false;
       }
       
       const pendingUser = JSON.parse(pendingUserStr);
+      
+      // Check if this is a password reset flow (not email verification)
+      if (pendingUser.isPasswordReset) {
+        console.log("This is a password reset flow, not email verification");
+        return false;
+      }
+      
+      // Check if password exists
+      if (!pendingUser.password || !pendingUser.email) {
+        console.log("Missing email or password in pending user data");
+        return false;
+      }
       
       // Set flag to skip auth handling during this check
       skipAuthHandlingRef.current = true;
@@ -459,10 +472,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       return isVerified;
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Check verification error:", error);
       // Reset flag on error too
       skipAuthHandlingRef.current = false;
+      
+      // If it's an auth error, don't throw - just return false
+      if (error.code?.startsWith("auth/")) {
+        console.log("Auth error during verification check:", error.code);
+        return false;
+      }
+      
       return false;
     }
   };
@@ -510,6 +530,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         phoneNumber: phoneNumber,
         isPasswordReset: true,
       }));
+      
+      // TODO: In production, send SMS via backend service (Twilio, Firebase Cloud Functions, etc.)
+      // For development, OTP is logged to console and stored in Firestore
+      // The OTP can be retrieved from Firestore or console for testing
+      console.log("========================================");
+      console.log("PASSWORD RESET OTP:", otp);
+      console.log("Phone Number:", phoneNumber);
+      console.log("========================================");
       
       return otp;
     } catch (error: any) {
@@ -579,6 +607,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         used: false,
       });
       
+      // TODO: In production, send SMS via backend service
+      console.log("========================================");
+      console.log("RESENT PASSWORD RESET OTP:", otp);
+      console.log("Phone Number:", pendingUser.phoneNumber);
+      console.log("========================================");
+      
       return otp;
     } catch (error: any) {
       console.error("Resend password reset OTP error:", error);
@@ -612,6 +646,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         errorWithInfo.text2 = "Email not found. Please try again.";
         errorWithInfo.type = "error";
         throw errorWithInfo;
+      }
+      
+      // Try to sign in with the new password to check if it's the same as current
+      try {
+        await signInWithEmailAndPassword(auth, email, newPassword);
+        // If login succeeds, the password is the same as the current one
+        await signOut(auth);
+        
+        const errorWithInfo = new Error("Same password") as any;
+        errorWithInfo.text1 = "Same Password";
+        errorWithInfo.text2 = "New password cannot be the same as your current password. Please choose a different password.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      } catch (signInError: any) {
+        // If sign in fails with wrong-password, it means the new password is different (good!)
+        if (signInError.code === "auth/wrong-password" || signInError.code === "auth/invalid-credential") {
+          // Password is different, proceed with reset via email
+          console.log("New password is different from current password - proceeding with reset");
+        } else if (signInError.text1 === "Same Password") {
+          // This is our custom error, re-throw it
+          throw signInError;
+        } else {
+          // Some other error occurred during sign in attempt
+          console.log("Sign in check error:", signInError.code);
+        }
       }
       
       // Send Firebase password reset email

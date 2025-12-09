@@ -35,7 +35,7 @@ const ForgotPassword = () => {
       toast.show({
         type: "success",
         text1: "OTP Sent",
-        text2: "Check your phone for the verification code",
+        text2: "A verification code has been sent to your phone",
       });
       // Navigate to reset password screen for OTP verification
       router.push({
