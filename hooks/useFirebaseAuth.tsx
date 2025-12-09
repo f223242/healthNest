@@ -94,7 +94,13 @@ export interface DeliveryInfo {
   } | null;
 }
 
-export type AdditionalInfo = PatientInfo | NurseInfo | LabInfo | DeliveryInfo;
+export interface AdminInfo {
+  profileImage?: string | null;
+  address?: string;
+  city?: string;
+}
+
+export type AdditionalInfo = PatientInfo | NurseInfo | LabInfo | DeliveryInfo | AdminInfo;
 
 // Define what your context provides
 export interface User {
@@ -133,6 +139,8 @@ interface AuthContextType {
   verifyPasswordResetOTP: (otp: string) => Promise<boolean>;
   resendPasswordResetOTP: () => Promise<string>;
   updatePassword: (newPassword: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  updateProfile: (data: { firstname?: string; lastname?: string; phoneNumber?: string }) => Promise<void>;
   saveAdditionalInfo: (info: AdditionalInfo) => Promise<void>;
   getUserProfile: () => Promise<User | null>;
   getAllUsers: (roleFilter?: string) => Promise<User[]>;
@@ -855,6 +863,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Change password (requires current password for re-authentication)
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser || !currentUser.email) {
+        const errorWithInfo = new Error("Not authenticated") as any;
+        errorWithInfo.text1 = "Error";
+        errorWithInfo.text2 = "You must be logged in to change your password.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      // Re-authenticate user with current password
+      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword: firebaseUpdatePassword } = await import("firebase/auth");
+      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+      
+      try {
+        await reauthenticateWithCredential(currentUser, credential);
+      } catch (reAuthError: any) {
+        const errorWithInfo = new Error("Invalid current password") as any;
+        errorWithInfo.text1 = "Invalid Password";
+        errorWithInfo.text2 = "Your current password is incorrect. Please try again.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      // Check if new password is same as current
+      if (currentPassword === newPassword) {
+        const errorWithInfo = new Error("Same password") as any;
+        errorWithInfo.text1 = "Same Password";
+        errorWithInfo.text2 = "New password cannot be the same as your current password.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      // Update password
+      await firebaseUpdatePassword(currentUser, newPassword);
+      console.log("Password changed successfully");
+    } catch (error: any) {
+      console.error("Change password error:", error);
+      if (error.text1) throw error;
+      const errorWithInfo = new Error("Password change failed") as any;
+      errorWithInfo.text1 = "Error";
+      errorWithInfo.text2 = "Failed to change password. Please try again.";
+      errorWithInfo.type = "error";
+      throw errorWithInfo;
+    }
+  };
+
+  // Update user profile (basic info)
+  const updateProfile = async (data: { firstname?: string; lastname?: string; phoneNumber?: string }): Promise<void> => {
+    try {
+      if (!user) {
+        const errorWithInfo = new Error("Not authenticated") as any;
+        errorWithInfo.text1 = "Error";
+        errorWithInfo.text2 = "You must be logged in to update profile.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      // Update local user state
+      setUser({
+        ...user,
+        firstname: data.firstname || user.firstname,
+        lastname: data.lastname || user.lastname,
+        phoneNumber: data.phoneNumber || user.phoneNumber,
+      });
+
+      console.log("Profile updated successfully");
+    } catch (error: any) {
+      console.error("Update profile error:", error);
+      if (error.text1) throw error;
+      const errorWithInfo = new Error("Profile update failed") as any;
+      errorWithInfo.text1 = "Error";
+      errorWithInfo.text2 = "Failed to update profile. Please try again.";
+      errorWithInfo.type = "error";
+      throw errorWithInfo;
+    }
+  };
+
   // Save additional info for user profile
   const saveAdditionalInfo = async (info: AdditionalInfo): Promise<void> => {
     try {
@@ -993,6 +1087,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         verifyPasswordResetOTP,
         resendPasswordResetOTP,
         updatePassword,
+        changePassword,
+        updateProfile,
         saveAdditionalInfo,
         getUserProfile,
         getAllUsers,

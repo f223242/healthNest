@@ -3,12 +3,13 @@ import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -33,6 +34,8 @@ const passwordSchema = Yup.object({
 const ChangePassword = () => {
   const router = useRouter();
   const toast = useToast();
+  const { changePassword } = useAuthContext();
+  const [isLoading, setIsLoading] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -43,11 +46,17 @@ const ChangePassword = () => {
     validationSchema: passwordSchema,
     validateOnChange: true,
     validateOnBlur: true,
-    onSubmit: (values) => {
-      // Handle password change logic
-      console.log("Password change values:", values);
-      toast.success("Password changed successfully!");
-      setTimeout(() => router.back(), 1500);
+    onSubmit: async (values) => {
+      setIsLoading(true);
+      try {
+        await changePassword(values.currentPassword, values.newPassword);
+        toast.success("Password changed successfully!");
+        setTimeout(() => router.back(), 1500);
+      } catch (error: any) {
+        toast.error(error.text2 || error.message || "Failed to change password");
+      } finally {
+        setIsLoading(false);
+      }
     },
   });
 
@@ -175,11 +184,14 @@ const ChangePassword = () => {
 
         {/* Change Password Button */}
         <AppButton
-          title="Change Password"
+          title={isLoading ? "Changing Password..." : "Change Password"}
           onPress={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || isLoading}
           containerStyle={{marginTop:20}}
         />
+        {isLoading && (
+          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
+        )}
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );

@@ -5,17 +5,20 @@ import { useFonts } from "expo-font";
 import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const PENDING_USER_KEY = "@healthnest_pending_user";
 const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
 export default function RootLayout() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <InnerLayout />
-      </AuthProvider>
-    </ToastProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider>
+        <AuthProvider>
+          <InnerLayout />
+        </AuthProvider>
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -32,16 +35,16 @@ function InnerLayout() {
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
   const [hasPendingUser, setHasPendingUser] = useState<boolean | null>(null);
-  
+
   // Track if we've already navigated to prevent loops
   const hasNavigatedRef = useRef(false);
   const lastNavigationRef = useRef<string>("");
 
   const role = user?.role || "user";
-  
+
   // State to differentiate between email verification and password reset
   const [pendingUserType, setPendingUserType] = useState<"none" | "verification" | "passwordReset" | null>(null);
-  
+
   // Track if verification was just completed to prevent redirect loop
   const [verificationJustCompleted, setVerificationJustCompleted] = useState(false);
 
@@ -58,23 +61,23 @@ function InnerLayout() {
         setHasPendingUser(false);
         return;
       }
-      
+
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (!pendingUserStr) {
         setPendingUserType("none");
         setHasPendingUser(false);
         return;
       }
-      
+
       try {
         const pendingUser = JSON.parse(pendingUserStr);
-        
+
         // Check if pending user data is expired (older than 10 minutes)
         if (pendingUser.createdAt) {
           const createdAt = new Date(pendingUser.createdAt);
           const now = new Date();
           const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-          
+
           if (diffMinutes > 10) {
             // Expired - clear the data
             console.log("Pending user data expired, clearing...");
@@ -85,7 +88,7 @@ function InnerLayout() {
             return;
           }
         }
-        
+
         if (pendingUser.isPasswordReset) {
           setPendingUserType("passwordReset");
           setHasPendingUser(true);
@@ -101,7 +104,7 @@ function InnerLayout() {
       }
     };
     checkPendingUser();
-    
+
     // Periodic check to detect changes - increased to 1 second
     const interval = setInterval(checkPendingUser, 1000);
     return () => clearInterval(interval);
@@ -120,7 +123,7 @@ function InnerLayout() {
       return;
     }
     lastNavigationRef.current = route;
-    
+
     // Use setTimeout to ensure navigation happens after current render cycle
     setTimeout(() => {
       router.replace(route as any);
@@ -149,7 +152,7 @@ function InnerLayout() {
         }
         return;
       }
-      
+
       // If there's a pending user awaiting email verification, go to OTP screen
       // But don't redirect if we're on sign-up screen (user is still signing up)
       if (pendingUserType === "verification") {
@@ -161,7 +164,7 @@ function InnerLayout() {
         // If on sign-up or otp-screen, don't redirect anywhere
         return;
       }
-      
+
       // If password reset flow, allow them to stay on reset-password screen
       if (pendingUserType === "passwordReset" && currentScreen !== "reset-password") {
         // Don't force redirect - they might be on forgot-password navigating to reset-password
@@ -183,9 +186,9 @@ function InnerLayout() {
 
     // User IS logged in - check if profile is completed (skip for admin)
     // Check both segment positions for additional-info (could be at different positions)
-    const isOnAdditionalInfo = currentScreen === "additional-info" || 
-                               fullPath.includes("additional-info");
-    
+    const isOnAdditionalInfo = currentScreen === "additional-info" ||
+      fullPath.includes("additional-info");
+
     if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo) {
       // Redirect to additional info screen
       safeNavigate("/(protected)/additional-info");

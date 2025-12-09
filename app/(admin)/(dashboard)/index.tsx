@@ -1,9 +1,12 @@
 import AdminStatCard from "@/component/admin/AdminStatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,23 +17,78 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const AdminDashboard = () => {
   const router = useRouter();
+  const { getAllUsers } = useAuthContext();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userStats, setUserStats] = useState({
+    total: 0,
+    users: 0,
+    nurses: 0,
+    labs: 0,
+    delivery: 0,
+  });
 
-  const stats = [
+  // Fetch user stats from Firebase
+  const fetchStats = useCallback(async () => {
+    try {
+      const allUsers = await getAllUsers();
+      
+      const stats = {
+        total: allUsers.length,
+        users: allUsers.filter(u => u.role === "user").length,
+        nurses: allUsers.filter(u => u.role === "nurse").length,
+        labs: allUsers.filter(u => u.role === "lab").length,
+        delivery: allUsers.filter(u => u.role === "delivery").length,
+      };
+      
+      setUserStats(stats);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [getAllUsers]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchStats();
+  }, [fetchStats]);
+
+  const stats = useMemo(() => [
     {
       title: "Total Users",
-      value: "2,543",
+      value: userStats.total.toString(),
       icon: "people" as const,
       gradientColors: [colors.primary, "#00D68F"],
-      trend: { value: "+12%", isUp: true },
+      trend: { value: `${userStats.users} patients`, isUp: true },
     },
     {
-      title: "Complaints",
-      value: "45",
-      icon: "chatbox-ellipses" as const,
-      gradientColors: ["#F44336", "#EF5350"],
-      trend: { value: "-5%", isUp: false },
+      title: "Nurses",
+      value: userStats.nurses.toString(),
+      icon: "medkit" as const,
+      gradientColors: ["#9C27B0", "#BA68C8"],
+      trend: { value: "Registered", isUp: true },
     },
-  ];
+    {
+      title: "Labs",
+      value: userStats.labs.toString(),
+      icon: "flask" as const,
+      gradientColors: ["#2196F3", "#64B5F6"],
+      trend: { value: "Registered", isUp: true },
+    },
+    {
+      title: "Delivery",
+      value: userStats.delivery.toString(),
+      icon: "bicycle" as const,
+      gradientColors: ["#FF9800", "#FFB74D"],
+      trend: { value: "Registered", isUp: true },
+    },
+  ], [userStats]);
 
   const quickActions = [
     {
@@ -49,40 +107,14 @@ const AdminDashboard = () => {
     },
   ];
 
-  const recentActivity = [
-    {
-      id: 1,
-      type: "user",
-      message: "New user registration: John Doe",
-      time: "5 min ago",
-      icon: "person-add" as const,
-      color: colors.primary,
-    },
-    {
-      id: 2,
-      type: "complaint",
-      message: "New complaint received from Sarah",
-      time: "15 min ago",
-      icon: "alert-circle" as const,
-      color: "#F44336",
-    },
-    {
-      id: 3,
-      type: "appointment",
-      message: "Appointment booked by Michael",
-      time: "1 hour ago",
-      icon: "calendar" as const,
-      color: "#FF9800",
-    },
-    {
-      id: 4,
-      type: "payment",
-      message: "Payment received: $120",
-      time: "2 hours ago",
-      icon: "cash" as const,
-      color: "#4CAF50",
-    },
-  ];
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={["bottom"]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -91,6 +123,9 @@ const AdminDashboard = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       >
         {/* Statistics Cards */}
         <View style={styles.section}>
@@ -125,29 +160,6 @@ const AdminDashboard = () => {
           </View>
         </View>
 
-        {/* Recent Activity */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.activityContainer}>
-            {recentActivity.map((activity) => (
-              <View key={activity.id} style={styles.activityItem}>
-                <View style={[styles.activityIcon, { backgroundColor: activity.color + "20" }]}>
-                  <Ionicons name={activity.icon} size={20} color={activity.color} />
-                </View>
-                <View style={styles.activityContent}>
-                  <Text style={styles.activityMessage}>{activity.message}</Text>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
         <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>
@@ -160,6 +172,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
   },
   scrollContent: {
     flexGrow: 1,
@@ -226,38 +248,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   actionDescription: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  activityContainer: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
-  },
-  activityItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityMessage: {
-    fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: colors.black,
-    marginBottom: 4,
-  },
-  activityTime: {
     fontSize: 12,
     fontFamily: Fonts.regular,
     color: colors.gray,
