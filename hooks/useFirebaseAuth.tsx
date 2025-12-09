@@ -27,6 +27,7 @@ const getFirebaseErrorMessage = (errorCode: string) => {
 const USER_ROLE_KEY = "@healthnest_user_role";
 const PENDING_USER_KEY = "@healthnest_pending_user";
 const OTP_KEY = "@healthnest_otp";
+const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -557,6 +558,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         
         // Delete from pendingUsers collection
         await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+        
+        // Set verification complete flag BEFORE clearing pending user
+        // This prevents _layout.tsx from redirecting back to otp-screen
+        await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
         
         // Clear pending user from AsyncStorage
         await AsyncStorage.removeItem(PENDING_USER_KEY);
