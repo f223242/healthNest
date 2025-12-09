@@ -125,8 +125,14 @@ function InnerLayout() {
     // User is NOT logged in
     if (!user) {
       // If there's a pending user awaiting email verification, go to OTP screen
-      if (pendingUserType === "verification" && currentScreen !== "otp-screen") {
-        safeNavigate("/(auth)/otp-screen");
+      // But don't redirect if we're on sign-up screen (user is still signing up)
+      if (pendingUserType === "verification") {
+        // Only redirect to OTP screen if not already there and not on sign-up
+        if (currentScreen !== "otp-screen" && currentScreen !== "sign-up") {
+          safeNavigate("/(auth)/otp-screen");
+          return;
+        }
+        // If on sign-up or otp-screen, don't redirect anywhere
         return;
       }
       

@@ -296,11 +296,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const role = await getUserRole(userCredential.user.uid);
       await saveRoleLocally(role);
       
-      // Set user state manually for verified users
+      // Clear any pending user data (in case user is logging in after verification)
+      await AsyncStorage.removeItem(PENDING_USER_KEY);
+      
+      // Fetch full user profile from Firestore
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      
+      // Set user state with full profile data
       setUser({
         uid: userCredential.user.uid,
         email: userCredential.user.email || "",
         role: role,
+        profileCompleted: userData.profileCompleted || false,
+        additionalInfo: userData.additionalInfo,
+        firstname: userData.firstname,
+        lastname: userData.lastname,
+        phoneNumber: userData.phoneNumber,
       });
       setFirebaseUser(userCredential.user);
       setIsLoading(false);
@@ -538,6 +551,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           phoneNumber: pendingUser.phoneNumber,
           dateOfBirth: pendingUser.dateOfBirth,
           emailVerified: true,
+          profileCompleted: false, // Initialize profileCompleted as false
           createdAt: new Date().toISOString(),
         });
         
@@ -836,6 +850,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const saveAdditionalInfo = async (info: AdditionalInfo): Promise<void> => {
     try {
       if (!user) {
+        console.log("saveAdditionalInfo: No user found in context");
         const errorWithInfo = new Error("Not authenticated") as any;
         errorWithInfo.text1 = "Error";
         errorWithInfo.text2 = "You must be logged in to update profile.";
@@ -843,7 +858,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw errorWithInfo;
       }
 
+      console.log("saveAdditionalInfo: Saving for user:", user.uid, "role:", user.role);
+
       const userDocRef = doc(db, "users", user.uid);
+      
+      // Check if document exists first
+      const existingDoc = await getDoc(userDocRef);
+      console.log("saveAdditionalInfo: Document exists:", existingDoc.exists());
+      
       await setDoc(userDocRef, {
         additionalInfo: info,
         profileCompleted: true,
@@ -857,9 +879,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profileCompleted: true,
       });
 
-      console.log("Additional info saved successfully");
+      console.log("Additional info saved successfully for role:", user.role);
     } catch (error: any) {
       console.error("Save additional info error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
       if (error.text1) throw error;
       const errorWithInfo = new Error("Failed to save info") as any;
       errorWithInfo.text1 = "Error";

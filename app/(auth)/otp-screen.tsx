@@ -65,30 +65,7 @@ const OtpScreen = () => {
     return () => clearInterval(timer);
   }, [seconds, minutes]);
 
-  // Auto-check email verification periodically
-  useEffect(() => {
-    // Don't start checking until navigation is ready
-    if (!rootNavigationState?.key) return;
-    
-    const checkInterval = setInterval(async () => {
-      try {
-        const isVerified = await checkEmailVerification();
-        if (isVerified) {
-          clearInterval(checkInterval);
-          toast.show({
-            type: "success",
-            text1: "Email Verified",
-            text2: "Your email has been verified successfully. Please login.",
-          });
-          safeNavigate("/(auth)");
-        }
-      } catch (error) {
-        // Silently fail on background checks
-      }
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(checkInterval);
-  }, [rootNavigationState?.key]);
+  // REMOVED: Auto-check email verification - user should click button to verify
 
   const handleResend = async () => {
     try {

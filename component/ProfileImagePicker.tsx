@@ -5,15 +5,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     Modal,
     Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
+import PermissionModal from "./PermissionModal";
 
 interface ProfileImagePickerProps {
   value?: string | null;
@@ -30,31 +30,37 @@ const ProfileImagePicker: React.FC<ProfileImagePickerProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
+  const [permissionType, setPermissionType] = useState<"camera" | "gallery">("gallery");
 
   const pickImage = async () => {
     setModalVisible(false);
-    
+
     try {
-      // Request permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      // First check current permission status
+      const { status: existingStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
       
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please grant photo library permissions to select a profile photo.",
-          [{ text: "OK" }]
-        );
-        return;
+      if (existingStatus !== "granted") {
+        // Request permission
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (status !== "granted") {
+          // Show beautiful permission modal
+          setPermissionType("gallery");
+          setPermissionModalVisible(true);
+          return;
+        }
       }
 
       setIsLoading(true);
 
-      // Launch image picker
+      // Launch image picker with proper configuration
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        allowsMultipleSelection: false,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
@@ -62,7 +68,9 @@ const ProfileImagePicker: React.FC<ProfileImagePickerProps> = ({
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to select image. Please try again.");
+      // Show permission modal on error (might be permission issue)
+      setPermissionType("gallery");
+      setPermissionModalVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -70,18 +78,21 @@ const ProfileImagePicker: React.FC<ProfileImagePickerProps> = ({
 
   const takePhoto = async () => {
     setModalVisible(false);
-    
+
     try {
-      // Request camera permission
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      // First check current permission status
+      const { status: existingStatus } = await ImagePicker.getCameraPermissionsAsync();
       
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please grant camera permissions to take a photo.",
-          [{ text: "OK" }]
-        );
-        return;
+      if (existingStatus !== "granted") {
+        // Request camera permission
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (status !== "granted") {
+          // Show beautiful permission modal
+          setPermissionType("camera");
+          setPermissionModalVisible(true);
+          return;
+        }
       }
 
       setIsLoading(true);
@@ -98,7 +109,8 @@ const ProfileImagePicker: React.FC<ProfileImagePickerProps> = ({
       }
     } catch (error) {
       console.error("Error taking photo:", error);
-      Alert.alert("Error", "Failed to take photo. Please try again.");
+      setPermissionType("camera");
+      setPermissionModalVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -227,6 +239,14 @@ const ProfileImagePicker: React.FC<ProfileImagePickerProps> = ({
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Permission Modal */}
+      <PermissionModal
+        visible={permissionModalVisible}
+        onClose={() => setPermissionModalVisible(false)}
+        onRetry={permissionType === "gallery" ? pickImage : takePhoto}
+        permissionType={permissionType}
+      />
     </>
   );
 };

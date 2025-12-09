@@ -17,6 +17,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import PermissionModal from "./PermissionModal";
 
 export interface LocationData {
   address: string;
@@ -46,6 +47,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const [manualAddress, setManualAddress] = useState(value?.address || "");
   const [manualCity, setManualCity] = useState(value?.city || "");
   const [detectedLocation, setDetectedLocation] = useState<LocationData | null>(null);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
   useEffect(() => {
     if (value) {
@@ -59,19 +61,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     try {
       setIsLoading(true);
 
-      // Request permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Please enable location permissions in settings to use this feature.",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Open Settings", onPress: () => Linking.openSettings() },
-          ]
-        );
-        setIsLoading(false);
-        return;
+      // Check existing permission first
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      
+      if (existingStatus !== "granted") {
+        // Request permission
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setIsLoading(false);
+          setPermissionModalVisible(true);
+          return;
+        }
       }
 
       // Get current position
@@ -121,7 +121,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       }
     } catch (error) {
       console.error("Error getting location:", error);
-      Alert.alert("Error", "Failed to get current location. Please enter manually.");
+      setPermissionModalVisible(true);
     } finally {
       setIsLoading(false);
     }
@@ -330,6 +330,14 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Permission Modal */}
+      <PermissionModal
+        visible={permissionModalVisible}
+        onClose={() => setPermissionModalVisible(false)}
+        onRetry={getCurrentLocation}
+        permissionType="location"
+      />
     </>
   );
 };
