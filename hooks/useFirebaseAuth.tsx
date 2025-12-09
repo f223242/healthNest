@@ -27,6 +27,7 @@ const getFirebaseErrorMessage = (errorCode: string) => {
 const USER_ROLE_KEY = "@healthnest_user_role";
 const PENDING_USER_KEY = "@healthnest_pending_user";
 const OTP_KEY = "@healthnest_otp";
+const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -134,6 +135,7 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   saveAdditionalInfo: (info: AdditionalInfo) => Promise<void>;
   getUserProfile: () => Promise<User | null>;
+  getAllUsers: (roleFilter?: string) => Promise<User[]>;
   isLoading: boolean;
 }
 
@@ -280,8 +282,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       console.log("Login successful:", userCredential.user.email);
       
-      // Check if email is verified
-      if (!userCredential.user.emailVerified) {
+      // Get user data from Firestore first to check role
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      
+      // Check if email is verified (skip for admin users or if emailVerified is true in Firestore)
+      const isAdmin = userData.role === "admin";
+      const isVerifiedInFirestore = userData.emailVerified === true;
+      
+      if (!userCredential.user.emailVerified && !isAdmin && !isVerifiedInFirestore) {
         await signOut(auth);
         setIsLoading(false);
         const errorWithInfo = new Error("Please verify your email before logging in.") as any;
@@ -298,11 +308,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Clear any pending user data (in case user is logging in after verification)
       await AsyncStorage.removeItem(PENDING_USER_KEY);
-      
-      // Fetch full user profile from Firestore
-      const userDocRef = doc(db, "users", userCredential.user.uid);
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.exists() ? userDoc.data() : {};
       
       // Set user state with full profile data
       setUser({
@@ -557,6 +562,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         
         // Delete from pendingUsers collection
         await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+        
+        // Set verification complete flag BEFORE clearing pending user
+        // This prevents _layout.tsx from redirecting back to otp-screen
+        await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
         
         // Clear pending user from AsyncStorage
         await AsyncStorage.removeItem(PENDING_USER_KEY);
@@ -893,6 +902,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Get all users from Firestore (for admin)
+  const getAllUsers = async (roleFilter?: string): Promise<User[]> => {
+    try {
+      const usersRef = collection(db, "users");
+      let q;
+      
+      if (roleFilter && roleFilter !== "All") {
+        // Map display names to actual role values
+        const roleMap: { [key: string]: string } = {
+          "User": "user",
+          "Lab": "lab",
+          "Nurse": "nurse",
+          "Medicine Delivery": "delivery",
+        };
+        const actualRole = roleMap[roleFilter] || roleFilter.toLowerCase();
+        q = query(usersRef, where("role", "==", actualRole));
+      } else {
+        q = query(usersRef);
+      }
+      
+      const querySnapshot = await getDocs(q);
+      const users: User[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          uid: doc.id,
+          email: data.email || "",
+          role: data.role || "user",
+          profileCompleted: data.profileCompleted || false,
+          additionalInfo: data.additionalInfo,
+          firstname: data.firstname,
+          lastname: data.lastname,
+          phoneNumber: data.phoneNumber,
+        });
+      });
+      
+      return users;
+    } catch (error: any) {
+      console.error("Get all users error:", error);
+      return [];
+    }
+  };
+
   // Get full user profile from Firestore
   const getUserProfile = async (): Promise<User | null> => {
     try {
@@ -942,6 +995,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updatePassword,
         saveAdditionalInfo,
         getUserProfile,
+        getAllUsers,
         isLoading 
       }}
     >

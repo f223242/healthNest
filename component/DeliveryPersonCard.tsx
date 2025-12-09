@@ -40,7 +40,13 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.imageContainer}>
-            <Image source={{ uri: avatar }} style={styles.image} />
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.image} />
+            ) : (
+              <View style={[styles.image, styles.imagePlaceholder]}>
+                <Ionicons name="person" size={28} color={colors.gray} />
+              </View>
+            )}
             <View
               style={[
                 styles.availabilityDot,
@@ -145,6 +151,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     borderWidth: 3,
     borderColor: colors.white,
+  },
+  imagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.lightGray,
   },
   availabilityDot: {
     position: "absolute",

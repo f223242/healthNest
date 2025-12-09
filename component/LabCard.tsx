@@ -50,7 +50,13 @@ const LabCard: React.FC<LabCardProps> = ({
           isSelected && styles.selectedCard,
         ]}
       >
-        <Image source={image} style={styles.labImage} resizeMode="cover" />
+        {image ? (
+          <Image source={image} style={styles.labImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.labImage, styles.labImagePlaceholder]}>
+            <Ionicons name="flask" size={32} color={colors.gray} />
+          </View>
+        )}
         <View style={styles.labInfo}>
           {/* Lab Name with Accredited Badge */}
           <View style={styles.labNameRow}>
@@ -145,6 +151,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.white,
     marginBottom: 8,
+  },
+  labImagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.lightGray,
   },
   labInfo: {
     gap: 6,

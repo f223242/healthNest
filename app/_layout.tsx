@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 const PENDING_USER_KEY = "@healthnest_pending_user";
+const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
 export default function RootLayout() {
   return (
@@ -40,10 +41,24 @@ function InnerLayout() {
   
   // State to differentiate between email verification and password reset
   const [pendingUserType, setPendingUserType] = useState<"none" | "verification" | "passwordReset" | null>(null);
+  
+  // Track if verification was just completed to prevent redirect loop
+  const [verificationJustCompleted, setVerificationJustCompleted] = useState(false);
 
   // Check for pending user (during email verification or password reset)
   useEffect(() => {
     const checkPendingUser = async () => {
+      // Check if verification was just completed - skip redirect to otp-screen
+      const verificationComplete = await AsyncStorage.getItem(VERIFICATION_COMPLETE_KEY);
+      if (verificationComplete) {
+        // Clear the flag after reading
+        await AsyncStorage.removeItem(VERIFICATION_COMPLETE_KEY);
+        setVerificationJustCompleted(true);
+        setPendingUserType("none");
+        setHasPendingUser(false);
+        return;
+      }
+      
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (!pendingUserStr) {
         setPendingUserType("none");
@@ -87,8 +102,8 @@ function InnerLayout() {
     };
     checkPendingUser();
     
-    // Periodic check to detect changes quickly
-    const interval = setInterval(checkPendingUser, 500);
+    // Periodic check to detect changes - increased to 1 second
+    const interval = setInterval(checkPendingUser, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -124,6 +139,17 @@ function InnerLayout() {
 
     // User is NOT logged in
     if (!user) {
+      // If verification was just completed, don't redirect to otp-screen
+      if (verificationJustCompleted) {
+        // Reset the flag after handling
+        setVerificationJustCompleted(false);
+        // Allow login screen to show
+        if (currentGroup !== "(auth)") {
+          safeNavigate("/(auth)");
+        }
+        return;
+      }
+      
       // If there's a pending user awaiting email verification, go to OTP screen
       // But don't redirect if we're on sign-up screen (user is still signing up)
       if (pendingUserType === "verification") {
