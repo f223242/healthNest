@@ -1,36 +1,66 @@
 import DashboardStatCard from '@/component/DashboardStatCard';
 import QuickActionCard from '@/component/QuickActionCard';
 import { colors, Fonts } from '@/constant/theme';
+import { NurseInfo, useAuthContext } from '@/hooks/useFirebaseAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NurseDashboard = () => {
+  const { user } = useAuthContext();
+  
+  // Get nurse info
+  const nurseInfo = useMemo(() => {
+    return user?.additionalInfo as NurseInfo | undefined;
+  }, [user]);
+
+  const fullName = `${user?.firstname || ''} ${user?.lastname || ''}`.trim() || 'Nurse';
+
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
     
       {/* Scrollable Content */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-     
+        
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>Welcome back,</Text>
+          <Text style={styles.nameText}>{fullName}</Text>
+          {nurseInfo?.specialization && (
+            <View style={styles.specBadge}>
+              <Ionicons name="medical" size={14} color={colors.primary} />
+              <Text style={styles.specText}>{nurseInfo.specialization}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Stats Overview */}
         <View style={styles.statsContainer}>
           <DashboardStatCard
-            title="Total Patients"
-            value="24"
-            icon="people"
+            title="Experience"
+            value={nurseInfo?.experience || '-'}
+            icon="time"
             color={colors.primary}
-            trend="+12%"
           />
-      
+          <DashboardStatCard
+            title="Hourly Rate"
+            value={nurseInfo?.hourlyRate ? `Rs. ${nurseInfo.hourlyRate}` : '-'}
+            icon="cash"
+            color="#FF9800"
+          />
+          <DashboardStatCard
+            title="Availability"
+            value={nurseInfo?.availability || '-'}
+            icon="calendar"
+            color="#2196F3"
+          />
         </View>
 
         {/* Quick Actions */}
@@ -41,52 +71,56 @@ const NurseDashboard = () => {
             subtitle="View and respond to messages"
             icon="chatbubbles"
             color={colors.primary}
-            onPress={() => router.push('/nurse-chat-detail')}
+            onPress={() => router.push('/(nurse)/(tabs)/nurse-chats')}
           />
-       
-         
-      
+          <QuickActionCard
+            title="Edit Profile"
+            subtitle="Update your information"
+            icon="person"
+            color="#9C27B0"
+            onPress={() => router.push('/(nurse)/edit-profile')}
+          />
         </View>
 
-        {/* Recent Activity */}
-        <View style={styles.recentActivityContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.activityList}>
-            {[
-              {
-                icon: 'chatbubble-ellipses',
-                color: colors.primary,
-                title: 'New message from John Smith',
-                time: '5 min ago',
-              },
-        
-            ].map((activity, index) => (
-              <View key={index} style={styles.activityItem}>
-                <View
-                  style={[
-                    styles.activityIcon,
-                    { backgroundColor: activity.color + '20' },
-                  ]}
-                >
-                  <Ionicons
-                    name={activity.icon as any}
-                    size={20}
-                    color={activity.color}
-                  />
-                </View>
-                <View style={styles.activityContent}>
-                  <Text style={styles.activityTitle}>{activity.title}</Text>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
+        {/* Info Cards */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Your Information</Text>
+          
+          {nurseInfo?.certifications && (
+            <View style={styles.infoCard}>
+              <View style={[styles.infoIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="ribbon" size={20} color={colors.primary} />
               </View>
-            ))}
-          </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Certifications</Text>
+                <Text style={styles.infoValue}>{nurseInfo.certifications}</Text>
+              </View>
+            </View>
+          )}
+          
+          {nurseInfo?.address && (
+            <View style={styles.infoCard}>
+              <View style={[styles.infoIcon, { backgroundColor: '#2196F3' + '15' }]}>
+                <Ionicons name="location" size={20} color="#2196F3" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Service Area</Text>
+                <Text style={styles.infoValue}>{nurseInfo.city ? `${nurseInfo.city}` : nurseInfo.address}</Text>
+              </View>
+            </View>
+          )}
+          
+          {user?.phoneNumber && (
+            <View style={styles.infoCard}>
+              <View style={[styles.infoIcon, { backgroundColor: '#4CAF50' + '15' }]}>
+                <Ionicons name="call" size={20} color="#4CAF50" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Contact</Text>
+                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -104,9 +138,40 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 100,
   },
+  welcomeSection: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  welcomeText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  nameText: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+    marginTop: 4,
+  },
+  specBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    gap: 6,
+  },
+  specText: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+  },
   statsContainer: {
     paddingHorizontal: 20,
-    marginTop: 20,
     marginBottom: 24,
     gap: 12,
   },
@@ -116,55 +181,47 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
-  },
   quickActionsContainer: {
     paddingHorizontal: 20,
     marginBottom: 24,
   },
-  recentActivityContainer: {
+  infoSection: {
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  activityList: {
-    gap: 12,
-  },
-  activityItem: {
+  infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  infoIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
-  activityContent: {
+  infoContent: {
     flex: 1,
   },
-  activityTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: colors.text,
-    marginBottom: 2,
-  },
-  activityTime: {
+  infoLabel: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    color: colors.textSecondary,
+    color: colors.gray,
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+    color: colors.text,
   },
 });

@@ -1,102 +1,95 @@
 import DeliveryPersonCard, {
-  DeliveryPerson,
+    DeliveryPerson,
 } from "@/component/DeliveryPersonCard";
-import { appStyles, colors, sizes } from "@/constant/theme";
+import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const deliveryPersons: DeliveryPerson[] = [
-  {
-    id: 1,
-    name: "Ahmed Ali",
-    avatar:
-      "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-    rating: 4.8,
-    totalDeliveries: 250,
-    isAvailable: true,
-    deliveryTime: "20-30 min",
-    distance: "2.5 km",
-  },
-  {
-    id: 2,
-    name: "Sarah Khan",
-    avatar:
-      "https://img.freepik.com/premium-photo/portrait-smiling-woman-with-brown-hair_1048944-30273179.jpg",
-    rating: 4.9,
-    totalDeliveries: 320,
-    isAvailable: true,
-    deliveryTime: "15-25 min",
-    distance: "1.8 km",
-  },
-  {
-    id: 3,
-    name: "Muhammad Hassan",
-    avatar:
-      "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-    rating: 4.7,
-    totalDeliveries: 180,
-    isAvailable: false,
-    deliveryTime: "25-35 min",
-    distance: "3.2 km",
-  },
-  {
-    id: 4,
-    name: "Fatima Noor",
-    avatar:
-      "https://img.freepik.com/premium-photo/portrait-smiling-woman-with-brown-hair_1048944-30273179.jpg",
-    rating: 4.6,
-    totalDeliveries: 150,
-    isAvailable: true,
-    deliveryTime: "30-40 min",
-    distance: "4.0 km",
-  },
-  {
-    id: 5,
-    name: "Ali Raza",
-    avatar:
-      "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-    rating: 4.8,
-    totalDeliveries: 290,
-    isAvailable: true,
-    deliveryTime: "20-30 min",
-    distance: "2.0 km",
-  },
-  {
-    id: 6,
-    name: "Zainab Ahmed",
-    avatar:
-      "https://img.freepik.com/premium-photo/portrait-smiling-woman-with-brown-hair_1048944-30273179.jpg",
-    rating: 4.5,
-    totalDeliveries: 120,
-    isAvailable: false,
-    deliveryTime: "35-45 min",
-    distance: "5.5 km",
-  },
-];
-
 const RequestMedicine = () => {
   const router = useRouter();
+  const { getAllUsers } = useAuthContext();
   const [filter, setFilter] = useState<"all" | "available">("all");
+  const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredPersons = deliveryPersons.filter((person) =>
-    filter === "available" ? person.isAvailable : true
-  );
+  // Fetch delivery persons from Firebase
+  const fetchDeliveryPersons = useCallback(async () => {
+    try {
+      const users = await getAllUsers("Medicine Delivery");
+      const deliveryData: DeliveryPerson[] = users
+        .filter((user: User) => user.profileCompleted && user.additionalInfo)
+        .map((user: User, index: number) => {
+          const info = user.additionalInfo as DeliveryInfo;
+          const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Delivery Person";
+          
+          // Map availability string to boolean
+          const isAvailable = info.availability 
+            ? info.availability.toLowerCase() === "available" || 
+              info.availability.toLowerCase() === "full-time"
+            : false;
+          
+          return {
+            id: index + 1, // DeliveryPersonCard expects number id
+            name: fullName,
+            avatar: info.profileImage || "https://via.placeholder.com/100",
+            rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0
+            totalDeliveries: Math.floor(Math.random() * 200) + 50, // Random deliveries
+            isAvailable,
+            deliveryTime: "20-30 min",
+            distance: info.city || "N/A",
+            vehicleType: info.vehicleType || "N/A",
+            vehicleNumber: info.vehicleNumber || "",
+            uid: user.uid, // Store actual uid for chat
+          };
+        });
+      
+      setDeliveryPersons(deliveryData);
+    } catch (error) {
+      console.error("Error fetching delivery persons:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [getAllUsers]);
 
-  const handlePersonPress = (person: DeliveryPerson) => {
+  useEffect(() => {
+    fetchDeliveryPersons();
+  }, [fetchDeliveryPersons]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchDeliveryPersons();
+  }, [fetchDeliveryPersons]);
+
+  const filteredPersons = useMemo(() => {
+    return deliveryPersons.filter((person) =>
+      filter === "available" ? person.isAvailable : true
+    );
+  }, [deliveryPersons, filter]);
+
+  const availableCount = useMemo(() => {
+    return deliveryPersons.filter((p) => p.isAvailable).length;
+  }, [deliveryPersons]);
+
+  const handlePersonPress = (person: DeliveryPerson & { uid?: string }) => {
     router.push({
-      pathname: "/(protected)/medicine-chat",
+      pathname: "/(protected)/delivery-chat-detail",
       params: {
-        personId: person.id,
-        personName: person.name,
-        personAvatar: person.avatar,
+        deliveryId: person.uid || person.id.toString(),
+        deliveryName: person.name,
+        deliveryAvatar: person.avatar,
       },
     });
   };
@@ -107,6 +100,15 @@ const RequestMedicine = () => {
       params: { useTora: 'true' }
     });
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView edges={["bottom"]} style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading delivery persons...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
@@ -142,8 +144,7 @@ const RequestMedicine = () => {
               filter === "available" && styles.filterTextActive,
             ]}
           >
-            Available (
-            {deliveryPersons.filter((p) => p.isAvailable).length})
+            Available ({availableCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -160,11 +161,20 @@ const RequestMedicine = () => {
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={appStyles.h2}>No delivery persons available</Text>
+            <Text style={appStyles.h2}>
+              {deliveryPersons.length === 0 
+                ? "No delivery persons registered" 
+                : "No delivery persons available"}
+            </Text>
             <Text style={[appStyles.bodyText, { marginTop: 8 }]}>
-              Please try again later
+              {deliveryPersons.length === 0 
+                ? "Check back later for available delivery persons"
+                : "Please try again later"}
             </Text>
           </View>
         }
@@ -179,6 +189,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
   },
   filterContainer: {
     flexDirection: "row",
@@ -201,7 +221,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 14,
-    fontFamily: "Poppins-Medium",
+    fontFamily: Fonts.medium,
     color: colors.gray,
   },
   filterTextActive: {
