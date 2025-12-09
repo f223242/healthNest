@@ -48,6 +48,24 @@ function InnerLayout() {
       
       try {
         const pendingUser = JSON.parse(pendingUserStr);
+        
+        // Check if pending user data is expired (older than 10 minutes)
+        if (pendingUser.createdAt) {
+          const createdAt = new Date(pendingUser.createdAt);
+          const now = new Date();
+          const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+          
+          if (diffMinutes > 10) {
+            // Expired - clear the data
+            console.log("Pending user data expired, clearing...");
+            await AsyncStorage.removeItem(PENDING_USER_KEY);
+            await AsyncStorage.removeItem("@healthnest_otp");
+            setPendingUserType("none");
+            setHasPendingUser(false);
+            return;
+          }
+        }
+        
         if (pendingUser.isPasswordReset) {
           setPendingUserType("passwordReset");
           setHasPendingUser(true);
@@ -56,6 +74,8 @@ function InnerLayout() {
           setHasPendingUser(true);
         }
       } catch {
+        // Invalid JSON - clear the data
+        await AsyncStorage.removeItem(PENDING_USER_KEY);
         setPendingUserType("none");
         setHasPendingUser(false);
       }
@@ -101,7 +121,14 @@ function InnerLayout() {
       return;
     }
 
-    // User IS logged in - redirect based on role
+    // User IS logged in - check if profile is completed (skip for admin)
+    if (role !== "admin" && !user.profileCompleted && currentScreen !== "additional-info") {
+      // Redirect to additional info screen
+      router.replace("/(protected)/additional-info");
+      return;
+    }
+
+    // User IS logged in and profile is completed - redirect based on role
     if (role === "admin" && currentGroup !== "(admin)") {
       router.replace("/(admin)/(dashboard)");
       return;

@@ -22,6 +22,7 @@ const _layout = () => {
       // headerTintColor: colors.primary,
     }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="additional-info" options={{ headerShown: false }} />
       <Stack.Screen name="select-labs" options={{headerTitle:"Select Labs"}}  />
       <Stack.Screen name="lab-services" options={{headerShown: true,headerTitle:"Lab Services"}}  />
       <Stack.Screen name="lab-booking-form" options={{headerShown: true,headerTitle:"Booking Details"}}  />
