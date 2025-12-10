@@ -123,10 +123,10 @@ const EditProfile = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={["#0891B2", "#22D3EE"]}
+        colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -311,7 +311,7 @@ export default EditProfile;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#0891B2",
+    backgroundColor: colors.primary,
   },
   headerGradient: {
     paddingTop: 50,
@@ -386,8 +386,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
   },
   optionChipSelected: {
-    backgroundColor: "#0891B2",
-    borderColor: "#0891B2",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   optionText: {
     fontFamily: Fonts.medium,

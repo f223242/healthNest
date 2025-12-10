@@ -1,15 +1,18 @@
 import { Email } from "@/assets/svg";
+import AppButton from "@/component/AppButton";
+import AuthHeader from "@/component/AuthHeader";
+import FormCard from "@/component/FormCard";
 import FormInput from "@/component/FormInput";
 import ResetPasswordModal from "@/component/ModalComponent/ResetPasswordModal";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, BackHandler, Dimensions, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { OtpInput } from "react-native-otp-entry";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -171,27 +174,48 @@ const ResetPassword = () => {
   //   router.back();
   // };
 
+  const handleBackToLogin = async () => {
+    try {
+      // Clear pending flags so layout won't redirect back to this flow
+      await AsyncStorage.removeItem("@healthnest_pending_user");
+      await AsyncStorage.removeItem("@healthnest_otp");
+      await AsyncStorage.removeItem("@healthnest_verification_complete");
+    } catch {}
+    // Replace navigation to auth/login
+    router.replace("/(auth)");
+  };
+
+  // Android hardware back to go back to login
+  useEffect(() => {
+    const onBackPress = () => {
+      handleBackToLogin();
+      return true;
+    };
+
+    if (Platform.OS !== "android") return;
+
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => {
+      if (subscription && typeof subscription.remove === "function") {
+        subscription.remove();
+      }
+    };
+  }, []);
+
   // OTP Verification Screen
   if (!otpVerified) {
     return (
       <View style={styles.mainContainer}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={[colors.primary, "#00D68F", "#00B37A"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="shield-checkmark-outline" size={36} color={colors.white} />
-            </View>
-            <Text style={styles.headerTitle}>Verify OTP</Text>
-            <Text style={styles.headerSubtitle}>Enter verification code</Text>
-          </Animated.View>
-        </LinearGradient>
+        {/* Auth Header */}
+        <AuthHeader
+          icon="shield-checkmark-outline"
+          iconSize={36}
+          title="Verify OTP"
+          subtitle="Enter verification code"
+          fadeAnim={fadeAnim}
+        />
 
         <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
           <KeyboardAwareScrollView
@@ -200,10 +224,7 @@ const ResetPassword = () => {
             showsVerticalScrollIndicator={false}
             enableOnAndroid={true}
           >
-            <Animated.View style={[styles.formCard, {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }]}>
+            <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
               <Text style={styles.otpInfoText}>
                 Enter the 6-digit code sent to{"\n"}
                 <Text style={styles.phoneHighlight}>
@@ -247,33 +268,30 @@ const ResetPassword = () => {
                   </View>
                 )}
               </View>
-            </Animated.View>
+            </FormCard>
 
             <Animated.View style={{ opacity: fadeAnim }}>
-              <TouchableOpacity
-                style={[styles.submitButton, (otpCode.length !== 6 || isVerifying) && styles.submitButtonDisabled]}
-                disabled={otpCode.length !== 6 || isVerifying}
+              <AppButton
                 onPress={handleVerifyOTP}
-                activeOpacity={0.8}
+                disabled={otpCode.length !== 6 || isVerifying}
+                containerStyle={[styles.submitButton, (otpCode.length !== 6 || isVerifying) ? styles.submitButtonDisabled : undefined]}
+                gradientColors={[colors.primary, "#00D68F"]}
               >
-                <LinearGradient
-                  colors={(otpCode.length !== 6 || isVerifying)
-                    ? ["#A8A8A8", "#888888"]
-                    : [colors.primary, "#00D68F"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.submitButtonGradient}
-                >
-                  {isVerifying && (
-                    <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-                  )}
-                  <Text style={styles.submitButtonText}>
-                    {isVerifying ? "Verifying..." : "Verify OTP"}
-                  </Text>
-                  {!isVerifying && (
+                {isVerifying ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.submitButtonText}>{'Verify OTP'}</Text>
                     <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                  )}
-                </LinearGradient>
+                  </>
+                )}
+              </AppButton>
+              {/* Back to Login */}
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleBackToLogin}
+              >
+                <Text style={styles.backButtonText}>Back to Login</Text>
               </TouchableOpacity>
             </Animated.View>
           </KeyboardAwareScrollView>
@@ -287,21 +305,14 @@ const ResetPassword = () => {
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.primary, "#00D68F", "#00B37A"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
-          <View style={styles.headerIconCircle}>
-            <Ionicons name="key-outline" size={36} color={colors.white} />
-          </View>
-          <Text style={styles.headerTitle}>Reset Password</Text>
-          <Text style={styles.headerSubtitle}>Enter your email to continue</Text>
-        </Animated.View>
-      </LinearGradient>
+      {/* Auth Header */}
+      <AuthHeader
+        icon="key-outline"
+        iconSize={36}
+        title="Reset Password"
+        subtitle="Enter your email to continue"
+        fadeAnim={fadeAnim}
+      />
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
         <KeyboardAwareScrollView
@@ -310,10 +321,7 @@ const ResetPassword = () => {
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
         >
-          <Animated.View style={[styles.formCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
+          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
             <View style={styles.successBadge}>
               <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
               <Text style={styles.successBadgeText}>OTP Verified Successfully!</Text>
@@ -336,33 +344,30 @@ const ResetPassword = () => {
                 error={touched.email && errors.email ? errors.email : undefined}
               />
             </View>
-          </Animated.View>
+          </FormCard>
 
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
-              disabled={!dirty || !isValid || isSubmitting}
+            <AppButton
               onPress={() => handleSubmit()}
-              activeOpacity={0.8}
+              disabled={!dirty || !isValid || isSubmitting}
+              containerStyle={[styles.submitButton, (!dirty || !isValid || isSubmitting) ? styles.submitButtonDisabled : undefined]}
+              gradientColors={[colors.primary, "#00D68F"]}
             >
-              <LinearGradient
-                colors={(!dirty || !isValid || isSubmitting)
-                  ? ["#A8A8A8", "#888888"]
-                  : [colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitButtonGradient}
-              >
-                {isSubmitting && (
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-                )}
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? "Sending..." : "Send Reset Link"}
-                </Text>
-                {!isSubmitting && (
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText}>{'Send Reset Link'}</Text>
                   <Ionicons name="mail" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                )}
-              </LinearGradient>
+                </>
+              )}
+            </AppButton>
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackToLogin}
+            >
+              <Text style={styles.backButtonText}>Back to Login</Text>
             </TouchableOpacity>
           </Animated.View>
         </KeyboardAwareScrollView>

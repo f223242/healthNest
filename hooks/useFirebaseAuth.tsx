@@ -25,6 +25,7 @@ const getFirebaseErrorMessage = (errorCode: string) => {
 };
 
 const USER_ROLE_KEY = "@healthnest_user_role";
+const SECURE_TOKEN_KEY = "@healthnest_secure_token";
 const PENDING_USER_KEY = "@healthnest_pending_user";
 const OTP_KEY = "@healthnest_otp";
 const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
@@ -329,6 +330,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         phoneNumber: userData.phoneNumber,
       });
       setFirebaseUser(userCredential.user);
+      // Store secure token for persistent session (kept in secure storage)
+      try {
+        const idToken = await userCredential.user.getIdToken();
+        if (idToken) {
+          try {
+            const secureStoreMod = await import('expo-secure-store');
+            await secureStoreMod.setItemAsync(SECURE_TOKEN_KEY, idToken);
+          } catch (e) {
+            console.warn('expo-secure-store not available, falling back to AsyncStorage');
+            await AsyncStorage.setItem(SECURE_TOKEN_KEY, idToken);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to store secure token:", e);
+      }
       setIsLoading(false);
 
     } catch (error: any) {
@@ -609,6 +625,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // User will provide email on the next screen for password reset
   const sendPasswordResetOTP = async (phoneNumber: string): Promise<string> => {
     try {
+      // Ensure this phone number belongs to a registered user
+      const usersQuery = query(collection(db, "users"), where("phoneNumber", "==", phoneNumber));
+      const userDocs = await getDocs(usersQuery);
+      if (userDocs.empty) {
+        const errorWithInfo = new Error("No account found with this phone number") as any;
+        errorWithInfo.text1 = "Not Found";
+        errorWithInfo.text2 = "No registered account uses this phone number.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      // Use first matching user (phone numbers should be unique)
+      const userDoc = userDocs.docs[0];
+      const userData = userDoc.data();
+
       const otp = generateOTP();
 
       // Store OTP locally for verification
@@ -616,6 +647,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
         phoneNumber: phoneNumber,
         isPasswordReset: true,
+        uid: userDoc.id,
+        email: userData.email || null,
         createdAt: new Date().toISOString(),
       }));
 
@@ -624,6 +657,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("========================================");
       console.log("🔐 PASSWORD RESET OTP:", otp);
       console.log("📱 Phone Number:", phoneNumber);
+      console.log("👤 User UID:", userDoc.id);
       console.log("⏰ Valid for 10 minutes");
       console.log("========================================");
 
@@ -631,8 +665,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error: any) {
       console.error("Send password reset OTP error:", error);
       const errorWithInfo = new Error("Failed to send OTP") as any;
-      errorWithInfo.text1 = "Error";
-      errorWithInfo.text2 = "Failed to generate OTP. Please try again.";
+      errorWithInfo.text1 = error.text1 || "Error";
+      errorWithInfo.text2 = error.text2 || "Failed to generate OTP. Please try again.";
       errorWithInfo.type = "error";
       throw errorWithInfo;
     }
@@ -755,6 +789,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       console.log("Logging out user");
       await signOut(auth);
+      // Clear secure token
+      try {
+        try {
+          const secureStoreMod = await import('expo-secure-store');
+          await secureStoreMod.deleteItemAsync(SECURE_TOKEN_KEY);
+        } catch (e) {
+          console.warn('expo-secure-store not available, falling back to AsyncStorage');
+          await AsyncStorage.removeItem(SECURE_TOKEN_KEY);
+        }
+      } catch (e) {
+        console.warn("Failed to clear secure token:", e);
+      }
       await clearLocalRole();
       // Clear pending user data to prevent redirect to reset-password
       await AsyncStorage.removeItem(PENDING_USER_KEY);

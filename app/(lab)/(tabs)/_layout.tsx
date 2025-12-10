@@ -10,7 +10,7 @@ export default function LabTabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#0891B2',
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray,
         tabBarLabelStyle: {
           fontSize: 12,

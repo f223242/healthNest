@@ -41,10 +41,10 @@ const About = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={["#0891B2", "#22D3EE"]}
+        colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -58,7 +58,7 @@ const About = () => {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <View style={styles.logoContainer}>
-              <Ionicons name="flask" size={32} color="#0891B2" />
+              <Ionicons name="flask" size={32} color={colors.primary} />
             </View>
             <Text style={styles.appName}>HealthNest</Text>
             <Text style={styles.appTagline}>Laboratory Portal</Text>
@@ -98,9 +98,9 @@ const About = () => {
               <View style={styles.featuresGrid}>
                 {features.map((feature, index) => (
                   <View key={index} style={styles.featureCard}>
-                    <View style={styles.featureIconContainer}>
-                      <Ionicons name={feature.icon as any} size={24} color="#0891B2" />
-                    </View>
+                            <View style={styles.featureIconContainer}>
+                              <Ionicons name={feature.icon as any} size={24} color={colors.primary} />
+                            </View>
                     <Text style={styles.featureTitle}>{feature.title}</Text>
                     <Text style={styles.featureDescription}>{feature.description}</Text>
                   </View>
@@ -146,7 +146,7 @@ export default About;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#0891B2",
+    backgroundColor: colors.primary,
   },
   headerGradient: {
     paddingTop: 50,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#0891B2" + "15",
+    backgroundColor: colors.primary + "15",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,

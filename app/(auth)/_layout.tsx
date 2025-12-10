@@ -7,7 +7,7 @@ const _layout = () => {
     <Stack
       screenOptions={{
         headerTitleAlign: "center",
-        headerShown: true,
+        headerShown: false,
         headerShadowVisible: false,
         headerTitleStyle: {
           fontSize: 18,

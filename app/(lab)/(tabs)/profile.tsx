@@ -87,10 +87,10 @@ const LabProfile = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={['#0891B2', '#06B6D4', '#22D3EE']}
+        colors={[colors.primary, '#00B976', '#00D68F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -115,7 +115,7 @@ const LabProfile = () => {
               />
             ) : (
               <View style={styles.headerAvatarPlaceholder}>
-                <Ionicons name="flask" size={36} color="#0891B2" />
+                <Ionicons name="flask" size={36} color={colors.primary} />
               </View>
             )}
             <View style={styles.headerProfileInfo}>
@@ -151,19 +151,19 @@ const LabProfile = () => {
               <View style={styles.quickInfoCard}>
                 {labInfo.licenseNumber && (
                   <View style={styles.quickInfoItem}>
-                    <Ionicons name="card-outline" size={18} color="#0891B2" />
+                    <Ionicons name="card-outline" size={18} color={colors.primary} />
                     <Text style={styles.quickInfoText}>License: {labInfo.licenseNumber}</Text>
                   </View>
                 )}
                 {labInfo.operatingHours && (
                   <View style={styles.quickInfoItem}>
-                    <Ionicons name="time-outline" size={18} color="#0891B2" />
+                    <Ionicons name="time-outline" size={18} color={colors.primary} />
                     <Text style={styles.quickInfoText}>{labInfo.operatingHours}</Text>
                   </View>
                 )}
                 {labInfo.servicesOffered && (
                   <View style={styles.quickInfoItem}>
-                    <Ionicons name="medical-outline" size={18} color="#0891B2" />
+                    <Ionicons name="medical-outline" size={18} color={colors.primary} />
                     <Text style={styles.quickInfoText} numberOfLines={2}>{labInfo.servicesOffered}</Text>
                   </View>
                 )}
@@ -174,7 +174,7 @@ const LabProfile = () => {
             {(labInfo.address || labInfo.city) && (
               <View style={styles.quickInfoCard}>
                 <View style={styles.quickInfoItem}>
-                  <Ionicons name="location-outline" size={18} color="#0891B2" />
+                  <Ionicons name="location-outline" size={18} color={colors.primary} />
                   <Text style={styles.quickInfoText} numberOfLines={2}>
                     {labInfo.address}{labInfo.city ? `, ${labInfo.city}` : ""}
                   </Text>
@@ -188,7 +188,7 @@ const LabProfile = () => {
               <View style={styles.sectionContent}>
 
                 <ProfileOptions
-                  leftIcon={<Ionicons name="person-outline" size={22} color="#0891B2" />}
+                  leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
                   title="Edit Profile"
                   description="Update personal details"
                   onPress={() => router.push("/(lab)/edit-profile")}
@@ -211,14 +211,14 @@ const LabProfile = () => {
               <View style={styles.sectionContent}>
 
                 <ProfileOptions
-                  leftIcon={<Ionicons name="help-circle-outline" size={22} color="#0891B2" />}
+                  leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
                   title="Help & Support"
                   description="Get assistance and support"
                   onPress={() => router.push("/(lab)/help")}
                 />
 
                 <ProfileOptions
-                  leftIcon={<Ionicons name="information-circle-outline" size={22} color="#0891B2" />}
+                  leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
                   title="About App"
                   description="App version and details"
                   onPress={() => router.push("/(lab)/about")}
@@ -253,7 +253,7 @@ export default LabProfile;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#0891B2',
+    backgroundColor: colors.primary,
   },
 
   headerGradient: {

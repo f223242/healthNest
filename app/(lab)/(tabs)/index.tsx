@@ -7,12 +7,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-  Animated,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
+    Animated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -46,10 +46,10 @@ const LabDashboard = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={['#0891B2', '#06B6D4', '#22D3EE']}
+        colors={[colors.primary, '#00B976', '#00D68F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -61,7 +61,7 @@ const LabDashboard = () => {
               <Text style={styles.nameText}>{fullName}</Text>
             </View>
             <View style={styles.headerAvatar}>
-              <Ionicons name="flask" size={28} color="#0891B2" />
+              <Ionicons name="flask" size={28} color={colors.primary} />
             </View>
           </View>
 
@@ -122,7 +122,7 @@ const LabDashboard = () => {
                 title="Total Today"
                 value="45"
                 icon="analytics"
-                color="#0891B2"
+                color={colors.primary}
                 containerStyle={styles.statCardHalf}
               />
             </View>
@@ -134,7 +134,7 @@ const LabDashboard = () => {
                 title="Test Requests"
                 subtitle="View and manage test requests"
                 icon="flask"
-                color="#0891B2"
+                color={colors.primary}
                 onPress={() => router.push("/(lab)/(tabs)/test-requests")}
               />
               <QuickActionCard
@@ -165,7 +165,7 @@ export default LabDashboard;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#0891B2',
+    backgroundColor: colors.primary,
   },
 
   headerGradient: {

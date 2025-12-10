@@ -7,16 +7,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const LAB_THEME_COLOR = '#0891B2';
+const LAB_THEME_COLOR = colors.primary;
 
 interface TestRequest {
   id: string;
@@ -112,7 +112,7 @@ const TestRequests = () => {
     switch (priority) {
       case 'Critical': return '#F44336';
       case 'Urgent': return '#FF9800';
-      case 'Normal': return '#0891B2';
+      case 'Normal': return colors.primary;
       default: return colors.gray;
     }
   };
@@ -128,7 +128,7 @@ const TestRequests = () => {
       case "Processing":
         return "#9C27B0";
       case "Report Ready":
-        return '#0891B2';
+        return colors.primary;
       case "Sent":
         return colors.gray;
       default:
@@ -167,7 +167,7 @@ const TestRequests = () => {
 
       {/* Gradient Header */}
       <LinearGradient
-        colors={[LAB_THEME_COLOR, '#06B6D4', '#22D3EE']}
+        colors={[LAB_THEME_COLOR, '#00B976', '#00D68F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -287,7 +287,7 @@ const TestRequests = () => {
                   <Ionicons
                     name={request.collectionType === "Home Sampling" ? "home" : "business"}
                     size={14}
-                    color={request.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0"}
+                    color={request.collectionType === "Home Sampling" ? colors.primary : "#9C27B0"}
                   />
                   <Text
                     style={[
@@ -295,7 +295,7 @@ const TestRequests = () => {
                       {
                         color:
                           request.collectionType === "Home Sampling"
-                            ? "#2196F3"
+                            ? colors.primary
                             : "#9C27B0",
                       },
                     ]}
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0891B2',
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,

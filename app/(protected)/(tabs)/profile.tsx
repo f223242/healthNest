@@ -92,7 +92,7 @@ const Profile = () => {
 
       {/* Gradient Header with Profile */}
       <LinearGradient
-        colors={[colors.primary, "#00D68F", "#00B37A"]}
+        colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}

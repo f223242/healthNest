@@ -140,7 +140,7 @@ const RequestMedicine = () => {
       
       {/* Premium Gradient Header */}
       <LinearGradient
-        colors={[colors.primary, "#00C853"]}
+        colors={[colors.primary, '#00B976', '#00D68F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
