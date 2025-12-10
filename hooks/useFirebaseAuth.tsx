@@ -210,16 +210,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       console.log("Auth state changed:", fbUser?.email);
-      
+
       // Skip auth handling when checking verification status
       if (skipAuthHandlingRef.current) {
         console.log("Skipping auth handling during verification check");
         return;
       }
-      
+
       if (fbUser) {
         setFirebaseUser(fbUser);
-        
+
         // Check if email is verified
         if (!fbUser.emailVerified) {
           console.log("Email not verified, not setting user state");
@@ -227,22 +227,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setIsLoading(false);;
           return;
         }
-        
+
         // First try to get role locally for faster loading
         let role = await getRoleLocally();
-        
+
         // If no local role, fetch from Firestore
         if (!role) {
           role = await getUserRole(fbUser.uid);
           await saveRoleLocally(role);
         }
-        
+
         // Fetch full user profile including profileCompleted status
         try {
           const userDocRef = doc(db, "users", fbUser.uid);
           const userDoc = await getDoc(userDocRef);
           const userData = userDoc.exists() ? userDoc.data() : {};
-          
+
           setUser({
             uid: fbUser.uid,
             email: fbUser.email || "",
@@ -253,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             lastname: userData.lastname,
             phoneNumber: userData.phoneNumber,
           });
-          
+
           console.log("User set:", fbUser.email, "Role:", role, "ProfileCompleted:", userData.profileCompleted);
         } catch (error) {
           console.error("Error fetching user profile:", error);
@@ -270,7 +270,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await clearLocalRole();
         console.log("User logged out");
       }
-      
+
       setIsLoading(false);
     });
 
@@ -281,24 +281,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (values: { email: string; password: string }) => {
     try {
       setIsLoading(true);
-      
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
-      
+
       console.log("Login successful:", userCredential.user.email);
-      
+
       // Get user data from Firestore first to check role
       const userDocRef = doc(db, "users", userCredential.user.uid);
       const userDoc = await getDoc(userDocRef);
       const userData = userDoc.exists() ? userDoc.data() : {};
-      
+
       // Check if email is verified (skip for admin users or if emailVerified is true in Firestore)
       const isAdmin = userData.role === "admin";
       const isVerifiedInFirestore = userData.emailVerified === true;
-      
+
       if (!userCredential.user.emailVerified && !isAdmin && !isVerifiedInFirestore) {
         await signOut(auth);
         setIsLoading(false);
@@ -309,14 +309,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         errorWithInfo.requiresVerification = true;
         throw errorWithInfo;
       }
-      
+
       // Get user role from Firestore
       const role = await getUserRole(userCredential.user.uid);
       await saveRoleLocally(role);
-      
+
       // Clear any pending user data (in case user is logging in after verification)
       await AsyncStorage.removeItem(PENDING_USER_KEY);
-      
+
       // Set user state with full profile data
       setUser({
         uid: userCredential.user.uid,
@@ -330,22 +330,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       setFirebaseUser(userCredential.user);
       setIsLoading(false);
-      
+
     } catch (error: any) {
       console.error("Login error:", error);
       setIsLoading(false);
-      
+
       // If it's our custom error, rethrow it
       if (error.requiresVerification) {
         throw error;
       }
-      
+
       const errorInfo = getFirebaseErrorMessage(error.code);
       const errorWithInfo = new Error(errorInfo.text2) as any;
       errorWithInfo.text1 = errorInfo.text1;
       errorWithInfo.text2 = errorInfo.text2;
       errorWithInfo.type = errorInfo.type;
-      
+
       throw errorWithInfo;
     }
   };
@@ -362,7 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }) => {
     try {
       setIsLoading(true);
-      
+
       // Check if email already exists
       const signInMethods = await fetchSignInMethodsForEmail(auth, values.email);
       if (signInMethods.length > 0) {
@@ -373,25 +373,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         errorWithInfo.type = "error";
         throw errorWithInfo;
       }
-      
+
       // Create user in Firebase Auth (required to send verification email)
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
-      
+
       console.log("User created in Auth:", userCredential.user.email);
-      
+
       // Send email verification
       const actionCodeSettings = {
         url: 'https://healthnest-812ab.firebaseapp.com',
         handleCodeInApp: false,
       };
-      
+
       await sendEmailVerification(userCredential.user, actionCodeSettings);
       console.log("Verification email sent to:", values.email);
-      
+
       // Map role from form to UserRole type
       const roleMap: { [key: string]: UserRole } = {
         "User": "user",
@@ -399,9 +399,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         "Nurse": "nurse",
         "Medicine Delivery": "delivery",
       };
-      
+
       const userRole = roleMap[values.role] || "user";
-      
+
       // Store user data in pendingUsers collection (will be moved to users after verification)
       await setDoc(doc(db, "pendingUsers", userCredential.user.uid), {
         uid: userCredential.user.uid,
@@ -414,12 +414,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         createdAt: new Date().toISOString(),
         verified: false,
       });
-      
+
       console.log("User data saved to pendingUsers collection");
-      
+
       // Sign out - they need to verify email first
       await signOut(auth);
-      
+
       // Store pending user info locally for verification flow
       await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
         email: values.email,
@@ -431,24 +431,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
       }));
-      
+
       setIsLoading(false);
       return { requiresVerification: true };
-      
+
     } catch (error: any) {
       console.error("Registration error:", error);
       setIsLoading(false);
-      
+
       if (error.text1) {
         throw error;
       }
-      
+
       const errorInfo = getFirebaseErrorMessage(error.code);
       const errorWithInfo = new Error(errorInfo.text2) as any;
       errorWithInfo.text1 = errorInfo.text1;
       errorWithInfo.text2 = errorInfo.text2;
       errorWithInfo.type = errorInfo.type;
-      
+
       throw errorWithInfo;
     }
   };
@@ -458,13 +458,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const otp = generateOTP();
       console.log("Generated OTP for", phoneNumber, ":", otp); // In production, send via SMS
-      
+
       // Store OTP locally
       await AsyncStorage.setItem(OTP_KEY, otp);
-      
+
       // In production, you would send OTP via SMS service like Twilio
       // For now, we'll just store it and show in console
-      
+
       return otp;
     } catch (error: any) {
       console.error("Send OTP error:", error);
@@ -480,14 +480,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         url: 'https://healthnest-812ab.firebaseapp.com', // Your Firebase app URL
         handleCodeInApp: false, // Set to true if handling verification in-app
       };
-      
+
       // If there's a current user, resend to them
       if (auth.currentUser) {
         await sendEmailVerification(auth.currentUser, actionCodeSettings);
         console.log("Verification email resent");
         return;
       }
-      
+
       // Try to get pending user and sign in temporarily
       const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
       if (pendingUserStr) {
@@ -502,7 +502,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log("Verification email resent to:", pendingUser.email);
         return;
       }
-      
+
       throw new Error("No user to resend verification to");
     } catch (error: any) {
       console.error("Resend verification error:", error);
@@ -522,38 +522,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log("No pending user found");
         return false;
       }
-      
+
       const pendingUser = JSON.parse(pendingUserStr);
-      
+
       // Check if this is a password reset flow (not email verification)
       if (pendingUser.isPasswordReset) {
         console.log("This is a password reset flow, not email verification");
         return false;
       }
-      
+
       // Check if password exists
       if (!pendingUser.password || !pendingUser.email) {
         console.log("Missing email or password in pending user data");
         return false;
       }
-      
+
       // Set flag to skip auth handling during this check
       skipAuthHandlingRef.current = true;
-      
+
       // Sign in to check verification status
       const userCredential = await signInWithEmailAndPassword(
         auth,
         pendingUser.email,
         pendingUser.password
       );
-      
+
       // Reload user to get latest verification status
       await userCredential.user.reload();
       const isVerified = userCredential.user.emailVerified;
-      
+
       if (isVerified) {
         console.log("Email verified! Moving user to users collection...");
-        
+
         // Move user data from pendingUsers to users collection
         await setDoc(doc(db, "users", userCredential.user.uid), {
           uid: userCredential.user.uid,
@@ -567,103 +567,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           profileCompleted: false, // Initialize profileCompleted as false
           createdAt: new Date().toISOString(),
         });
-        
+
         // Delete from pendingUsers collection
         await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
-        
+
         // Set verification complete flag BEFORE clearing pending user
         // This prevents _layout.tsx from redirecting back to otp-screen
         await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
-        
+
         // Clear pending user from AsyncStorage
         await AsyncStorage.removeItem(PENDING_USER_KEY);
-        
+
         console.log("User moved to users collection successfully");
       }
-      
+
       // Sign out - user will login manually after verification
       await signOut(auth);
-      
+
       // Reset flag after sign out
       skipAuthHandlingRef.current = false;
-      
+
       return isVerified;
-      
+
     } catch (error: any) {
       console.error("Check verification error:", error);
       // Reset flag on error too
       skipAuthHandlingRef.current = false;
-      
+
       // If it's an auth error, don't throw - just return false
       if (error.code?.startsWith("auth/")) {
         console.log("Auth error during verification check:", error.code);
         return false;
       }
-      
+
       return false;
     }
   };
 
   // Send OTP for password reset (phone-based)
+  // For development: OTP is stored locally and shown in console
+  // User will provide email on the next screen for password reset
   const sendPasswordResetOTP = async (phoneNumber: string): Promise<string> => {
     try {
-      // Find user by phone number in Firestore
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("phoneNumber", "==", phoneNumber));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        const errorWithInfo = new Error("Phone number not found") as any;
-        errorWithInfo.text1 = "Not Found";
-        errorWithInfo.text2 = "No account found with this phone number.";
-        errorWithInfo.type = "error";
-        throw errorWithInfo;
-      }
-      
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-      
       const otp = generateOTP();
-      console.log("Password Reset OTP for", phoneNumber, ":", otp);
-      
-      // Store OTP in a separate collection (more permissive rules)
-      // Use phone number as document ID for easy lookup
-      const otpDocRef = doc(db, "passwordResetOTPs", phoneNumber.replace(/\+/g, ""));
-      await setDoc(otpDocRef, {
-        otp: otp,
-        phoneNumber: phoneNumber,
-        userId: userDoc.id,
-        email: userData.email,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes expiry
-        used: false,
-      });
-      
-      // Store locally for verification
+
+      // Store OTP locally for verification
       await AsyncStorage.setItem(OTP_KEY, otp);
       await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
-        email: userData.email,
-        uid: userDoc.id,
         phoneNumber: phoneNumber,
         isPasswordReset: true,
         createdAt: new Date().toISOString(),
       }));
-      
-      // TODO: In production, send SMS via backend service (Twilio, Firebase Cloud Functions, etc.)
-      // For development, OTP is logged to console and stored in Firestore
-      // The OTP can be retrieved from Firestore or console for testing
+
+      // For development: show OTP in console
+      // In production, this would be sent via SMS (Twilio, etc.)
       console.log("========================================");
-      console.log("PASSWORD RESET OTP:", otp);
-      console.log("Phone Number:", phoneNumber);
+      console.log("🔐 PASSWORD RESET OTP:", otp);
+      console.log("📱 Phone Number:", phoneNumber);
+      console.log("⏰ Valid for 10 minutes");
       console.log("========================================");
-      
+
       return otp;
     } catch (error: any) {
       console.error("Send password reset OTP error:", error);
-      if (error.text1) throw error;
       const errorWithInfo = new Error("Failed to send OTP") as any;
       errorWithInfo.text1 = "Error";
-      errorWithInfo.text2 = "Failed to send OTP. Please try again.";
+      errorWithInfo.text2 = "Failed to generate OTP. Please try again.";
       errorWithInfo.type = "error";
       throw errorWithInfo;
     }
@@ -674,20 +643,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const storedOTP = await AsyncStorage.getItem(OTP_KEY);
       if (enteredOTP === storedOTP) {
-        console.log("Password reset OTP verified");
-        
-        // Get pending user to update Firestore
-        const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
-        if (pendingUserStr) {
-          const pendingUser = JSON.parse(pendingUserStr);
-          // Mark OTP as verified in Firestore (Cloud Function will check this)
-          const otpDocRef = doc(db, "passwordResetOTPs", pendingUser.phoneNumber.replace(/\+/g, ""));
-          await setDoc(otpDocRef, {
-            verified: true,
-            verifiedAt: new Date().toISOString(),
-          }, { merge: true });
-        }
-        
+        console.log("✅ Password reset OTP verified successfully");
         return true;
       }
       // Throw error for invalid OTP
@@ -718,32 +674,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         errorWithInfo.type = "error";
         throw errorWithInfo;
       }
-      
+
       const pendingUser = JSON.parse(pendingUserStr);
       const otp = generateOTP();
-      console.log("Resent Password Reset OTP for", pendingUser.phoneNumber, ":", otp);
-      
+
       // Store OTP locally
       await AsyncStorage.setItem(OTP_KEY, otp);
-      
-      // Store in passwordResetOTPs collection (not users collection)
-      const otpDocRef = doc(db, "passwordResetOTPs", pendingUser.phoneNumber.replace(/\+/g, ""));
-      await setDoc(otpDocRef, {
-        otp: otp,
-        phoneNumber: pendingUser.phoneNumber,
-        userId: pendingUser.uid,
-        email: pendingUser.email,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        used: false,
-      });
-      
-      // TODO: In production, send SMS via backend service
+
+      // For development: show OTP in console
       console.log("========================================");
-      console.log("RESENT PASSWORD RESET OTP:", otp);
-      console.log("Phone Number:", pendingUser.phoneNumber);
+      console.log("🔄 RESENT PASSWORD RESET OTP:", otp);
+      console.log("📱 Phone Number:", pendingUser.phoneNumber);
+      console.log("⏰ Valid for 10 minutes");
       console.log("========================================");
-      
+
       return otp;
     } catch (error: any) {
       console.error("Resend password reset OTP error:", error);
@@ -756,83 +700,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Update password after OTP verification
-  const updatePassword = async (newPassword: string): Promise<void> => {
+  // Send password reset email after OTP verification
+  // User provides email on the reset screen, and Firebase sends reset link
+  const updatePassword = async (email: string): Promise<void> => {
     try {
-      const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
-      if (!pendingUserStr) {
-        const errorWithInfo = new Error("No pending reset found") as any;
-        errorWithInfo.text1 = "Session Expired";
-        errorWithInfo.text2 = "Please start the password reset process again.";
+      if (!email) {
+        const errorWithInfo = new Error("Email required") as any;
+        errorWithInfo.text1 = "Email Required";
+        errorWithInfo.text2 = "Please enter your email address.";
         errorWithInfo.type = "error";
         throw errorWithInfo;
       }
-      
-      const pendingUser = JSON.parse(pendingUserStr);
-      const email = pendingUser.email;
-      const phoneNumber = pendingUser.phoneNumber;
-      
-      if (!email || !phoneNumber) {
-        const errorWithInfo = new Error("Required info not found") as any;
-        errorWithInfo.text1 = "Error";
-        errorWithInfo.text2 = "Required information not found. Please try again.";
-        errorWithInfo.type = "error";
-        throw errorWithInfo;
-      }
-      
-      // Try to sign in with the new password to check if it's the same as current
-      // Use skipAuthHandlingRef to prevent auth state changes
-      try {
-        skipAuthHandlingRef.current = true;
-        await signInWithEmailAndPassword(auth, email, newPassword);
-        // If login succeeds, the password is the same as the current one
-        await signOut(auth);
-        skipAuthHandlingRef.current = false;
-        
-        const errorWithInfo = new Error("Same password") as any;
-        errorWithInfo.text1 = "Same Password";
-        errorWithInfo.text2 = "New password cannot be the same as your current password. Please choose a different password.";
-        errorWithInfo.type = "error";
-        throw errorWithInfo;
-      } catch (signInError: any) {
-        skipAuthHandlingRef.current = false;
-        // If sign in fails with wrong-password, it means the new password is different (good!)
-        if (signInError.code === "auth/wrong-password" || signInError.code === "auth/invalid-credential") {
-          // Password is different, proceed with reset via Cloud Function
-          console.log("New password is different from current password - proceeding with reset");
-        } else if (signInError.text1 === "Same Password") {
-          // This is our custom error, re-throw it
-          throw signInError;
-        } else {
-          // Some other error occurred during sign in attempt
-          console.log("Sign in check error:", signInError.code);
-        }
-      }
-      
+
       // Send Firebase password reset email
-      // User will click the link in email to set new password
       await sendPasswordResetEmail(auth, email);
-      
-      // Mark OTP as used in passwordResetOTPs collection
-      const otpDocRef = doc(db, "passwordResetOTPs", phoneNumber.replace(/\+/g, ""));
-      await setDoc(otpDocRef, {
-        used: true,
-        usedAt: new Date().toISOString(),
-      }, { merge: true });
-      
+
       // Clear local storage
       await AsyncStorage.removeItem(OTP_KEY);
       await AsyncStorage.removeItem(PENDING_USER_KEY);
-      
-      console.log("Password reset email sent successfully to:", email);
+
+      console.log("✅ Password reset email sent successfully to:", email);
     } catch (error: any) {
-      // Ensure flag is reset on any error
-      skipAuthHandlingRef.current = false;
-      console.error("Update password error:", error);
-      
+      console.error("Send password reset email error:", error);
+
       if (error.text1) throw error;
-      
-      const errorWithInfo = new Error("Failed to update password") as any;
+
+      // Handle Firebase specific errors
+      if (error.code === "auth/user-not-found") {
+        const errorWithInfo = new Error("User not found") as any;
+        errorWithInfo.text1 = "Not Found";
+        errorWithInfo.text2 = "No account found with this email address.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      if (error.code === "auth/invalid-email") {
+        const errorWithInfo = new Error("Invalid email") as any;
+        errorWithInfo.text1 = "Invalid Email";
+        errorWithInfo.text2 = "Please enter a valid email address.";
+        errorWithInfo.type = "error";
+        throw errorWithInfo;
+      }
+
+      const errorWithInfo = new Error("Failed to send email") as any;
       errorWithInfo.text1 = "Error";
       errorWithInfo.text2 = "Failed to send password reset email. Please try again.";
       errorWithInfo.type = "error";
@@ -858,7 +768,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       errorWithInfo.text1 = errorInfo.text1;
       errorWithInfo.text2 = errorInfo.text2;
       errorWithInfo.type = errorInfo.type;
-      
+
       throw errorWithInfo;
     }
   };
@@ -878,7 +788,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Re-authenticate user with current password
       const { EmailAuthProvider, reauthenticateWithCredential, updatePassword: firebaseUpdatePassword } = await import("firebase/auth");
       const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-      
+
       try {
         await reauthenticateWithCredential(currentUser, credential);
       } catch (reAuthError: any) {
@@ -964,11 +874,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("saveAdditionalInfo: Saving for user:", user.uid, "role:", user.role);
 
       const userDocRef = doc(db, "users", user.uid);
-      
+
       // Check if document exists first
       const existingDoc = await getDoc(userDocRef);
       console.log("saveAdditionalInfo: Document exists:", existingDoc.exists());
-      
+
       await setDoc(userDocRef, {
         additionalInfo: info,
         profileCompleted: true,
@@ -1001,7 +911,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const usersRef = collection(db, "users");
       let q;
-      
+
       if (roleFilter && roleFilter !== "All") {
         // Map display names to actual role values
         const roleMap: { [key: string]: string } = {
@@ -1015,10 +925,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         q = query(usersRef);
       }
-      
+
       const querySnapshot = await getDocs(q);
       const users: User[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         users.push({
@@ -1032,7 +942,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           phoneNumber: data.phoneNumber,
         });
       });
-      
+
       return users;
     } catch (error: any) {
       console.error("Get all users error:", error);
@@ -1075,12 +985,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ 
-        user, 
-        firebaseUser, 
-        login, 
-        register, 
-        logout, 
+      value={{
+        user,
+        firebaseUser,
+        login,
+        register,
+        logout,
         resendVerificationEmail,
         checkEmailVerification,
         sendPasswordResetOTP,
@@ -1092,7 +1002,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         saveAdditionalInfo,
         getUserProfile,
         getAllUsers,
-        isLoading 
+        isLoading
       }}
     >
       {children}

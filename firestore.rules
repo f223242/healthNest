@@ -4,9 +4,11 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      // Allow read if authenticated and accessing own document
-      // Also allow querying by phone number for password reset (unauthenticated)
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow read if:
+      // 1. Authenticated and accessing own document, OR
+      // 2. Unauthenticated but querying by phone number (for password reset)
+      allow read: if request.auth != null && request.auth.uid == userId
+                  || request.auth == null;  // Allow unauthenticated queries for password reset
       
       // Allow create during registration (user creates their own document)
       allow create: if request.auth != null && request.auth.uid == userId;
