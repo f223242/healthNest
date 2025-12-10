@@ -5,11 +5,14 @@ import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -107,6 +110,7 @@ const appointmentsData: Appointment[] = [
 const Appointment = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<AppointmentStatus>("All");
+  const router = useRouter();
 
   const filterOptions: Array<{ label: AppointmentStatus; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
@@ -163,6 +167,23 @@ const Appointment = () => {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00B976', '#00D68F'] as const}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <SafeAreaView edges={["top"]}>
+          <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>Bookings</Text>
+            <TouchableOpacity onPress={() => router.push("/(protected)/notifications") }>
+              <Ionicons name="notifications-outline" size={20} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       {/* Search Bar */}
       <FormInput
         LeftIcon={SearchIcon}
@@ -293,6 +314,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
     paddingHorizontal: sizes.paddingHorizontal,
+  },
+  headerGradient: {
+    paddingTop: 18,
+    paddingBottom: 14,
+    paddingHorizontal: sizes.paddingHorizontal,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    marginBottom: 6,
+    marginHorizontal: -sizes.paddingHorizontal,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 6,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
   },
   searchInput: {
     marginTop: 16,

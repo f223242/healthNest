@@ -4,33 +4,42 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      // Allow read if:
-      // 1. Authenticated and accessing own document, OR
-      // 2. Unauthenticated but querying by phone number (for password reset)
-      allow read: if request.auth != null && request.auth.uid == userId
-                  || request.auth == null;  // Allow unauthenticated queries for password reset
-      
+      // Allow get (single document) if:
+      // - Authenticated owner, OR
+      // - Admin user (custom claim `admin`), OR
+      // - Unauthenticated (keep existing dev behavior for phone-based lookups)
+      allow get: if (request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true))
+                   || request.auth == null;
+
+      // Allow list for authenticated users (development convenience).
+      // NOTE: In production you should restrict this to admin users only.
+      allow list: if request.auth != null;
+
       // Allow create during registration (user creates their own document)
       allow create: if request.auth != null && request.auth.uid == userId;
-      
+
       // Allow update if authenticated and updating own document
       allow update: if request.auth != null && request.auth.uid == userId;
-      
+
       // Don't allow delete
       allow delete: if false;
     }
     
     // Pending Users collection (for unverified users)
     match /pendingUsers/{userId} {
-      // Allow create during registration
+      // Allow create during registration (owner only)
       allow create: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow read for checking verification status
-      allow read: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow delete when moving to users collection
-      allow delete: if request.auth != null && request.auth.uid == userId;
-      
+
+      // Allow get by owner or by admin users (set via custom claim `admin`)
+      allow get: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
+
+      // Allow list for authenticated users (development convenience).
+      // NOTE: In production you should restrict this to admin users only.
+      allow list: if request.auth != null;
+
+      // Allow delete by owner or admin (used when moving to `users` collection)
+      allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
+
       // No updates needed
       allow update: if false;
     }
