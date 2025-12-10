@@ -150,6 +150,24 @@ const PENDING_USER_KEY = "@healthnest_pending_user";
 const OTP_KEY = "@healthnest_otp";
 const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
+// Normalize display role names to internal stored values
+const normalizeRole = (r?: string) => {
+  if (!r) return undefined;
+  const map: { [k: string]: string } = {
+    User: "user",
+    user: "user",
+    Lab: "lab",
+    lab: "lab",
+    Nurse: "nurse",
+    nurse: "nurse",
+    "Medicine Delivery": "delivery",
+    "Medicine delivery": "delivery",
+    Delivery: "delivery",
+    delivery: "delivery",
+  };
+  return map[r] || r.toLowerCase();
+};
+
 // -------------------------------
 // Provider
 // -------------------------------
@@ -396,12 +414,43 @@ export const AuthProvider = ({ children }: any) => {
       let q;
 
       if (filter) {
-        q = query(usersRef, where("role", "==", filter));
+        const normalized = normalizeRole(filter) || filter;
+        q = query(usersRef, where("role", "==", normalized));
       } else {
         q = query(usersRef);
       }
 
       const snap = await getDocs(q);
+
+      // If a filter was used but no docs were found, try a fallback:
+      // 1) query with the raw filter string
+      // 2) if still empty, fetch all and filter client-side using case-insensitive matching
+      if (filter && snap.empty) {
+        try {
+          console.warn("getAllUsers: normalized query returned 0 results for filter:", filter);
+          // try raw filter
+          const rawQ = query(usersRef, where("role", "==", filter));
+          const rawSnap = await getDocs(rawQ);
+          if (!rawSnap.empty) {
+            return rawSnap.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
+          }
+
+          // final fallback: fetch all and filter client-side
+          console.warn("getAllUsers: trying client-side filtering fallback for filter:", filter);
+          const allSnap = await getDocs(query(usersRef));
+          const lc = (filter || "").toLowerCase();
+          const filtered = allSnap.docs
+            .map((d) => ({ uid: d.id, ...d.data() } as UserProfile))
+            .filter((u) => {
+              const role = (u.role || "").toString().toLowerCase();
+              return role === lc || role.includes(lc) || lc.includes(role);
+            });
+
+          return filtered;
+        } catch (e) {
+          console.warn("getAllUsers fallback failed:", e);
+        }
+      }
 
       return snap.docs.map(
         (d) =>
