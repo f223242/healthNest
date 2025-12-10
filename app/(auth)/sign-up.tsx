@@ -4,15 +4,15 @@ import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
@@ -118,10 +118,11 @@ export default function SignupScreen() {
       try {
         const formattedPhone = `${countryCode}${values.phoneNumber}`;
         const payload = { ...values, phoneNumber: formattedPhone };
-        await register(payload);
-
-        // Don't navigate manually - _layout.tsx will detect pending user 
-        // and automatically redirect to otp-screen
+        const res = await register(payload);
+        // After successful register, navigate to OTP verification screen so user sees verification flow
+        if (res && (res.requiresVerification || res.success !== false)) {
+          router.push("/(auth)/otp-screen");
+        }
       } catch (error: any) {
         showToast(error?.text2 || "Failed to sign up", "error");
       } finally {

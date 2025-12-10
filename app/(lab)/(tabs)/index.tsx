@@ -1,5 +1,6 @@
 import DashboardStatCard from "@/component/DashboardStatCard";
 import QuickActionCard from "@/component/QuickActionCard";
+import WelcomeHeader from "@/component/WelcomeHeader";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { LabInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,8 +12,7 @@ import {
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
-    View,
+    Text, TouchableOpacity, View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -54,37 +54,18 @@ const LabDashboard = () => {
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.welcomeText}>Welcome back,</Text>
-              <Text style={styles.nameText}>{fullName}</Text>
-            </View>
-            <View style={styles.headerAvatar}>
-              <Ionicons name="flask" size={28} color={colors.primary} />
-            </View>
-          </View>
-
-          {labInfo?.labName && (
-            <View style={styles.labBadge}>
-              <Ionicons name="business" size={14} color={colors.white} />
-              <Text style={styles.labBadgeText}>{labInfo.labName}</Text>
-            </View>
-          )}
-
-          {/* Quick Stats in Header */}
-          <View style={styles.headerStats}>
-            <View style={styles.headerStatItem}>
-              <Ionicons name="time" size={20} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.headerStatLabel}>{labInfo?.operatingHours || 'Not set'}</Text>
-            </View>
-            <View style={styles.headerStatDivider} />
-            <View style={styles.headerStatItem}>
-              <Ionicons name="home" size={20} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.headerStatLabel}>{labInfo?.homeSampling ? 'Home Sampling' : 'Lab Only'}</Text>
-            </View>
-          </View>
-        </View>
+        <WelcomeHeader
+          greeting="Welcome back,"
+          name={fullName}
+          subtitle={labInfo?.labName}
+          avatar={labInfo?.profileImage}
+          whiteText={true}
+          rightAction={
+            <TouchableOpacity onPress={() => router.push("/(protected)/notifications") }>
+              <Ionicons name="notifications-outline" size={22} color={colors.white} />
+            </TouchableOpacity>
+          }
+        />
       </LinearGradient>
 
       {/* Content Area */}
@@ -186,6 +167,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
 
   welcomeText: {
     fontSize: 14,
@@ -205,6 +191,15 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  headerNotify: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },

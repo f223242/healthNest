@@ -1,16 +1,16 @@
 import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
-import GradientHeader from "@/component/GradientHeader";
 import PremiumActionCard from "@/component/PremiumActionCard";
 import SectionHeader from "@/component/SectionHeader";
 import ServiceCard from "@/component/ServiceCard";
+import WelcomeHeader from "@/component/WelcomeHeader";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { PatientInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshControl, StatusBar, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -128,14 +128,27 @@ const index = () => {
 
       {/* Absolute Header */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, elevation: 20 }}>
-        <GradientHeader
-          userInfo={userInfo}
-          stats={serviceStats}
-          onPressNurses={handleNursingServices}
-          onPressLabs={handleLabPress}
-          onPressDelivery={handleRequestMedicine}
+        <LinearGradient
+          colors={[colors.primary, '#00D68F'] as const}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ paddingTop: 20, paddingBottom: 24, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
-        />
+        >
+          <WelcomeHeader
+            greeting="Welcome back,"
+            name={userInfo.fullName}
+            subtitle={undefined}
+            avatar={userInfo.profileImage}
+            whiteText={true}
+            rightAction={
+              <TouchableOpacity onPress={() => router.push("/(protected)/notifications")}>
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+              </TouchableOpacity>
+            }
+            showGradientBg={false}
+          />
+        </LinearGradient>
       </View>
 
       <KeyboardAwareScrollView

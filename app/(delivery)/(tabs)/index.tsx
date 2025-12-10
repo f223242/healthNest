@@ -8,12 +8,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,6 +53,11 @@ const DeliveryDashboard = () => {
           name={fullName}
           subtitle={deliveryInfo?.vehicleType}
           avatar={deliveryInfo?.profileImage}
+          rightAction={
+            <TouchableOpacity onPress={() => router.push("/(protected)/notifications")}>
+              <Ionicons name="notifications-outline" size={22} color={colors.white} />
+            </TouchableOpacity>
+          }
         />
 
       </LinearGradient>
