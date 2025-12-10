@@ -2,7 +2,7 @@ import { colors, Fonts } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -21,6 +21,7 @@ interface GradientHeaderProps {
     onPressLabs: () => void;
     onPressDelivery: () => void;
     onLayout?: (event: any) => void;
+    containerStyle?: ViewStyle;
 }
 
 const GradientHeader: React.FC<GradientHeaderProps> = ({
