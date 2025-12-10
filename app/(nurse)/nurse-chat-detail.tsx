@@ -9,7 +9,8 @@ const NurseChatDetail = () => {
   const params = useLocalSearchParams();
   const { patientName, patientAvatar, useTora } = params;
 
-  const isAI = useTora === 'true';
+  // Ensure AI is disabled for Nurse Module as per user request
+  const isAI = false;
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
@@ -31,6 +32,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
     // paddingBottom: 100 ,
-    paddingHorizontal:sizes.paddingHorizontal
+    paddingHorizontal: sizes.paddingHorizontal
   },
 });

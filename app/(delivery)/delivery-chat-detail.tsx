@@ -9,7 +9,8 @@ const DeliveryChatDetail = () => {
   const params = useLocalSearchParams();
   const { customerName, customerAvatar, useTora } = params;
 
-  const isAI = useTora === 'true';
+  // Ensure AI is disabled for Delivery Module as per user request
+  const isAI = false;
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
@@ -30,6 +31,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-   
+
   },
 });
