@@ -22,6 +22,7 @@ interface GradientHeaderProps {
     onPressDelivery: () => void;
     onLayout?: (event: any) => void;
     containerStyle?: ViewStyle;
+    onPressNotifications?: () => void;
 }
 
 const GradientHeader: React.FC<GradientHeaderProps> = ({
@@ -31,6 +32,7 @@ const GradientHeader: React.FC<GradientHeaderProps> = ({
     onPressLabs,
     onPressDelivery,
     onLayout,
+    onPressNotifications,
 }) => {
     const insets = useSafeAreaInsets();
 
@@ -47,22 +49,30 @@ const GradientHeader: React.FC<GradientHeaderProps> = ({
                     <Text style={styles.welcomeText}>Welcome back,</Text>
                     <Text style={styles.nameText}>{userInfo.firstName || userInfo.fullName}</Text>
                 </View>
-                {userInfo.profileImage ? (
-                    <View style={styles.avatarContainer}>
-                        <Image
-                            source={{ uri: userInfo.profileImage }}
-                            style={styles.welcomeAvatar}
-                        />
-                    </View>
-                ) : (
-                    <View style={styles.avatarContainer}>
-                        <View style={styles.welcomeAvatarPlaceholder}>
-                            <Text style={styles.avatarInitials}>
-                                {(userInfo.firstName || userInfo.fullName).substring(0, 2).toUpperCase()}
-                            </Text>
+                <View style={styles.rightGroup}>
+                    {userInfo.profileImage ? (
+                        <View style={styles.avatarContainer}>
+                            <Image
+                                source={{ uri: userInfo.profileImage }}
+                                style={styles.welcomeAvatar}
+                            />
                         </View>
-                    </View>
-                )}
+                    ) : (
+                        <View style={styles.avatarContainer}>
+                            <View style={styles.welcomeAvatarPlaceholder}>
+                                <Text style={styles.avatarInitials}>
+                                    {(userInfo.firstName || userInfo.fullName).substring(0, 2).toUpperCase()}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {onPressNotifications && (
+                        <TouchableOpacity style={styles.notifyButton} onPress={onPressNotifications}>
+                            <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </Animatable.View>
 
             {/* Stats in Header */}
@@ -153,6 +163,20 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontFamily: Fonts.bold,
         color: colors.white,
+    },
+    rightGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    notifyButton: {
+        marginLeft: 12,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.06)'
     },
     headerStats: {
         flexDirection: 'row',

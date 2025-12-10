@@ -35,19 +35,33 @@ service cloud.firestore {
       allow update: if false;
     }
     
-    // Password Reset OTPs collection (separate collection for security)
+    // Password Reset OTPs collection
+    // NOTE: For development we allow creation so the client can write OTP docs.
+    // Reads/updates/deletes are restricted to the authenticated owner (the user UID stored on the document).
+    // In production you should prefer a server-side callable function instead of allowing unauthenticated
+    // writes or reads to this collection.
     match /passwordResetOTPs/{docId} {
-      // Anyone can create (for password reset flow when user is not authenticated)
+      // Allow creation so the client can save generated OTPs for dev verification.
       allow create: if true;
-      
-      // Anyone can read (to verify OTP)
-      allow read: if true;
-      
-      // Anyone can update (to mark OTP as used)
-      allow update: if true;
-      
-      // Allow delete after verification
-      allow delete: if true;
+
+      // Only allow read/update/delete for authenticated users whose UID matches the OTP doc's uid.
+      allow read, update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // Public phone index: maps normalized phone -> { uid, email }
+    // Purpose: allow unauthenticated lookups by exact phone doc ID (no list queries),
+    // so clients can verify a phone belongs to an account without exposing the whole users collection.
+    match /publicPhoneIndex/{phoneId} {
+      // Allow getting a specific phone-id document from the client (unauthenticated),
+      // but disallow listing all phone index docs.
+      allow get: if true;
+      allow list: if false;
+
+      // Creation allowed only by authenticated user and must set uid equal to their auth.uid.
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+
+      // Allow update/delete only by the owning user.
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
   }
 }

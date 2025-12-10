@@ -596,4 +596,17 @@ const styles = StyleSheet.create({
     color: colors.white,
     letterSpacing: 0.5,
   },
+  backButton: {
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.white,
+  },
 });

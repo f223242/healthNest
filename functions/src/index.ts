@@ -151,3 +151,63 @@ export const sendOTPSMS = functions.https.onCall(async (data, context) => {
     message: "OTP sent successfully",
   };
 });
+
+/**
+ * Callable Cloud Function: find user by phone and generate password-reset OTP
+ * Runs with admin privileges so clients don't need read access to the users collection
+ */
+export const sendPasswordResetOTP = functions.https.onCall(async (data, context) => {
+  const { phoneNumber } = data;
+
+  if (!phoneNumber) {
+    throw new functions.https.HttpsError('invalid-argument', 'Phone number is required');
+  }
+
+  try {
+    // Normalize phone key for storage (digits-only)
+    const digitsOnly = String(phoneNumber).replace(/\D+/g, '');
+    // Query users collection for matching phoneNumber field
+    const usersSnapshot = await admin.firestore().collection('users')
+      .where('phoneNumber', '==', phoneNumber)
+      .get();
+
+    // Try digits-only fallback if no match
+    if (usersSnapshot.empty) {
+      const alt = await admin.firestore().collection('users')
+        .where('phoneNumber', '==', digitsOnly)
+        .get();
+      if (!alt.empty) {
+        usersSnapshot.docs.push(...alt.docs);
+      }
+    }
+
+    if (usersSnapshot.empty) {
+      throw new functions.https.HttpsError('not-found', 'No account found with this phone number');
+    }
+
+    const userDoc = usersSnapshot.docs[0];
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store OTP in a secure server-side collection with TTL/metadata
+    const otpDocRef = admin.firestore().collection('passwordResetOTPs').doc(digitsOnly);
+    await otpDocRef.set({
+      phoneNumber: phoneNumber,
+      uid: userDoc.id,
+      email: userDoc.data()?.email || null,
+      otp,
+      verified: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Optionally: integrate with SMS provider here (Twilio) — omitted for dev
+    console.log('🔐 PASSWORD RESET OTP (server):', otp, 'for', phoneNumber);
+
+    return { success: true, otp, uid: userDoc.id, email: userDoc.data()?.email || null };
+  } catch (error: any) {
+    console.error('sendPasswordResetOTP function error:', error);
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Failed to generate OTP');
+  }
+});

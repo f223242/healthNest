@@ -14,6 +14,7 @@ interface WelcomeHeaderProps {
   animation?: 'fadeIn' | 'fadeInDown' | 'slideInDown';
   showGradientBg?: boolean;
   whiteText?: boolean;
+  rightAction?: React.ReactNode;
 }
 
 const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
@@ -25,6 +26,7 @@ const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   animation = 'fadeInDown',
   showGradientBg = false,
   whiteText = false,
+  rightAction,
 }) => {
   const getInitials = (fullName: string) => {
     const names = fullName.split(' ');
@@ -64,6 +66,9 @@ const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
             <Text style={styles.initials}>{getInitials(name)}</Text>
           </LinearGradient>
         )}
+      </View>
+      <View style={styles.rightContainer}>
+        {rightAction && <View style={styles.rightActionWrap}>{rightAction}</View>}
       </View>
     </Animatable.View>
   );
@@ -166,6 +171,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: Fonts.bold,
     color: colors.white,
+  },
+  rightContainer: {
+    marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightActionWrap: {
+    marginLeft: 8,
   },
 });
 

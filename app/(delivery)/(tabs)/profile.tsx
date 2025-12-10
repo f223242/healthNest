@@ -192,6 +192,12 @@ const DeliveryProfile = () => {
                   onPress={() => router.push('/(delivery)/edit-profile')}
                 />
                 <ProfileOptions
+                  leftIcon={<Ionicons name="document-text-outline" size={22} color={colors.primary} />}
+                  title="Additional Info"
+                  description="View or update extra profile details"
+                  onPress={() => router.push('/(protected)/additional-info')}
+                />
+                <ProfileOptions
                   leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
                   title="Delete Account"
                   description="Permanently remove your account"

@@ -161,6 +161,12 @@ const Profile = () => {
                 onPress={() => router.push("/(protected)/edit-profile")}
               />
               <ProfileOptions
+                leftIcon={<Ionicons name="document-text-outline" size={22} color={colors.primary} />}
+                title="Additional Info"
+                description="View or update extra profile details"
+                onPress={() => router.push("/(protected)/additional-info")}
+              />
+              <ProfileOptions
                 leftIcon={<Ionicons name="lock-closed-outline" size={22} color={colors.primary} />}
                 title="Change Password"
                 description="Update your account password"
