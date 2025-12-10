@@ -5,130 +5,132 @@ import FormInput from "@/component/FormInput";
 import LabCard from "@/component/LabCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { LabInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type FilterType = "All" | "Nearby" | "Rated" | "Popular";
+type FilterType = "All" | "Home Sampling" | "Rated" | "Popular";
 
-const labsData = [
-  {
-    id: 1,
-    name: "LabCorp",
-    description: "Comprehensive lab testing services",
-    image: require("@/assets/png/labcorp.png"),
-    rating: 4.5,
-    reviews: 120,
-    distance: "2.3 km",
-    openTime: "8:00 AM - 8:00 PM",
-    testsAvailable: 250,
-    accredited: true,
-    homeCollection: true,
-  },
-  {
-    id: 2,
-    name: "Quest Diagnostics",
-    description: "Advanced diagnostic testing services",
-    image: require("@/assets/png/quest.png"),
-    rating: 4.2,
-    reviews: 98,
-    distance: "3.5 km",
-    openTime: "7:00 AM - 6:00 PM",
-    testsAvailable: 180,
-    accredited: true,
-    homeCollection: false,
-  },
-  {
-    id: 3,
-    name: "BioReference Laboratories",
-    description: "Comprehensive diagnostic testing services",
-    image: require("@/assets/png/labcorp.png"),
-    rating: 4.0,
-    reviews: 75,
-    distance: "5.1 km",
-    openTime: "9:00 AM - 5:00 PM",
-    testsAvailable: 150,
-    accredited: false,
-    homeCollection: true,
-  },
-  {
-    id: 4,
-    name: "Mayo Clinic Laboratories",
-    description: "Leading provider of clinical laboratory services",
-    image: require("@/assets/png/quest.png"),
-    rating: 4.7,
-    reviews: 150,
-    distance: "1.8 km",
-    openTime: "6:00 AM - 9:00 PM",
-    testsAvailable: 320,
-    accredited: true,
-    homeCollection: true,
-  },
-  {
-    id: 5,
-    name: "Cleveland Clinic Labs",
-    description: "Trusted laboratory testing and diagnostics",
-    image: require("@/assets/png/labcorp.png"),
-    rating: 4.6,
-    reviews: 88,
-    distance: "4.2 km",
-    openTime: "8:00 AM - 7:00 PM",
-    testsAvailable: 200,
-    accredited: true,
-    homeCollection: false,
-  },
-  {
-    id: 6,
-    name: "Johns Hopkins Labs",
-    description: "Expert diagnostic laboratory services",
-    image: require("@/assets/png/quest.png"),
-    rating: 4.8,
-    reviews: 200,
-    distance: "2.9 km",
-    openTime: "24 Hours",
-    testsAvailable: 280,
-    accredited: true,
-    homeCollection: true,
-  },
-];
+// Lab data structure for cards
+interface LabCardData {
+  id: string;
+  name: string;
+  description: string;
+  image: any;
+  rating: number;
+  reviews: number;
+  distance: string;
+  openTime: string;
+  testsAvailable: number;
+  accredited: boolean;
+  homeCollection: boolean;
+  city: string;
+  servicesOffered: string;
+}
 
 const SelectLabs = () => {
   const router = useRouter();
+  const { getAllUsers } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLab, setSelectedLab] = useState<number | null>(null);
+  const [selectedLab, setSelectedLab] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("All");
+  const [labs, setLabs] = useState<LabCardData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const filterOptions: Array<{ label: FilterType; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
-    { label: "Nearby", icon: "location" },
+    { label: "Home Sampling", icon: "home" },
     { label: "Rated", icon: "star" },
     { label: "Popular", icon: "trending-up" },
   ];
 
-  const filteredLabs = labsData
-    .filter((lab) => lab.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((lab) => {
-      if (selectedFilter === "Nearby") return parseFloat(lab.distance) < 3;
-      if (selectedFilter === "Rated") return lab.rating >= 4.5;
-      if (selectedFilter === "Popular") return lab.reviews > 100;
-      return true;
-    })
-    .sort((a, b) => {
-      if (selectedFilter === "Nearby") return parseFloat(a.distance) - parseFloat(b.distance);
-      if (selectedFilter === "Rated") return b.rating - a.rating;
-      if (selectedFilter === "Popular") return b.reviews - a.reviews;
-      return 0;
-    });
+  // Fetch labs from Firebase
+  const fetchLabs = useCallback(async () => {
+    try {
+      const users = await getAllUsers("Lab");
+      const labsData: LabCardData[] = users
+        .filter((user: User) => user.profileCompleted && user.additionalInfo)
+        .map((user: User) => {
+          const info = user.additionalInfo as LabInfo;
+          const labName = info.labName || `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Lab";
+          
+          return {
+            id: user.uid,
+            name: labName,
+            description: info.servicesOffered || "Comprehensive lab testing services",
+            image: info.profileImage ? { uri: info.profileImage } : require("@/assets/png/labcorp.png"),
+            rating: 4.0 + Math.random() * 0.9, // Random rating 4.0-4.9
+            reviews: Math.floor(Math.random() * 150) + 50, // Random reviews
+            distance: info.city || "N/A",
+            openTime: info.operatingHours || "8:00 AM - 8:00 PM",
+            testsAvailable: Math.floor(Math.random() * 200) + 100,
+            accredited: !!info.licenseNumber,
+            homeCollection: info.homeSampling || false,
+            city: info.city || "",
+            servicesOffered: info.servicesOffered || "",
+          };
+        });
+      
+      setLabs(labsData);
+    } catch (error) {
+      console.error("Error fetching labs:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [getAllUsers]);
+
+  useEffect(() => {
+    fetchLabs();
+  }, [fetchLabs]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchLabs();
+  }, [fetchLabs]);
+
+  // Filter labs
+  const filteredLabs = useMemo(() => {
+    return labs
+      .filter((lab) => 
+        lab.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lab.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lab.city.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .filter((lab) => {
+        if (selectedFilter === "Home Sampling") return lab.homeCollection;
+        if (selectedFilter === "Rated") return lab.rating >= 4.5;
+        if (selectedFilter === "Popular") return lab.reviews > 100;
+        return true;
+      })
+      .sort((a, b) => {
+        if (selectedFilter === "Rated") return b.rating - a.rating;
+        if (selectedFilter === "Popular") return b.reviews - a.reviews;
+        return 0;
+      });
+  }, [labs, searchQuery, selectedFilter]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const total = labs.length;
+    const accredited = labs.filter((l) => l.accredited).length;
+    const homeService = labs.filter((l) => l.homeCollection).length;
+    return { total, accredited, homeService };
+  }, [labs]);
 
   const handleContinue = () => {
-    const lab = labsData.find((l) => l.id === selectedLab);
+    const lab = labs.find((l) => l.id === selectedLab);
     if (lab) {
       router.push({
         pathname: "/(protected)/lab-services",
@@ -140,6 +142,15 @@ const SelectLabs = () => {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView edges={["bottom"]} style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading labs...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
@@ -158,19 +169,19 @@ const SelectLabs = () => {
 
         <StatCard
           icon="flask"
-          value={labsData.length}
+          value={stats.total}
           label="Labs"
           color={colors.primary}
         />
         <StatCard
           icon="checkmark-circle"
-          value={labsData.filter((l) => l.accredited).length}
+          value={stats.accredited}
           label="Accredited"
           color={colors.success}
         />
         <StatCard
           icon="home"
-          value={labsData.filter((l) => l.homeCollection).length}
+          value={stats.homeService}
           label="Home Service"
           color="#FF9800"
         />
@@ -217,26 +228,41 @@ const SelectLabs = () => {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          }
         >
-          <View style={styles.labsGrid}>
-            {filteredLabs.map((lab) => (
-              <LabCard
-                key={lab.id}
-                name={lab.name}
-                description={lab.description}
-                image={lab.image}
-                rating={lab.rating}
-                review={`${lab.reviews}+`}
-                distance={lab.distance}
-                openTime={lab.openTime}
-                testsAvailable={lab.testsAvailable}
-                accredited={lab.accredited}
-                homeCollection={lab.homeCollection}
-                isSelected={selectedLab === lab.id}
-                onPress={() => setSelectedLab(lab.id)}
-              />
-            ))}
-          </View>
+          {filteredLabs.length > 0 ? (
+            <View style={styles.labsGrid}>
+              {filteredLabs.map((lab) => (
+                <LabCard
+                  key={lab.id}
+                  name={lab.name}
+                  description={lab.description}
+                  image={lab.image}
+                  rating={parseFloat(lab.rating.toFixed(1))}
+                  review={`${lab.reviews}+`}
+                  distance={lab.distance}
+                  openTime={lab.openTime}
+                  testsAvailable={lab.testsAvailable}
+                  accredited={lab.accredited}
+                  homeCollection={lab.homeCollection}
+                  isSelected={selectedLab === lab.id}
+                  onPress={() => setSelectedLab(lab.id)}
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="flask" size={64} color={colors.gray} />
+              <Text style={styles.emptyTitle}>No Labs Found</Text>
+              <Text style={styles.emptyText}>
+                {labs.length === 0 
+                  ? "No labs are registered yet" 
+                  : "Try adjusting your search or filters"}
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </View>
 
@@ -260,7 +286,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
     paddingHorizontal: sizes.paddingHorizontal,
-
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
   },
   header: {
     flexDirection: "row",
@@ -327,6 +362,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    textAlign: "center",
   },
   bottomContainer: {
     paddingHorizontal: sizes.paddingHorizontal,

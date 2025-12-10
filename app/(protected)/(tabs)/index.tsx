@@ -1,54 +1,71 @@
 import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
-import LabCard from "@/component/LabCard";
 import ServiceCard from "@/component/ServiceCard";
-import StatCard from "@/component/StatCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { PatientInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const data = [
-  {
-    id: 1,
-    name: "LabCorp",
-    description: "Comprehensive lab testing services",
-    image: require("@/assets/png/labcorp.png"),
-    rating: 4.5,
-    review: "120 + reviews",
-  },
-  {
-    id: 2,
-    name: "Quest Diagnostics",
-    description: "Advanced diagnostic testing services",
-    image: require("@/assets/png/quest.png"),
-    rating: 4.2,
-    review: "98 reviews",
-  },
-  {
-    id: 3,
-    name: "BioReference Laboratories",
-    description: "Comprehensive diagnostic testing services",
-    image: require("@/assets/png/labcorp.png"),
-    rating: 4.0,
-    review: "75 reviews",
-  },
-  {
-    id: 4,
-    name: "Mayo Clinic Laboratories",
-    description: "Leading provider of clinical laboratory services",
-    image: require("@/assets/png/labcorp.png"),
-    rating: 4.7,
-    review: "150 reviews",
-  },
-];
-
 const index = () => {
   const router = useRouter();
+  const { user, getAllUsers } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
+  const [serviceStats, setServiceStats] = useState({
+    nurses: 0,
+    labs: 0,
+    delivery: 0,
+  });
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Extract user info
+  const userInfo = useMemo(() => {
+    const additionalInfo = user?.additionalInfo as PatientInfo | undefined;
+    const firstName = user?.firstname || "";
+    const lastName = user?.lastname || "";
+    const fullName = `${firstName} ${lastName}`.trim() || "User";
+    const profileImage = additionalInfo?.profileImage || null;
+    
+    return {
+      fullName,
+      firstName,
+      profileImage,
+    };
+  }, [user]);
+
+  // Fetch service provider counts
+  const fetchServiceStats = useCallback(async () => {
+    try {
+      const [nurses, labs, delivery] = await Promise.all([
+        getAllUsers("Nurse"),
+        getAllUsers("Lab"),
+        getAllUsers("Medicine Delivery"),
+      ]);
+      
+      setServiceStats({
+        nurses: nurses.filter(u => u.profileCompleted).length,
+        labs: labs.filter(u => u.profileCompleted).length,
+        delivery: delivery.filter(u => u.profileCompleted).length,
+      });
+    } catch (error) {
+      console.error("Error fetching service stats:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [getAllUsers]);
+
+  useEffect(() => {
+    fetchServiceStats();
+  }, [fetchServiceStats]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchServiceStats();
+  }, [fetchServiceStats]);
 
   const handleLabPress = () => {
     router.push("/(protected)/select-labs");
@@ -101,12 +118,6 @@ const index = () => {
     },
   ];
 
-  const stats = [
-    { label: "Active Tests", value: "3", color: colors.primary, icon: "flask" as const },
-    { label: "Appointments", value: "2", color: "#FF9800", icon: "calendar" as const },
-    { label: "Reports Ready", value: "5", color: "#4CAF50", icon: "document-text" as const },
-  ];
-
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
       <KeyboardAwareScrollView
@@ -114,7 +125,33 @@ const index = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       >
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <View style={styles.welcomeContent}>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.nameText}>{userInfo.firstName || userInfo.fullName}</Text>
+          </View>
+          {userInfo.profileImage ? (
+            <Image
+              source={{ uri: userInfo.profileImage }}
+              style={styles.welcomeAvatar}
+            />
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.welcomeAvatarPlaceholder}
+            >
+              <Ionicons name="person" size={24} color={colors.white} />
+            </LinearGradient>
+          )}
+        </View>
+
         {/* Search Bar */}
         <FormInput
           LeftIcon={SearchIcon}
@@ -124,18 +161,32 @@ const index = () => {
           onChangeText={setSearchQuery}
         />
 
-
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          {stats.map((stat, index) => (
-            <StatCard
-              key={index}
-              label={stat.label}
-              value={stat.value}
-              color={stat.color}
-              icon={stat.icon}
-            />
-          ))}
+        {/* Service Stats Cards */}
+        <View style={styles.quickInfoContainer}>
+          <TouchableOpacity 
+            style={[styles.quickInfoCard, { backgroundColor: "#F3E8FF" }]}
+            onPress={handleNursingServices}
+          >
+            <Ionicons name="people" size={20} color="#9C27B0" />
+            <Text style={[styles.quickInfoValue, { color: "#9C27B0" }]}>{serviceStats.nurses}</Text>
+            <Text style={styles.quickInfoLabel}>Nurses</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.quickInfoCard, { backgroundColor: "#E8F5F0" }]}
+            onPress={handleLabPress}
+          >
+            <Ionicons name="flask" size={20} color={colors.primary} />
+            <Text style={[styles.quickInfoValue, { color: colors.primary }]}>{serviceStats.labs}</Text>
+            <Text style={styles.quickInfoLabel}>Labs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.quickInfoCard, { backgroundColor: "#FFF4E6" }]}
+            onPress={handleRequestMedicine}
+          >
+            <Ionicons name="bicycle" size={20} color="#FF9800" />
+            <Text style={[styles.quickInfoValue, { color: "#FF9800" }]}>{serviceStats.delivery}</Text>
+            <Text style={styles.quickInfoLabel}>Delivery</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Services Grid */}
@@ -159,28 +210,54 @@ const index = () => {
           ))}
         </View>
 
-        {/* Associated Labs */}
+        {/* Quick Actions */}
         <View style={styles.sectionHeader}>
-          <Text style={appStyles.h3}>Top Rated Labs</Text>
-          <TouchableOpacity onPress={handleLabPress}>
-            <Text style={appStyles.linkText}>View All</Text>
-          </TouchableOpacity>
+          <Text style={appStyles.h3}>Quick Actions</Text>
         </View>
 
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <LabCard {...item} onPress={handleLabPress} />
-          )}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.flatListContent}
-          style={styles.flatList}
-          snapToInterval={sizes.width - sizes.paddingHorizontal * 2}
-          decelerationRate="fast"
-          pagingEnabled={false}
-        />
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity 
+            style={styles.quickActionCard}
+            onPress={() => router.push("/(protected)/edit-profile")}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + "15" }]}>
+              <Ionicons name="person" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.quickActionContent}>
+              <Text style={styles.quickActionTitle}>Edit Profile</Text>
+              <Text style={styles.quickActionSubtitle}>Update your information</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.quickActionCard}
+            onPress={() => router.push("/(protected)/(tabs)/madical-record")}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: "#4CAF50" + "15" }]}>
+              <Ionicons name="document-text" size={22} color="#4CAF50" />
+            </View>
+            <View style={styles.quickActionContent}>
+              <Text style={styles.quickActionTitle}>Medical Records</Text>
+              <Text style={styles.quickActionSubtitle}>View your health history</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.quickActionCard}
+            onPress={() => router.push("/(protected)/(tabs)/appointment")}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: "#FF9800" + "15" }]}>
+              <Ionicons name="calendar" size={22} color="#FF9800" />
+            </View>
+            <View style={styles.quickActionContent}>
+              <Text style={styles.quickActionTitle}>Appointments</Text>
+              <Text style={styles.quickActionSubtitle}>Manage your bookings</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
+          </TouchableOpacity>
+        </View>
 
         {/* Health Tips Banner */}
         <View style={styles.tipsBanner}>
@@ -212,17 +289,68 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 120,
   },
+  welcomeSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: sizes.paddingHorizontal,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  welcomeContent: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  nameText: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+    marginTop: 4,
+  },
+  welcomeAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  welcomeAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   searchInput: {
     marginHorizontal: sizes.paddingHorizontal,
-    marginTop: 16,
     marginBottom: 20,
   },
-  statsContainer: {
+  quickInfoContainer: {
     flexDirection: "row",
     gap: 12,
     paddingHorizontal: sizes.paddingHorizontal,
     marginBottom: 24,
-    marginTop: 8,
+  },
+  quickInfoCard: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    borderRadius: 16,
+    gap: 6,
+  },
+  quickInfoValue: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+  },
+  quickInfoLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -238,14 +366,44 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
-  flatList: {
-    flexGrow: 0,
-    flexShrink: 0,
-    marginBottom: 24,
-  },
-  flatListContent: {
+  quickActionsContainer: {
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 4,
+    marginBottom: 24,
+    gap: 12,
+  },
+  quickActionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  quickActionContent: {
+    flex: 1,
+  },
+  quickActionTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: colors.text,
+  },
+  quickActionSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginTop: 2,
   },
   tipsBanner: {
     flexDirection: "row",

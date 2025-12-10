@@ -2,14 +2,14 @@ import { auth, db } from "@/config/firebase";
 import { firebaseMessages } from "@/constant/messages";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  createUserWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
-  User as FirebaseUser,
-  onAuthStateChanged,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut
+    createUserWithEmailAndPassword,
+    fetchSignInMethodsForEmail,
+    User as FirebaseUser,
+    onAuthStateChanged,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+    signOut
 } from "firebase/auth";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -135,6 +135,7 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   saveAdditionalInfo: (info: AdditionalInfo) => Promise<void>;
   getUserProfile: () => Promise<User | null>;
+  getAllUsers: (roleFilter?: string) => Promise<User[]>;
   isLoading: boolean;
 }
 
@@ -898,6 +899,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Get all users from Firestore (for admin)
+  const getAllUsers = async (roleFilter?: string): Promise<User[]> => {
+    try {
+      const usersRef = collection(db, "users");
+      let q;
+      
+      if (roleFilter && roleFilter !== "All") {
+        // Map display names to actual role values
+        const roleMap: { [key: string]: string } = {
+          "User": "user",
+          "Lab": "lab",
+          "Nurse": "nurse",
+          "Medicine Delivery": "delivery",
+        };
+        const actualRole = roleMap[roleFilter] || roleFilter.toLowerCase();
+        q = query(usersRef, where("role", "==", actualRole));
+      } else {
+        q = query(usersRef);
+      }
+      
+      const querySnapshot = await getDocs(q);
+      const users: User[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          uid: doc.id,
+          email: data.email || "",
+          role: data.role || "user",
+          profileCompleted: data.profileCompleted || false,
+          additionalInfo: data.additionalInfo,
+          firstname: data.firstname,
+          lastname: data.lastname,
+          phoneNumber: data.phoneNumber,
+        });
+      });
+      
+      return users;
+    } catch (error: any) {
+      console.error("Get all users error:", error);
+      return [];
+    }
+  };
+
   // Get full user profile from Firestore
   const getUserProfile = async (): Promise<User | null> => {
     try {
@@ -947,6 +992,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updatePassword,
         saveAdditionalInfo,
         getUserProfile,
+        getAllUsers,
         isLoading 
       }}
     >

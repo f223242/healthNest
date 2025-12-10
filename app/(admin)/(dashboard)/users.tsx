@@ -1,9 +1,12 @@
 import AdminTable, { TableColumn } from "@/component/admin/AdminTable";
 import FormInput from "@/component/FormInput";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -12,8 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface User {
-  id: number;
+interface DisplayUser {
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -23,142 +26,63 @@ interface User {
 }
 
 const UsersManagement = () => {
+  const { getAllUsers } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"All" | "User" | "Lab" | "Nurse" | "Medicine Delivery">("All");
+  const [users, setUsers] = useState<DisplayUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Sample data with different user types
-  const allUsers: User[] = [
-    // Regular Users
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@example.com",
-      phone: "+92 300 1234567",
-      type: "User",
-      location: "Karachi, Pakistan",
-      registeredDate: "Nov 15, 2025",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      phone: "+92 301 2345678",
-      type: "User",
-      location: "Lahore, Pakistan",
-      registeredDate: "Nov 18, 2025",
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      email: "michael.c@example.com",
-      phone: "+92 302 3456789",
-      type: "User",
-      location: "Islamabad, Pakistan",
-      registeredDate: "Nov 20, 2025",
-    },
-    {
-      id: 4,
-      name: "Emma Wilson",
-      email: "emma.w@example.com",
-      phone: "+92 303 4567890",
-      type: "User",
-      location: "Multan, Pakistan",
-      registeredDate: "Nov 22, 2025",
-    },
-    // Labs
-    {
-      id: 5,
-      name: "Chughtai Lab",
-      email: "contact@chughtai.com",
-      phone: "+92 304 5678901",
-      type: "Lab",
-      location: "Gulberg, Lahore",
-      registeredDate: "Oct 25, 2025",
-    },
-    {
-      id: 6,
-      name: "IDC Diagnostic Center",
-      email: "info@idc.com",
-      phone: "+92 305 6789012",
-      type: "Lab",
-      location: "Clifton, Karachi",
-      registeredDate: "Nov 5, 2025",
-    },
-    {
-      id: 7,
-      name: "Excel Labs",
-      email: "excel@labs.com",
-      phone: "+92 306 7890123",
-      type: "Lab",
-      location: "F-8, Islamabad",
-      registeredDate: "Nov 10, 2025",
-    },
-    // Nurses
-    {
-      id: 8,
-      name: "Emily Williams",
-      email: "emily.w@nurse.com",
-      phone: "+92 307 8901234",
-      type: "Nurse",
-      location: "DHA, Karachi",
-      registeredDate: "Oct 30, 2025",
-    },
-    {
-      id: 9,
-      name: "Fatima Khan",
-      email: "fatima.k@nurse.com",
-      phone: "+92 308 9012345",
-      type: "Nurse",
-      location: "Model Town, Lahore",
-      registeredDate: "Nov 8, 2025",
-    },
-    {
-      id: 10,
-      name: "Ayesha Ahmed",
-      email: "ayesha.a@nurse.com",
-      phone: "+92 309 0123456",
-      type: "Nurse",
-      location: "G-11, Islamabad",
-      registeredDate: "Nov 12, 2025",
-    },
-    // Medicine Delivery Persons
-    {
-      id: 11,
-      name: "Ali Hassan",
-      email: "ali.h@delivery.com",
-      phone: "+92 310 1234567",
-      type: "Medicine Delivery",
-      location: "Saddar, Karachi",
-      registeredDate: "Nov 1, 2025",
-    },
-    {
-      id: 12,
-      name: "Usman Malik",
-      email: "usman.m@delivery.com",
-      phone: "+92 311 2345678",
-      type: "Medicine Delivery",
-      location: "Johar Town, Lahore",
-      registeredDate: "Oct 28, 2025",
-    },
-    {
-      id: 13,
-      name: "Bilal Ahmed",
-      email: "bilal.a@delivery.com",
-      phone: "+92 312 3456789",
-      type: "Medicine Delivery",
-      location: "Blue Area, Islamabad",
-      registeredDate: "Nov 14, 2025",
-    },
-    {
-      id: 14,
-      name: "Zain Abbas",
-      email: "zain.a@delivery.com",
-      phone: "+92 313 4567890",
-      type: "Medicine Delivery",
-      location: "Bahadurabad, Karachi",
-      registeredDate: "Nov 17, 2025",
-    },
-  ];
+  // Map role to display type
+  const mapRoleToType = (role: string): "User" | "Lab" | "Nurse" | "Medicine Delivery" => {
+    switch (role) {
+      case "lab": return "Lab";
+      case "nurse": return "Nurse";
+      case "delivery": return "Medicine Delivery";
+      default: return "User";
+    }
+  };
+
+  // Fetch users from Firestore
+  const fetchUsers = useCallback(async () => {
+    try {
+      const firestoreUsers = await getAllUsers();
+      const displayUsers: DisplayUser[] = firestoreUsers.map((u: User) => {
+        // Get location from additionalInfo
+        let location = "";
+        if (u.additionalInfo) {
+          const info = u.additionalInfo as any;
+          if (info.city) location = info.city;
+          if (info.address) location = info.address;
+        }
+
+        return {
+          id: u.uid,
+          name: `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Unknown",
+          email: u.email || "",
+          phone: u.phoneNumber || "",
+          type: mapRoleToType(u.role),
+          location: location || "-",
+          registeredDate: "-", // We can add createdAt field to users if needed
+        };
+      });
+      setUsers(displayUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [getAllUsers]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const onRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -176,11 +100,6 @@ const UsersManagement = () => {
   };
 
   const columns: TableColumn[] = [
-    {
-      key: "id",
-      title: "ID",
-      width: 60,
-    },
     {
       key: "name",
       title: "Name",
@@ -221,14 +140,9 @@ const UsersManagement = () => {
         <Text style={styles.cellText}>{value || "-"}</Text>
       ),
     },
-    {
-      key: "registeredDate",
-      title: "Registered Date",
-      width: 180,
-    },
   ];
 
-  const filteredUsers = allUsers.filter((user) => {
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -241,36 +155,54 @@ const UsersManagement = () => {
   const stats = [
     {
       label: "Total Users",
-      value: allUsers.length,
+      value: users.length,
       color: colors.primary,
     },
     {
       label: "Regular Users",
-      value: allUsers.filter((u) => u.type === "User").length,
+      value: users.filter((u) => u.type === "User").length,
       color: colors.primary,
     },
     {
       label: "Labs",
-      value: allUsers.filter((u) => u.type === "Lab").length,
+      value: users.filter((u) => u.type === "Lab").length,
       color: "#2196F3",
     },
     {
       label: "Nurses",
-      value: allUsers.filter((u) => u.type === "Nurse").length,
+      value: users.filter((u) => u.type === "Nurse").length,
       color: "#9C27B0",
     },
     {
       label: "Delivery Persons",
-      value: allUsers.filter((u) => u.type === "Medicine Delivery").length,
+      value: users.filter((u) => u.type === "Medicine Delivery").length,
       color: "#FF5722",
     },
   ];
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={["bottom"]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading users...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+          />
+        }
       >
         {/* Stats */}
         <View style={styles.statsContainer}>
@@ -327,7 +259,7 @@ const UsersManagement = () => {
 
         {/* Users Table */}
         <View style={styles.tableSection}>
-          <Text style={styles.tableTitle}>All Registered Users</Text>
+          <Text style={styles.tableTitle}>All Registered Users ({filteredUsers.length})</Text>
           <AdminTable
             columns={columns}
             data={filteredUsers}
@@ -351,6 +283,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 20,
     paddingBottom: 100,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
   },
   statsContainer: {
     flexDirection: "row",

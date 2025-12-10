@@ -4,10 +4,13 @@ import FormInput from "@/component/FormInput";
 import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { NurseInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -18,85 +21,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type ServiceType = "All" | "Elderly Care" | "Child Care" | "Patient Care" | "Post-Surgery";
 
-const nursesData = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    specialization: "Elderly Care Specialist",
-    image: "https://img.freepik.com/free-photo/portrait-smiling-female-doctor_23-2148316706.jpg",
-    rating: 4.8,
-    reviewCount: 127,
-    experience: "8+ years",
-    availability: "Available" as const,
-    serviceType: ["Elderly Care", "Patient Care", "Post-Surgery"],
-    hourlyRate: "$25",
-  },
-  {
-    id: "2",
-    name: "Emily Williams",
-    specialization: "Pediatric Nurse",
-    image: "https://img.freepik.com/free-photo/beautiful-young-female-doctor-looking-camera-office_1301-7807.jpg",
-    rating: 4.9,
-    reviewCount: 203,
-    experience: "6+ years",
-    availability: "Available" as const,
-    serviceType: ["Child Care", "Patient Care"],
-    hourlyRate: "$28",
-  },
-  {
-    id: "3",
-    name: "Michael Chen",
-    specialization: "Critical Care Nurse",
-    image: "https://img.freepik.com/free-photo/pleased-young-female-doctor-wearing-medical-robe-stethoscope-around-neck-standing-with-closed-posture_409827-254.jpg",
-    rating: 4.7,
-    reviewCount: 156,
-    experience: "10+ years",
-    availability: "Busy" as const,
-    serviceType: ["Patient Care", "Post-Surgery", "Elderly Care"],
-    hourlyRate: "$32",
-  },
-  {
-    id: "4",
-    name: "Jennifer Martinez",
-    specialization: "Home Care Specialist",
-    image: "https://img.freepik.com/free-photo/woman-doctor-wearing-lab-coat-with-stethoscope-isolated_1303-29791.jpg",
-    rating: 4.6,
-    reviewCount: 98,
-    experience: "5+ years",
-    availability: "Available" as const,
-    serviceType: ["Elderly Care", "Patient Care"],
-    hourlyRate: "$24",
-  },
-  {
-    id: "5",
-    name: "David Thompson",
-    specialization: "Post-Operative Care",
-    image: "https://img.freepik.com/free-photo/front-view-male-nurse-special-uniform_23-2148913848.jpg",
-    rating: 4.9,
-    reviewCount: 187,
-    experience: "12+ years",
-    availability: "Offline" as const,
-    serviceType: ["Post-Surgery", "Patient Care"],
-    hourlyRate: "$35",
-  },
-  {
-    id: "6",
-    name: "Lisa Anderson",
-    specialization: "Child Care Expert",
-    image: "https://img.freepik.com/free-photo/beautiful-young-female-doctor-looking-camera-office_1301-7807.jpg",
-    rating: 4.8,
-    reviewCount: 142,
-    experience: "7+ years",
-    availability: "Available" as const,
-    serviceType: ["Child Care", "Patient Care"],
-    hourlyRate: "$26",
-  },
-];
+// Transform Firebase nurse data to card format
+interface NurseCardData {
+  id: string;
+  name: string;
+  specialization: string;
+  image: string | null;
+  experience: string;
+  availability: "Available" | "Busy" | "Offline";
+  hourlyRate: string;
+  city: string;
+  certifications: string;
+}
 
 const NursingServices = () => {
   const router = useRouter();
+  const { getAllUsers } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<ServiceType>("All");
+  const [nurses, setNurses] = useState<NurseCardData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const filterOptions: Array<{ label: ServiceType; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
@@ -106,45 +51,117 @@ const NursingServices = () => {
     { label: "Post-Surgery", icon: "bandage" },
   ];
 
-  const filteredNurses = nursesData.filter((nurse) => {
-    const matchesSearch =
-      nurse.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      nurse.specialization.toLowerCase().includes(searchQuery.toLowerCase());
+  // Fetch nurses from Firebase
+  const fetchNurses = useCallback(async () => {
+    try {
+      const users = await getAllUsers("Nurse");
+      const nursesData: NurseCardData[] = users
+        .filter((user: User) => user.profileCompleted && user.additionalInfo)
+        .map((user: User) => {
+          const info = user.additionalInfo as NurseInfo;
+          const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Nurse";
+          
+          // Map availability string to proper type
+          let availability: "Available" | "Busy" | "Offline" = "Offline";
+          if (info.availability) {
+            const avail = info.availability.toLowerCase();
+            if (avail === "available" || avail === "full-time" || avail === "part-time") {
+              availability = "Available";
+            } else if (avail === "busy" || avail === "on-call") {
+              availability = "Busy";
+            }
+          }
+          
+          return {
+            id: user.uid,
+            name: fullName,
+            specialization: info.specialization || "General Nursing",
+            image: info.profileImage || null,
+            experience: info.experience || "N/A",
+            availability,
+            hourlyRate: info.hourlyRate ? `$${info.hourlyRate}` : "N/A",
+            city: info.city || "",
+            certifications: info.certifications || "",
+          };
+        });
+      
+      setNurses(nursesData);
+    } catch (error) {
+      console.error("Error fetching nurses:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [getAllUsers]);
 
-    const matchesFilter =
-      selectedFilter === "All" || nurse.serviceType.includes(selectedFilter);
+  useEffect(() => {
+    fetchNurses();
+  }, [fetchNurses]);
 
-    return matchesSearch && matchesFilter;
-  });
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchNurses();
+  }, [fetchNurses]);
 
-  const handleChatPress = (nurse: typeof nursesData[0]) => {
+  // Filter nurses based on search and filter
+  const filteredNurses = useMemo(() => {
+    return nurses.filter((nurse) => {
+      const matchesSearch =
+        nurse.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        nurse.specialization.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        nurse.city.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesFilter =
+        selectedFilter === "All" || 
+        nurse.specialization.toLowerCase().includes(selectedFilter.toLowerCase());
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [nurses, searchQuery, selectedFilter]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const total = nurses.length;
+    const available = nurses.filter((n) => n.availability === "Available").length;
+    return { total, available };
+  }, [nurses]);
+
+  const handleChatPress = (nurse: NurseCardData) => {
     router.push({
-      pathname: "/(protected)/medicine-chat",
+      pathname: "/(protected)/nurse-chat-detail",
       params: {
-        personName: nurse.name,
-        personAvatar: nurse.image,
-        useTora: "false",
+        nurseId: nurse.id,
+        nurseName: nurse.name,
+        nurseImage: nurse.image || "",
       },
     });
   };
 
-  const handleViewProfile = (nurse: typeof nursesData[0]) => {
+  const handleViewProfile = (nurse: NurseCardData) => {
     router.push({
       pathname: "/(protected)/nurse-profile",
       params: {
         id: nurse.id,
         name: nurse.name,
         specialization: nurse.specialization,
-        image: nurse.image,
-        rating: nurse.rating.toString(),
-        reviewCount: nurse.reviewCount.toString(),
+        image: nurse.image || "",
         experience: nurse.experience,
         availability: nurse.availability,
-        serviceType: JSON.stringify(nurse.serviceType),
         hourlyRate: nurse.hourlyRate,
+        city: nurse.city,
+        certifications: nurse.certifications,
       },
     });
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView edges={["bottom"]} style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading nurses...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
@@ -161,19 +178,19 @@ const NursingServices = () => {
       <View style={styles.headerStats}>
         <StatCard
           icon="people"
-          value={nursesData.length}
+          value={stats.total}
           label="Total Nurses"
           color={colors.primary}
         />
         <StatCard
           icon="checkmark-circle"
-          value={nursesData.filter((n) => n.availability === "Available").length}
+          value={stats.available}
           label="Available Now"
           color={colors.success}
         />
         <StatCard
           icon="star"
-          value="4.8"
+          value={stats.total > 0 ? "4.8" : "0"}
           label="Avg Rating"
           color="#FF9800"
         />
@@ -212,22 +229,33 @@ const NursingServices = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       >
         {filteredNurses.length > 0 ? (
           filteredNurses.map((nurse) => (
             <NurseCard
               key={nurse.id}
-              {...nurse}
+              id={nurse.id}
+              name={nurse.name}
+              specialization={nurse.specialization}
+              image={nurse.image || ""}
+              experience={nurse.experience}
+              availability={nurse.availability}
+              hourlyRate={nurse.hourlyRate}
               onPress={() => handleViewProfile(nurse)}
               onChatPress={() => handleChatPress(nurse)}
             />
           ))
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="search" size={64} color={colors.gray} />
+            <Ionicons name="people" size={64} color={colors.gray} />
             <Text style={styles.emptyTitle}>No Nurses Found</Text>
             <Text style={styles.emptyText}>
-              Try adjusting your search or filters
+              {nurses.length === 0 
+                ? "No nurses are registered yet" 
+                : "Try adjusting your search or filters"}
             </Text>
           </View>
         )}
@@ -245,6 +273,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
     paddingHorizontal: sizes.paddingHorizontal,
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
   },
   searchInput: {
     marginTop: 16,

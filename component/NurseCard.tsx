@@ -83,7 +83,13 @@ const NurseCard: React.FC<NurseCardProps> = ({
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.imageContainer}>
-            <Image source={{ uri: image }} style={styles.image} />
+            {image ? (
+              <Image source={{ uri: image }} style={styles.image} />
+            ) : (
+              <View style={[styles.image, styles.imagePlaceholder]}>
+                <Ionicons name="person" size={32} color={colors.gray} />
+              </View>
+            )}
             {availability && (
               <View
                 style={[
@@ -309,6 +315,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     borderWidth: 3,
     borderColor: colors.white,
+  },
+  imagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.lightGray,
   },
   availabilityDot: {
     position: "absolute",
