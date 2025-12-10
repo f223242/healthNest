@@ -129,10 +129,10 @@ const index = () => {
       {/* Absolute Header */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, elevation: 20 }}>
         <LinearGradient
-          colors={[colors.primary, '#00D68F'] as const}
+          colors={[colors.primary, '#00B976', '#00D68F'] as const}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ paddingTop: 20, paddingBottom: 24, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}
+          style={styles.headerGradient}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
           <WelcomeHeader
@@ -152,7 +152,7 @@ const index = () => {
       </View>
 
       <KeyboardAwareScrollView
-        contentContainerStyle={[styles.scrollContainer, { paddingTop: headerHeight - 20 }]}
+        contentContainerStyle={[styles.scrollContainer, { paddingTop: headerHeight + 8 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
@@ -280,18 +280,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerGradient: {
+    paddingTop: 20,
     paddingBottom: 24,
+    paddingHorizontal: sizes.paddingHorizontal,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    marginHorizontal: -sizes.paddingHorizontal,
   },
   scrollView: {
     flex: 1,
-    marginTop: -15,
+    marginTop: 0,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingTop: 20,
-    paddingBottom: 120,
+    paddingBottom: 220,
   },
   welcomeSection: {
     flexDirection: "row",
@@ -390,11 +393,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: sizes.paddingHorizontal,
+    justifyContent: 'space-between',
     gap: 12,
     marginBottom: 24,
   },
   serviceCardWrapper: {
-    width: '47%',
+    width: '48%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionsSection: {
     paddingHorizontal: sizes.paddingHorizontal,
@@ -402,12 +408,16 @@ const styles = StyleSheet.create({
   },
   tipsContainer: {
     paddingHorizontal: sizes.paddingHorizontal,
+    marginTop: 12,
+    marginBottom: 120,
   },
   tipsBanner: {
     flexDirection: "row",
     borderRadius: 20,
     padding: 20,
     overflow: 'hidden',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   tipsIconContainer: {
     width: 56,

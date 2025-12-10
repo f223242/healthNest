@@ -347,7 +347,7 @@ export const AuthProvider = ({ children }: any) => {
       const profile = await getUserProfile();
       setUser(profile);
 
-      toast.show(firebaseMessages.loginSuccess as any);
+      // Toast displayed by callers (UI) to avoid duplicate messages
 
       return { success: true, user: profile };
     } catch (err: any) {
@@ -367,7 +367,7 @@ export const AuthProvider = ({ children }: any) => {
   // ---------------------------------------------------
   const logout = async () => {
     await signOut(auth);
-    toast.show(firebaseMessages.logoutSuccess as any);
+    // Don't show toast here — let callers display a toast to avoid duplicates
     setUser(null);
   };
 
