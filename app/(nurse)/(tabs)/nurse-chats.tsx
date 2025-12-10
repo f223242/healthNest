@@ -1,8 +1,10 @@
 import ChatListComponent from '@/component/ChatListComponent';
-import { colors, Fonts } from '@/constant/theme';
+import { colors, Fonts, sizes } from '@/constant/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface PatientChat {
@@ -91,60 +93,93 @@ const NurseChats = () => {
     });
   };
 
+  // Count unread messages
+  const totalUnread = patients.reduce((sum, p) => sum + (p.unread || 0), 0);
+
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
- 
-      <View style={styles.listCard}>
-        <ChatListComponent
-          users={patients}
-          onChatPress={handleChatPress}
-          title="Patients"
-          showAIOption={true}
-          onAIChatPress={handleAIChatPress}
-          aiTitle="Chat with Tora AI Assistant"
-        />
-      </View>
-    </SafeAreaView>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00D68F', '#00B37A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Patient Chats</Text>
+            <Text style={styles.headerSubtitle}>
+              {patients.length} patients • {totalUnread > 0 ? `${totalUnread} unread` : 'No unread messages'}
+            </Text>
+          </View>
+          <View style={styles.headerIcon}>
+            <Ionicons name="chatbubbles" size={24} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={['bottom']} style={styles.contentContainer}>
+        <View style={styles.listCard}>
+          <ChatListComponent
+            users={patients}
+            onChatPress={handleChatPress}
+            title="Patients"
+            showAIOption={true}
+            onAIChatPress={handleAIChatPress}
+            aiTitle="Chat with Tora AI Assistant"
+          />
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default NurseChats;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary,
   },
   headerGradient: {
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
-    marginBottom: 0,
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+    zIndex: 10,
+    elevation: 8,
   },
   headerContent: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    minHeight: 60,
-  },
-  headerIcon: {
-    marginRight: 16,
-    alignSelf: 'center',
-  },
-  headerTextBlock: {
-    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: Fonts.bold,
     color: colors.white,
-    marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: colors.white + 'CC',
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -10,
   },
   listCard: {
     flex: 1,
@@ -161,3 +196,4 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 });
+
