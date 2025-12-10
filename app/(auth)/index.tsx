@@ -1,11 +1,14 @@
 import { Email, Lock } from "@/assets/svg";
+import AppButton from "@/component/AppButton";
 import AuthHeader from "@/component/AuthHeader";
+import FormCard from "@/component/FormCard";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { firebaseMessages } from "@/constant/messages";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
@@ -33,6 +36,9 @@ const index = () => {
   const router = useRouter();
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const REMEMBER_EMAIL_KEY = "remember_email";
+  const REMEMBER_FLAG_KEY = "remember_me";
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -64,6 +70,18 @@ const index = () => {
     try {
       setIsSubmitting(true);
       await login(values);
+      // persist or remove remembered email according to the toggle
+      try {
+        if (rememberMe) {
+          await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, values.email || "");
+          await AsyncStorage.setItem(REMEMBER_FLAG_KEY, "true");
+        } else {
+          await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
+          await AsyncStorage.setItem(REMEMBER_FLAG_KEY, "false");
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
       toast.show({
         type: firebaseMessages.loginSuccess.type as any,
         text1: firebaseMessages.loginSuccess.text1,
@@ -97,6 +115,23 @@ const index = () => {
     handleSubmit,
   } = formik;
 
+  // Load stored remember-me state and saved email (if any)
+  useEffect(() => {
+    (async () => {
+      try {
+        const flag = await AsyncStorage.getItem(REMEMBER_FLAG_KEY);
+        const savedEmail = await AsyncStorage.getItem(REMEMBER_EMAIL_KEY);
+        if (flag === "true") setRememberMe(true);
+        if (savedEmail) {
+          // populate formik email field
+          formik.setFieldValue("email", savedEmail);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
@@ -118,10 +153,7 @@ const index = () => {
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
         >
-          <Animated.View style={[styles.formCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
+          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
             <Text style={styles.welcomeText}>Welcome Back!</Text>
             <Text style={styles.subheadingStyle}>
               Login to continue your health journey
@@ -158,7 +190,21 @@ const index = () => {
                 <View style={styles.rememberMeRow}>
                   <Switch
                     value={rememberMe}
-                    onValueChange={setRememberMe}
+                    onValueChange={async (val) => {
+                      setRememberMe(val);
+                      try {
+                        if (!val) {
+                          await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
+                          await AsyncStorage.setItem(REMEMBER_FLAG_KEY, "false");
+                        } else {
+                          await AsyncStorage.setItem(REMEMBER_FLAG_KEY, "true");
+                          // save current email value (may be empty)
+                          await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, values.email || "");
+                        }
+                      } catch (e) {
+                        // ignore storage errors
+                      }
+                    }}
                     trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
                     thumbColor={rememberMe ? colors.primary : "#F3F4F6"}
                   />
@@ -171,37 +217,25 @@ const index = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          </Animated.View>
+          </FormCard>
 
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              style={[
-                styles.loginButton,
-                (!isValid || !dirty || isSubmitting) && styles.loginButtonDisabled
-              ]}
-              disabled={!isValid || !dirty || isSubmitting}
+            <AppButton
               onPress={() => handleSubmit()}
-              activeOpacity={0.8}
+              disabled={!isValid || !dirty || isSubmitting}
+              containerStyle={[styles.loginButton, (!isValid || !dirty || isSubmitting) && styles.loginButtonDisabled]}
+              gradientColors={[colors.primary, "#00D68F"]}
             >
-              <LinearGradient
-                colors={(!isValid || !dirty || isSubmitting)
-                  ? ["#A8A8A8", "#888888"]
-                  : [colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.loginButtonGradient}
-              >
-                {isSubmitting && (
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-                )}
-                <Text style={styles.loginButtonText}>
-                  {isSubmitting ? "Logging in..." : "Login"}
-                </Text>
-                {!isSubmitting && (
-                  <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+              {isSubmitting && (
+                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.loginButtonText}>
+                {isSubmitting ? "Logging in..." : "Login"}
+              </Text>
+              {!isSubmitting && (
+                <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+              )}
+            </AppButton>
 
             {/* Divider with OR */}
             <View style={styles.dividerContainer}>

@@ -8,13 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -95,11 +95,11 @@ const TestDetailScreen = () => {
 
   const getStatusColor = (status: TestStatus) => {
     switch (status) {
-      case "New": return "#2196F3";
+      case "New": return colors.primary;
       case "Confirmed": return "#00BCD4";
       case "Sample Collected": return "#FF9800";
       case "Processing": return "#9C27B0";
-      case "Report Ready": return "#0891B2";
+      case "Report Ready": return colors.primary;
       case "Sent": return colors.gray;
       default: return colors.gray;
     }
@@ -158,10 +158,10 @@ const TestDetailScreen = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={["#0891B2", "#22D3EE"]}
+        colors={[colors.primary, '#00D68F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -209,7 +209,7 @@ const TestDetailScreen = () => {
                       <View
                         style={[
                           styles.statusDot,
-                          isCompleted && { backgroundColor: "#0891B2" },
+                          isCompleted && { backgroundColor: colors.primary },
                           isCurrent && styles.currentDot,
                         ]}
                       >
@@ -220,17 +220,17 @@ const TestDetailScreen = () => {
                       <Text
                         style={[
                           styles.statusLabel,
-                          isCompleted && { color: "#0891B2" },
+                          isCompleted && { color: colors.primary },
                           isCurrent && { fontFamily: Fonts.bold },
                         ]}
                       >
                         {status}
                       </Text>
-                      {index < statusFlow.length - 1 && (
+                        {index < statusFlow.length - 1 && (
                         <View
                           style={[
                             styles.statusLine,
-                            isCompleted && { backgroundColor: "#0891B2" },
+                            isCompleted && { backgroundColor: colors.primary },
                           ]}
                         />
                       )}
@@ -247,13 +247,13 @@ const TestDetailScreen = () => {
                 <View
                   style={[
                     styles.priorityBadge,
-                    { backgroundColor: testDetail.priority === "Urgent" ? "#F44336" + "15" : "#0891B2" + "15" },
+                    { backgroundColor: testDetail.priority === "Urgent" ? "#F44336" + "15" : colors.primary + "15" },
                   ]}
                 >
                   <Text
                     style={[
                       styles.priorityText,
-                      { color: testDetail.priority === "Urgent" ? "#F44336" : "#0891B2" },
+                      { color: testDetail.priority === "Urgent" ? "#F44336" : colors.primary },
                     ]}
                   >
                     {testDetail.priority}
@@ -304,7 +304,7 @@ const TestDetailScreen = () => {
                     styles.collectionBadge,
                     {
                       backgroundColor:
-                        testDetail.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0",
+                        testDetail.collectionType === "Home Sampling" ? colors.primary : "#9C27B0",
                     },
                   ]}
                 >
@@ -324,7 +324,7 @@ const TestDetailScreen = () => {
 
               {testDetail.address && (
                 <View style={styles.addressBox}>
-                  <Ionicons name="location" size={18} color="#0891B2" />
+                  <Ionicons name="location" size={18} color={colors.primary} />
                   <Text style={styles.addressText}>{testDetail.address}</Text>
                 </View>
               )}
@@ -413,7 +413,7 @@ export default TestDetailScreen;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#0891B2",
+    backgroundColor: colors.primary,
   },
   headerGradient: {
     paddingTop: 50,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   },
   currentDot: {
     borderWidth: 3,
-    borderColor: "#0891B2",
+    borderColor: colors.primary,
     backgroundColor: colors.white,
   },
   statusLabel: {
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#0891B2",
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,

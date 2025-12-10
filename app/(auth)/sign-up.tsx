@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
@@ -19,6 +18,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import * as Yup from "yup";
 
 import { DropDownIcon, Email, Person } from "@/assets/svg";
+import AppButton from "@/component/AppButton";
+import AuthHeader from "@/component/AuthHeader";
+import FormCard from "@/component/FormCard";
 import FormInput from "@/component/FormInput";
 import PhoneInput from "@/component/PhoneInput";
 import { useToast } from "@/component/Toast/ToastProvider";
@@ -156,21 +158,14 @@ export default function SignupScreen() {
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.primary, "#00D68F", "#00B37A"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
-          <View style={styles.headerIconCircle}>
-            <Ionicons name="person-add" size={32} color={colors.white} />
-          </View>
-          <Text style={styles.headerTitle}>Create Account</Text>
-          <Text style={styles.headerSubtitle}>Sign up to get started</Text>
-        </Animated.View>
-      </LinearGradient>
+      {/* Auth Header */}
+      <AuthHeader
+        icon="person-add"
+        iconSize={32}
+        title="Create Account"
+        subtitle="Sign up to get started"
+        fadeAnim={fadeAnim}
+      />
 
       <SafeAreaView edges={['bottom']} style={styles.contentContainer}>
         <KeyboardAwareScrollView
@@ -181,10 +176,7 @@ export default function SignupScreen() {
           extraScrollHeight={120}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={[styles.formCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
+          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
 
             <FormInput
               label="First Name"
@@ -326,30 +318,21 @@ export default function SignupScreen() {
 
 
             {/* SUBMIT BUTTON */}
-            <TouchableOpacity
-              style={[styles.submitButton, (!isValid || isSubmitting) && styles.submitButtonDisabled]}
-              disabled={!isValid || isSubmitting}
+            <AppButton
               onPress={() => handleSubmit()}
-              activeOpacity={0.8}
+              disabled={!isValid || isSubmitting}
+              containerStyle={[styles.submitButton, (!isValid || isSubmitting) ? styles.submitButtonDisabled : undefined]}
+              gradientColors={[colors.primary, "#00D68F"]}
             >
-              <LinearGradient
-                colors={(!isValid || isSubmitting)
-                  ? ["#A8A8A8", "#888888"]
-                  : [colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitButtonGradient}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.submitButtonText}>Sign Up</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText}>Sign Up</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                </>
+              )}
+            </AppButton>
 
             {/* LOGIN LINK */}
             <View style={styles.loginContainer}>
@@ -358,7 +341,7 @@ export default function SignupScreen() {
                 <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+          </FormCard>
         </KeyboardAwareScrollView>
       </SafeAreaView>
     </View>

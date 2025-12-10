@@ -8,16 +8,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const LAB_THEME_COLOR = '#0891B2';
+const LAB_THEME_COLOR = colors.primary;
 
 interface Report {
   id: string;
@@ -113,9 +113,9 @@ const Reports = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Ready":
-        return '#0891B2';
+        return colors.primary;
       case "Sent":
-        return "#2196F3";
+        return colors.primary;
       case "Processing":
         return "#FF9800";
       default:
@@ -159,7 +159,7 @@ const Reports = () => {
 
       {/* Gradient Header */}
       <LinearGradient
-        colors={[LAB_THEME_COLOR, '#06B6D4', '#22D3EE']}
+        colors={[LAB_THEME_COLOR, '#00B976', '#00D68F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -169,7 +169,7 @@ const Reports = () => {
             <Text style={styles.headerTitle}>Reports</Text>
             <Text style={styles.headerSubtitle}>{filteredReports.length} reports found</Text>
           </View>
-          <View style={styles.headerIcon}>
+            <View style={styles.headerIcon}>
             <Ionicons name="document-text" size={24} color="rgba(255,255,255,0.9)" />
           </View>
         </View>
@@ -229,7 +229,7 @@ const Reports = () => {
               >
                 <View style={styles.reportHeader}>
                   <View style={styles.reportIcon}>
-                    <Ionicons name="document-text" size={22} color="#0891B2" />
+                    <Ionicons name="document-text" size={22} color={colors.primary} />
                   </View>
                   <View style={styles.reportInfo}>
                     <Text style={styles.reportId}>{report.reportId}</Text>
@@ -270,9 +270,9 @@ const Reports = () => {
                       styles.collectionBadge,
                       {
                         backgroundColor:
-                          report.collectionType === "Home Sampling"
-                            ? "#2196F3" + "15"
-                            : "#9C27B0" + "15",
+                              report.collectionType === "Home Sampling"
+                                ? colors.primary + "15"
+                                : "#9C27B0" + "15",
                       },
                     ]}
                   >
@@ -280,7 +280,7 @@ const Reports = () => {
                       name={report.collectionType === "Home Sampling" ? "home" : "business"}
                       size={12}
                       color={
-                        report.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0"
+                        report.collectionType === "Home Sampling" ? colors.primary : "#9C27B0"
                       }
                     />
                   </View>
@@ -302,7 +302,8 @@ const Reports = () => {
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                   <TouchableOpacity style={styles.viewButton}>
-                    <Ionicons name="eye-outline" size={16} color="#0891B2" />
+                    <Ionicons name="eye-outline" size={16} color={colors.primary} />
+
                     <Text style={styles.viewButtonText}>View</Text>
                   </TouchableOpacity>
 
@@ -316,7 +317,7 @@ const Reports = () => {
                     </TouchableOpacity>
                   ) : report.status === "Sent" ? (
                     <View style={styles.sentIndicator}>
-                      <Ionicons name="checkmark-circle" size={16} color="#0891B2" />
+                      <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
                       <Text style={styles.sentText}>Delivered</Text>
                     </View>
                   ) : (
@@ -421,11 +422,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  reportIcon: {
+    reportIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#0891B2' + "15",
+    backgroundColor: colors.primary + "15",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -470,7 +471,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0891B2',
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
@@ -522,13 +523,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#0891B2',
+    borderColor: colors.primary,
     gap: 6,
   },
   viewButtonText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: '#0891B2',
+    color: colors.primary,
   },
   sendButton: {
     flex: 1,
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#0891B2',
+    backgroundColor: colors.primary,
     gap: 6,
   },
   sendButtonText: {
@@ -555,7 +556,7 @@ const styles = StyleSheet.create({
   sentText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: '#0891B2',
+    color: colors.primary,
   },
   processingIndicator: {
     flex: 1,

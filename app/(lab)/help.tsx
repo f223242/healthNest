@@ -54,10 +54,10 @@ const HelpScreen = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={["#0891B2", "#22D3EE"]}
+        colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -77,7 +77,7 @@ const HelpScreen = () => {
             <Text style={styles.headerSubtitle}>We're here to assist you anytime</Text>
           </View>
           <TouchableOpacity style={styles.contactButton}>
-            <Ionicons name="call" size={18} color="#0891B2" />
+              <Ionicons name="call" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -100,7 +100,7 @@ const HelpScreen = () => {
             {/* FAQ Section */}
             <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
             <View style={styles.faqWrapper}>
-              <FAQAccordion faqs={faqs} accentColor="#0891B2" />
+              <FAQAccordion faqs={faqs} accentColor={colors.primary} />
             </View>
 
             {/* Quick Links */}
@@ -113,9 +113,9 @@ const HelpScreen = () => {
                   { icon: "mail-outline", title: "Email Support" },
                 ].map((item, index) => (
                   <TouchableOpacity key={index} style={styles.quickLinkItem}>
-                    <View style={styles.quickLinkIcon}>
-                      <Ionicons name={item.icon as any} size={22} color="#0891B2" />
-                    </View>
+                            <View style={styles.quickLinkIcon}>
+                              <Ionicons name={item.icon as any} size={22} color={colors.primary} />
+                            </View>
                     <Text style={styles.quickLinkText}>{item.title}</Text>
                     <Ionicons name="chevron-forward" size={18} color={colors.gray} />
                   </TouchableOpacity>
@@ -134,7 +134,7 @@ export default HelpScreen;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#0891B2",
+    backgroundColor: colors.primary,
   },
   headerGradient: {
     paddingTop: 50,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0891B2" + "15",
+    backgroundColor: colors.primary + "15",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,

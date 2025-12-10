@@ -1,9 +1,11 @@
+import AppButton from "@/component/AppButton";
+import AuthHeader from "@/component/AuthHeader";
+import FormCard from "@/component/FormCard";
 import PhoneInput from "@/component/PhoneInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
@@ -96,21 +98,14 @@ const ForgotPassword = () => {
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.primary, "#00D68F", "#00B37A"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
-          <View style={styles.headerIconCircle}>
-            <Ionicons name="lock-closed-outline" size={36} color={colors.white} />
-          </View>
-          <Text style={styles.headerTitle}>Forgot Password?</Text>
-          <Text style={styles.headerSubtitle}>We'll help you reset it</Text>
-        </Animated.View>
-      </LinearGradient>
+      {/* Auth Header */}
+      <AuthHeader
+        icon="lock-closed-outline"
+        iconSize={36}
+        title="Forgot Password?"
+        subtitle="We'll help you reset it"
+        fadeAnim={fadeAnim}
+      />
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
         <KeyboardAwareScrollView
@@ -119,10 +114,7 @@ const ForgotPassword = () => {
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
         >
-          <Animated.View style={[styles.formCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
+          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
             <Text style={styles.instructionText}>
               Enter your phone number and we'll send you a verification code to reset your password.
             </Text>
@@ -144,34 +136,24 @@ const ForgotPassword = () => {
                 maxLength={15}
               />
             </View>
-          </Animated.View>
+          </FormCard>
 
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
-              disabled={!dirty || !isValid || isSubmitting}
+            <AppButton
               onPress={() => handleSubmit()}
-              activeOpacity={0.8}
+              disabled={!dirty || !isValid || isSubmitting}
+              containerStyle={[styles.submitButton, (!dirty || !isValid || isSubmitting) ? styles.submitButtonDisabled : undefined]}
+              gradientColors={[colors.primary, "#00D68F"]}
             >
-              <LinearGradient
-                colors={(!dirty || !isValid || isSubmitting)
-                  ? ["#A8A8A8", "#888888"]
-                  : [colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitButtonGradient}
-              >
-                {isSubmitting && (
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-                )}
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? "Sending OTP..." : "Send OTP"}
-                </Text>
-                {!isSubmitting && (
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText}>Send OTP</Text>
                   <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                </>
+              )}
+            </AppButton>
 
             <View style={styles.infoText}>
               <Ionicons name="information-circle-outline" size={16} color={colors.gray} />

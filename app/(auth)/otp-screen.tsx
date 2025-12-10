@@ -1,21 +1,25 @@
+import AppButton from "@/component/AppButton";
+import AuthHeader from "@/component/AuthHeader";
+import FormCard from "@/component/FormCard";
 import InstructionSteps from "@/component/InstructionSteps";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    BackHandler,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -146,34 +150,57 @@ const OtpScreen = () => {
 
   const handleBackToLogin = async () => {
     try {
+      // Clear any pending OTP/pending-user data so _layout won't redirect back here
+      await AsyncStorage.removeItem("@healthnest_pending_user");
+      await AsyncStorage.removeItem("@healthnest_otp");
+      await AsyncStorage.removeItem("@healthnest_verification_complete");
+
       await logout();
       hasNavigatedRef.current = false; // Reset for manual navigation
       safeNavigate("/(auth)");
     } catch (error) {
+      // Ensure cleanup even if logout fails
+      try {
+        await AsyncStorage.removeItem("@healthnest_pending_user");
+        await AsyncStorage.removeItem("@healthnest_otp");
+        await AsyncStorage.removeItem("@healthnest_verification_complete");
+      } catch {}
       hasNavigatedRef.current = false;
       safeNavigate("/(auth)");
     }
   };
 
+  // Handle Android hardware back button to ensure user can go back
+  useEffect(() => {
+    const onBackPress = () => {
+      // Trigger the same logic as the "Back to Login" button
+      handleBackToLogin();
+      return true; // Prevent default behavior
+    };
+
+    if (Platform.OS !== "android") return;
+
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => {
+      // subscription has a remove() method on modern RN
+      if (subscription && typeof subscription.remove === "function") {
+        subscription.remove();
+      }
+    };
+  }, []);
+
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.primary, "#00D68F", "#00B37A"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
-          <View style={styles.headerIconCircle}>
-            <Ionicons name="mail-outline" size={36} color={colors.white} />
-          </View>
-          <Text style={styles.headerTitle}>Verify Email</Text>
-          <Text style={styles.headerSubtitle}>Check your inbox</Text>
-        </Animated.View>
-      </LinearGradient>
+      {/* Auth Header */}
+      <AuthHeader
+        icon="mail-outline"
+        iconSize={36}
+        title="Verify Email"
+        subtitle="Check your inbox"
+        fadeAnim={fadeAnim}
+      />
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
         <KeyboardAwareScrollView
@@ -182,10 +209,7 @@ const OtpScreen = () => {
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
         >
-          <Animated.View style={[styles.formCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
+          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
             <Text style={styles.emailText}>
               We've sent a verification link to{"\n"}
               <Text style={styles.emailHighlight}>
@@ -210,34 +234,24 @@ const OtpScreen = () => {
                 </Text>
               </View>
             </View>
-          </Animated.View>
+          </FormCard>
 
           <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              style={[styles.submitButton, isChecking && styles.submitButtonDisabled]}
-              disabled={isChecking}
+            <AppButton
               onPress={handleCheckVerification}
-              activeOpacity={0.8}
+              disabled={isChecking}
+              containerStyle={[styles.submitButton, isChecking ? styles.submitButtonDisabled : undefined]}
+              gradientColors={[colors.primary, "#00D68F"]}
             >
-              <LinearGradient
-                colors={isChecking
-                  ? ["#A8A8A8", "#888888"]
-                  : [colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitButtonGradient}
-              >
-                {isChecking && (
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-                )}
-                <Text style={styles.submitButtonText}>
-                  {isChecking ? "Checking..." : "I've Verified My Email"}
-                </Text>
-                {!isChecking && (
+              {isChecking ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText}>{"I've Verified My Email"}</Text>
                   <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                </>
+              )}
+            </AppButton>
 
             <View style={styles.resendContainer}>
               <Text style={styles.resendLabel}>
