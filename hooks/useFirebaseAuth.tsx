@@ -2,14 +2,14 @@ import { auth, db } from "@/config/firebase";
 import { firebaseMessages } from "@/constant/messages";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-    createUserWithEmailAndPassword,
-    fetchSignInMethodsForEmail,
-    User as FirebaseUser,
-    onAuthStateChanged,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signInWithEmailAndPassword,
-    signOut
+  createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+  User as FirebaseUser,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut
 } from "firebase/auth";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -282,8 +282,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       console.log("Login successful:", userCredential.user.email);
       
-      // Check if email is verified
-      if (!userCredential.user.emailVerified) {
+      // Get user data from Firestore first to check role
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      
+      // Check if email is verified (skip for admin users or if emailVerified is true in Firestore)
+      const isAdmin = userData.role === "admin";
+      const isVerifiedInFirestore = userData.emailVerified === true;
+      
+      if (!userCredential.user.emailVerified && !isAdmin && !isVerifiedInFirestore) {
         await signOut(auth);
         setIsLoading(false);
         const errorWithInfo = new Error("Please verify your email before logging in.") as any;
@@ -300,11 +308,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Clear any pending user data (in case user is logging in after verification)
       await AsyncStorage.removeItem(PENDING_USER_KEY);
-      
-      // Fetch full user profile from Firestore
-      const userDocRef = doc(db, "users", userCredential.user.uid);
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.exists() ? userDoc.data() : {};
       
       // Set user state with full profile data
       setUser({
