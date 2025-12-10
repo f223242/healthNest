@@ -13,6 +13,7 @@ interface WelcomeHeaderProps {
   style?: ViewStyle;
   animation?: 'fadeIn' | 'fadeInDown' | 'slideInDown';
   showGradientBg?: boolean;
+  whiteText?: boolean;
 }
 
 const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
@@ -23,6 +24,7 @@ const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   style,
   animation = 'fadeInDown',
   showGradientBg = false,
+  whiteText = false,
 }) => {
   const getInitials = (fullName: string) => {
     const names = fullName.split(' ');
@@ -40,21 +42,21 @@ const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
       style={[styles.container, style]}
     >
       <View style={styles.textContainer}>
-        <Text style={[styles.greeting, showGradientBg && styles.whiteText]}>{greeting}</Text>
-        <Text style={[styles.name, showGradientBg && styles.whiteText]} numberOfLines={1}>{name}</Text>
+        <Text style={[styles.greeting, (showGradientBg || whiteText) && styles.whiteText]}>{greeting}</Text>
+        <Text style={[styles.name, (showGradientBg || whiteText) && styles.whiteText]} numberOfLines={1}>{name}</Text>
         {subtitle && (
-          <View style={[styles.subtitleBadge, showGradientBg && styles.whiteBadge]}>
-            <Text style={[styles.subtitle, showGradientBg && styles.gradientSubtitle]}>{subtitle}</Text>
+          <View style={[styles.subtitleBadge, (showGradientBg || whiteText) && styles.whiteBadge]}>
+            <Text style={[styles.subtitle, (showGradientBg || whiteText) && styles.gradientSubtitle]}>{subtitle}</Text>
           </View>
         )}
       </View>
-      
-      <View style={[styles.avatarContainer, showGradientBg && styles.whiteAvatarBorder]}>
+
+      <View style={[styles.avatarContainer, (showGradientBg || whiteText) && styles.whiteAvatarBorder]}>
         {avatar ? (
           <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" />
         ) : (
           <LinearGradient
-            colors={showGradientBg ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)'] : [colors.primary, '#00D68F']}
+            colors={showGradientBg || whiteText ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)'] : [colors.primary, '#00D68F']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.avatarPlaceholder}
@@ -132,7 +134,7 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   whiteText: {
-    color: colors.white,
+    color: 'rgba(255,255,255,0.95)',
   },
   avatarContainer: {
     width: 64,

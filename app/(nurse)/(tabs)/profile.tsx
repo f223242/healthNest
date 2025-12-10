@@ -53,7 +53,7 @@ const NurseProfile = () => {
     const address = additionalInfo?.address || null;
     const city = additionalInfo?.city || null;
     const certifications = additionalInfo?.certifications || null;
-    
+
     return {
       fullName,
       firstName,
@@ -92,7 +92,7 @@ const NurseProfile = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header with Profile */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -127,137 +127,137 @@ const NurseProfile = () => {
           </Animated.View>
         </SafeAreaView>
       </LinearGradient>
-      
-    <SafeAreaView edges={[ "bottom"]} style={styles.container}>
-      {/* Body */}
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        
-        {/* Quick Info Section */}
-        {(nurseInfo.experience || nurseInfo.hourlyRate || nurseInfo.availability) && (
-          <Animated.View style={[styles.quickInfoCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
-            {nurseInfo.experience && (
-              <View style={styles.quickInfoItem}>
-                <View style={styles.quickInfoIconContainer}>
-                  <Ionicons name="time" size={18} color={colors.primary} />
-                </View>
-                <Text style={styles.quickInfoText}>{nurseInfo.experience} Experience</Text>
-              </View>
-            )}
-            {nurseInfo.hourlyRate && (
-              <View style={styles.quickInfoItem}>
-                <View style={styles.quickInfoIconContainer}>
-                  <Ionicons name="cash" size={18} color={colors.primary} />
-                </View>
-                <Text style={styles.quickInfoText}>Rs. {nurseInfo.hourlyRate}/hr</Text>
-              </View>
-            )}
-            {nurseInfo.availability && (
-              <View style={styles.quickInfoItem}>
-                <View style={styles.quickInfoIconContainer}>
-                  <Ionicons name="calendar" size={18} color={colors.primary} />
-                </View>
-                <Text style={styles.quickInfoText}>{nurseInfo.availability}</Text>
-              </View>
-            )}
-          </Animated.View>
-        )}
 
-        {/* Location Info */}
-        {(nurseInfo.address || nurseInfo.city) && (
-          <Animated.View style={[styles.quickInfoCard, {
+      <SafeAreaView edges={["bottom"]} style={styles.container}>
+        {/* Body */}
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+
+          {/* Quick Info Section */}
+          {(nurseInfo.experience || nurseInfo.hourlyRate || nurseInfo.availability) && (
+            <Animated.View style={[styles.quickInfoCard, {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }]}>
+              {nurseInfo.experience && (
+                <View style={styles.quickInfoItem}>
+                  <View style={styles.quickInfoIconContainer}>
+                    <Ionicons name="time" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={styles.quickInfoText}>{nurseInfo.experience} Experience</Text>
+                </View>
+              )}
+              {nurseInfo.hourlyRate && (
+                <View style={styles.quickInfoItem}>
+                  <View style={styles.quickInfoIconContainer}>
+                    <Ionicons name="cash" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={styles.quickInfoText}>Rs. {nurseInfo.hourlyRate}/hr</Text>
+                </View>
+              )}
+              {nurseInfo.availability && (
+                <View style={styles.quickInfoItem}>
+                  <View style={styles.quickInfoIconContainer}>
+                    <Ionicons name="calendar" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={styles.quickInfoText}>{nurseInfo.availability}</Text>
+                </View>
+              )}
+            </Animated.View>
+          )}
+
+          {/* Location Info */}
+          {(nurseInfo.address || nurseInfo.city) && (
+            <Animated.View style={[styles.quickInfoCard, {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }]}>
+              <View style={styles.quickInfoItem}>
+                <View style={styles.quickInfoIconContainer}>
+                  <Ionicons name="location" size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.quickInfoText} numberOfLines={2}>
+                  {nurseInfo.address}{nurseInfo.city ? `, ${nurseInfo.city}` : ""}
+                </Text>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Account Settings */}
+          <Animated.View style={[styles.section, {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }]}>
-            <View style={styles.quickInfoItem}>
-              <View style={styles.quickInfoIconContainer}>
-                <Ionicons name="location" size={18} color={colors.primary} />
-              </View>
-              <Text style={styles.quickInfoText} numberOfLines={2}>
-                {nurseInfo.address}{nurseInfo.city ? `, ${nurseInfo.city}` : ""}
-              </Text>
+            <Text style={styles.sectionTitle}>Account</Text>
+            <View style={styles.sectionContent}>
+
+              <ProfileOptions
+                leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
+                title="Edit Profile"
+                description="Update personal details"
+                onPress={() => router.push("/(nurse)/edit-profile")}
+              />
+
+              <ProfileOptions
+                leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
+                title="Delete Account"
+                description="Permanently remove your account"
+                onPress={() => router.push("/(nurse)/delete-account")}
+                showBorder={false}
+              />
+
             </View>
           </Animated.View>
-        )}
-        
-        {/* Account Settings */}
-        <Animated.View style={[styles.section, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.sectionContent}>
-            
-            <ProfileOptions
-              leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
-              title="Edit Profile"
-              description="Update personal details"
-              onPress={() => router.push("/(nurse)/edit-profile")}
-            />
 
-            <ProfileOptions
-              leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
-              title="Delete Account"
-              description="Permanently remove your account"
-              onPress={() => router.push("/(nurse)/delete-account")}
-              showBorder={false}
-            />
-          
-          </View>
-        </Animated.View>
+          {/* Support */}
+          <Animated.View style={[styles.section, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.sectionTitle}>Support</Text>
+            <View style={styles.sectionContent}>
 
-        {/* Support */}
-        <Animated.View style={[styles.section, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <View style={styles.sectionContent}>
-            
-            <ProfileOptions
-              leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
-              title="Help & Support"
-              description="Get assistance and support"
-              onPress={() => router.push("/(nurse)/help")}
-            />
+              <ProfileOptions
+                leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
+                title="Help & Support"
+                description="Get assistance and support"
+                onPress={() => router.push("/(nurse)/help")}
+              />
 
-            <ProfileOptions
-              leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
-              title="About App"
-              description="App version and details"
-              onPress={() => router.push("/(nurse)/about")}
-              showBorder={false}
-            />
-          
-          </View>
-        </Animated.View>
+              <ProfileOptions
+                leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
+                title="About App"
+                description="App version and details"
+                onPress={() => router.push("/(nurse)/about")}
+                showBorder={false}
+              />
 
-        {/* Logout */}
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-            <LinearGradient
-              colors={[colors.danger, "#FF6B6B"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.logoutButtonGradient}
-            >
-              <Ionicons name="log-out" size={20} color={colors.white} />
-              <Text style={styles.logoutText}>Logout</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+            </View>
+          </Animated.View>
 
-      </ScrollView>
+          {/* Logout */}
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+              <LinearGradient
+                colors={[colors.danger, "#FF6B6B"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.logoutButtonGradient}
+              >
+                <Ionicons name="log-out" size={20} color={colors.white} />
+                <Text style={styles.logoutText}>Logout</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
 
-      <LogoutModal 
-        visible={showLogoutModal} 
-        onClose={() => setShowLogoutModal(false)} 
-        onConfirm={confirmLogout} 
-      />
+        </ScrollView>
 
-    </SafeAreaView>
+        <LogoutModal
+          visible={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={confirmLogout}
+        />
+
+      </SafeAreaView>
     </View>
   );
 };
@@ -272,6 +272,8 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerSafeArea: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,

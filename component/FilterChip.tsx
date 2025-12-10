@@ -9,6 +9,7 @@ interface FilterChipProps {
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   containerStyle?: ViewStyle;
+  accentColor?: string;
 }
 
 const FilterChip: React.FC<FilterChipProps> = ({
@@ -16,11 +17,19 @@ const FilterChip: React.FC<FilterChipProps> = ({
   isActive,
   onPress,
   icon,
-    containerStyle,
+  containerStyle,
+  accentColor,
 }) => {
+  const chipColor = accentColor || colors.primary;
+
   return (
     <TouchableOpacity
-      style={[styles.chip, isActive && styles.chipActive, containerStyle]}
+      style={[
+        styles.chip,
+        { borderColor: chipColor },
+        isActive && { backgroundColor: chipColor, borderColor: chipColor },
+        containerStyle
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -28,11 +37,11 @@ const FilterChip: React.FC<FilterChipProps> = ({
         <Ionicons
           name={icon}
           size={16}
-          color={isActive ? colors.white : colors.primary}
+          color={isActive ? colors.white : chipColor}
           style={styles.icon}
         />
       )}
-      <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+      <Text style={[styles.chipText, { color: chipColor }, isActive && styles.chipTextActive]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -50,13 +59,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.white,
     borderWidth: 1.5,
-    borderColor: colors.primary,
     marginRight: 10,
     height: 40,
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   icon: {
     marginRight: 6,
@@ -64,10 +68,10 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontFamily: Fonts.semiBold,
-    color: colors.primary,
     textAlign: "center",
   },
   chipTextActive: {
     color: colors.white,
   },
 });
+

@@ -4,16 +4,20 @@ import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const LAB_THEME_COLOR = '#0891B2';
 
 interface Report {
   id: string;
@@ -109,7 +113,7 @@ const Reports = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Ready":
-        return colors.primary;
+        return '#0891B2';
       case "Sent":
         return "#2196F3";
       case "Processing":
@@ -150,170 +154,231 @@ const Reports = () => {
   ];
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      {/* Search Bar */}
-      <FormInput
-        LeftIcon={SearchIcon}
-        placeholder="Search by patient, test or report ID..."
-        containerStyle={styles.searchInput}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={LAB_THEME_COLOR} />
 
-      {/* Filter Tabs */}
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {filterOptions.map((filter) => (
-            <FilterChip
-              key={filter.label}
-              label={filter.label}
-              icon={filter.icon}
-              isActive={selectedFilter === filter.label}
-              onPress={() => setSelectedFilter(filter.label)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Reports List */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[LAB_THEME_COLOR, '#06B6D4', '#22D3EE']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {filteredReports.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={60} color={colors.gray} />
-            <Text style={styles.emptyText}>No reports found</Text>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Reports</Text>
+            <Text style={styles.headerSubtitle}>{filteredReports.length} reports found</Text>
           </View>
-        ) : (
-          filteredReports.map((report) => (
-            <TouchableOpacity
-              key={report.id}
-              style={styles.reportCard}
-              onPress={() =>
-                router.push({
-                  pathname: "/(lab)/test-detail" as any,
-                  params: { id: report.id },
-                })
-              }
-            >
-              <View style={styles.reportHeader}>
-                <View style={styles.reportIcon}>
-                  <Ionicons name="document-text" size={22} color={colors.primary} />
-                </View>
-                <View style={styles.reportInfo}>
-                  <Text style={styles.reportId}>{report.reportId}</Text>
-                  <Text style={styles.reportDate}>{report.reportDate}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(report.status) + "15" },
-                  ]}
-                >
-                  <Ionicons
-                    name={getStatusIcon(report.status)}
-                    size={12}
-                    color={getStatusColor(report.status)}
-                  />
-                  <Text
-                    style={[styles.statusText, { color: getStatusColor(report.status) }]}
+          <View style={styles.headerIcon}>
+            <Ionicons name="document-text" size={24} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        {/* Search Bar */}
+        <FormInput
+          LeftIcon={SearchIcon}
+          placeholder="Search by patient, test or report ID..."
+          containerStyle={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {/* Filter Tabs */}
+        <View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterContainer}
+          >
+            {filterOptions.map((filter) => (
+              <FilterChip
+                key={filter.label}
+                label={filter.label}
+                icon={filter.icon}
+                isActive={selectedFilter === filter.label}
+                onPress={() => setSelectedFilter(filter.label)}
+                accentColor={LAB_THEME_COLOR}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Reports List */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {filteredReports.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="document-text-outline" size={60} color={colors.gray} />
+              <Text style={styles.emptyText}>No reports found</Text>
+            </View>
+          ) : (
+            filteredReports.map((report) => (
+              <TouchableOpacity
+                key={report.id}
+                style={styles.reportCard}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(lab)/test-detail" as any,
+                    params: { id: report.id },
+                  })
+                }
+              >
+                <View style={styles.reportHeader}>
+                  <View style={styles.reportIcon}>
+                    <Ionicons name="document-text" size={22} color="#0891B2" />
+                  </View>
+                  <View style={styles.reportInfo}>
+                    <Text style={styles.reportId}>{report.reportId}</Text>
+                    <Text style={styles.reportDate}>{report.reportDate}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: getStatusColor(report.status) + "15" },
+                    ]}
                   >
-                    {report.status}
-                  </Text>
+                    <Ionicons
+                      name={getStatusIcon(report.status)}
+                      size={12}
+                      color={getStatusColor(report.status)}
+                    />
+                    <Text
+                      style={[styles.statusText, { color: getStatusColor(report.status) }]}
+                    >
+                      {report.status}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.divider} />
+                <View style={styles.divider} />
 
-              {/* Patient Info */}
-              <View style={styles.patientRow}>
-                <View style={styles.patientAvatar}>
-                  <Ionicons name="person" size={16} color={colors.white} />
+                {/* Patient Info */}
+                <View style={styles.patientRow}>
+                  <View style={styles.patientAvatar}>
+                    <Ionicons name="person" size={16} color={colors.white} />
+                  </View>
+                  <View style={styles.patientDetails}>
+                    <Text style={styles.patientName}>{report.patientName}</Text>
+                    <Text style={styles.patientPhone}>{report.patientPhone}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.collectionBadge,
+                      {
+                        backgroundColor:
+                          report.collectionType === "Home Sampling"
+                            ? "#2196F3" + "15"
+                            : "#9C27B0" + "15",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={report.collectionType === "Home Sampling" ? "home" : "business"}
+                      size={12}
+                      color={
+                        report.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0"
+                      }
+                    />
+                  </View>
                 </View>
-                <View style={styles.patientDetails}>
-                  <Text style={styles.patientName}>{report.patientName}</Text>
-                  <Text style={styles.patientPhone}>{report.patientPhone}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.collectionBadge,
-                    {
-                      backgroundColor:
-                        report.collectionType === "Home Sampling"
-                          ? "#2196F3" + "15"
-                          : "#9C27B0" + "15",
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={report.collectionType === "Home Sampling" ? "home" : "business"}
-                    size={12}
-                    color={
-                      report.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0"
-                    }
-                  />
-                </View>
-              </View>
 
-              <View style={styles.reportDetails}>
-                <View style={styles.detailRow}>
-                  <Ionicons name="flask-outline" size={16} color={colors.gray} />
-                  <Text style={styles.detailValue}>{report.testType}</Text>
-                </View>
-                {report.doctor && (
+                <View style={styles.reportDetails}>
                   <View style={styles.detailRow}>
-                    <Ionicons name="medkit-outline" size={16} color={colors.gray} />
-                    <Text style={styles.detailValue}>{report.doctor}</Text>
+                    <Ionicons name="flask-outline" size={16} color={colors.gray} />
+                    <Text style={styles.detailValue}>{report.testType}</Text>
                   </View>
-                )}
-              </View>
+                  {report.doctor && (
+                    <View style={styles.detailRow}>
+                      <Ionicons name="medkit-outline" size={16} color={colors.gray} />
+                      <Text style={styles.detailValue}>{report.doctor}</Text>
+                    </View>
+                  )}
+                </View>
 
-              {/* Action Buttons */}
-              <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.viewButton}>
-                  <Ionicons name="eye-outline" size={16} color={colors.primary} />
-                  <Text style={styles.viewButtonText}>View</Text>
-                </TouchableOpacity>
-
-                {report.status === "Ready" ? (
-                  <TouchableOpacity
-                    style={styles.sendButton}
-                    onPress={() => handleSendReport(report)}
-                  >
-                    <Ionicons name="send" size={16} color={colors.white} />
-                    <Text style={styles.sendButtonText}>Send to Patient</Text>
+                {/* Action Buttons */}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity style={styles.viewButton}>
+                    <Ionicons name="eye-outline" size={16} color="#0891B2" />
+                    <Text style={styles.viewButtonText}>View</Text>
                   </TouchableOpacity>
-                ) : report.status === "Sent" ? (
-                  <View style={styles.sentIndicator}>
-                    <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-                    <Text style={styles.sentText}>Delivered</Text>
-                  </View>
-                ) : (
-                  <View style={styles.processingIndicator}>
-                    <Ionicons name="hourglass-outline" size={16} color="#FF9800" />
-                    <Text style={styles.processingText}>Processing...</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+                  {report.status === "Ready" ? (
+                    <TouchableOpacity
+                      style={styles.sendButton}
+                      onPress={() => handleSendReport(report)}
+                    >
+                      <Ionicons name="send" size={16} color={colors.white} />
+                      <Text style={styles.sendButtonText}>Send to Patient</Text>
+                    </TouchableOpacity>
+                  ) : report.status === "Sent" ? (
+                    <View style={styles.sentIndicator}>
+                      <Ionicons name="checkmark-circle" size={16} color="#0891B2" />
+                      <Text style={styles.sentText}>Delivered</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.processingIndicator}>
+                      <Ionicons name="hourglass-outline" size={16} color="#FF9800" />
+                      <Text style={styles.processingText}>Processing...</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default Reports;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
+    flex: 1,
+    backgroundColor: LAB_THEME_COLOR,
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+    zIndex: 10,
+    elevation: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
     flex: 1,
     backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -10,
   },
   searchInput: {
     marginHorizontal: sizes.paddingHorizontal,
@@ -360,7 +425,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: colors.primary + "15",
+    backgroundColor: '#0891B2' + "15",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -405,7 +470,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primary,
+    backgroundColor: '#0891B2',
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
@@ -457,13 +522,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: '#0891B2',
     gap: 6,
   },
   viewButtonText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: colors.primary,
+    color: '#0891B2',
   },
   sendButton: {
     flex: 1,
@@ -472,7 +537,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: '#0891B2',
     gap: 6,
   },
   sendButtonText: {
@@ -490,7 +555,7 @@ const styles = StyleSheet.create({
   sentText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: colors.primary,
+    color: '#0891B2',
   },
   processingIndicator: {
     flex: 1,

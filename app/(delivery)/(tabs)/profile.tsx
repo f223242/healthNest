@@ -48,7 +48,7 @@ const DeliveryProfile = () => {
     const availability = additionalInfo?.availability || null;
     const address = additionalInfo?.address || null;
     const city = additionalInfo?.city || null;
-    
+
     return {
       fullName,
       firstName,
@@ -86,7 +86,7 @@ const DeliveryProfile = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#FF6B35" />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={['#FF6B35', '#FF8C5A', '#FFA07A']}
@@ -97,14 +97,14 @@ const DeliveryProfile = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Delivery Profile</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.settingsButton}
               onPress={() => router.push('/(delivery)/edit-profile')}
             >
               <Ionicons name="settings-outline" size={24} color={colors.white} />
             </TouchableOpacity>
           </View>
-          
+
           {/* Profile Avatar in Header */}
           <View style={styles.headerProfileSection}>
             {deliveryInfo.profileImage ? (
@@ -139,102 +139,102 @@ const DeliveryProfile = () => {
 
       {/* Content Area */}
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer} 
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        {/* Quick Info Section */}
-        {(deliveryInfo.vehicleNumber || deliveryInfo.availability || deliveryInfo.licenseNumber) && (
-          <View style={styles.quickInfoCard}>
-            {deliveryInfo.vehicleNumber && (
-              <View style={styles.quickInfoItem}>
-                <Ionicons name="car-outline" size={18} color={colors.primary} />
-                <Text style={styles.quickInfoText}>Vehicle: {deliveryInfo.vehicleNumber}</Text>
+            {/* Quick Info Section */}
+            {(deliveryInfo.vehicleNumber || deliveryInfo.availability || deliveryInfo.licenseNumber) && (
+              <View style={styles.quickInfoCard}>
+                {deliveryInfo.vehicleNumber && (
+                  <View style={styles.quickInfoItem}>
+                    <Ionicons name="car-outline" size={18} color={colors.primary} />
+                    <Text style={styles.quickInfoText}>Vehicle: {deliveryInfo.vehicleNumber}</Text>
+                  </View>
+                )}
+                {deliveryInfo.licenseNumber && (
+                  <View style={styles.quickInfoItem}>
+                    <Ionicons name="card-outline" size={18} color={colors.primary} />
+                    <Text style={styles.quickInfoText}>License: {deliveryInfo.licenseNumber}</Text>
+                  </View>
+                )}
+                {deliveryInfo.availability && (
+                  <View style={styles.quickInfoItem}>
+                    <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                    <Text style={styles.quickInfoText}>{deliveryInfo.availability}</Text>
+                  </View>
+                )}
               </View>
             )}
-            {deliveryInfo.licenseNumber && (
-              <View style={styles.quickInfoItem}>
-                <Ionicons name="card-outline" size={18} color={colors.primary} />
-                <Text style={styles.quickInfoText}>License: {deliveryInfo.licenseNumber}</Text>
-              </View>
-            )}
-            {deliveryInfo.availability && (
-              <View style={styles.quickInfoItem}>
-                <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-                <Text style={styles.quickInfoText}>{deliveryInfo.availability}</Text>
-              </View>
-            )}
-          </View>
-        )}
 
-        {/* Location Info */}
-        {(deliveryInfo.address || deliveryInfo.city) && (
-          <View style={styles.quickInfoCard}>
-            <View style={styles.quickInfoItem}>
-              <Ionicons name="location-outline" size={18} color={colors.primary} />
-              <Text style={styles.quickInfoText} numberOfLines={2}>
-                {deliveryInfo.address}{deliveryInfo.city ? `, ${deliveryInfo.city}` : ""}
-              </Text>
+            {/* Location Info */}
+            {(deliveryInfo.address || deliveryInfo.city) && (
+              <View style={styles.quickInfoCard}>
+                <View style={styles.quickInfoItem}>
+                  <Ionicons name="location-outline" size={18} color={colors.primary} />
+                  <Text style={styles.quickInfoText} numberOfLines={2}>
+                    {deliveryInfo.address}{deliveryInfo.city ? `, ${deliveryInfo.city}` : ""}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Account Settings */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Account</Text>
+              <View style={styles.sectionContent}>
+                <ProfileOptions
+                  leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
+                  title="Edit Profile"
+                  description="Update personal details"
+                  onPress={() => router.push('/(delivery)/edit-profile')}
+                />
+                <ProfileOptions
+                  leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
+                  title="Delete Account"
+                  description="Permanently remove your account"
+                  onPress={() => router.push('/(delivery)/delete-account')}
+                  showBorder={false}
+                />
+              </View>
             </View>
-          </View>
-        )}
-        
-        {/* Account Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.sectionContent}>
-            <ProfileOptions
-              leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
-              title="Edit Profile"
-              description="Update personal details"
-              onPress={() => router.push('/(delivery)/edit-profile')}
-            />
-            <ProfileOptions
-              leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
-              title="Delete Account"
-              description="Permanently remove your account"
-              onPress={() => router.push('/(delivery)/delete-account')}
-              showBorder={false}
-            />
-          </View>
-        </View>
 
-        {/* Support */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <View style={styles.sectionContent}>
-            <ProfileOptions
-              leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
-              title="Help & Support"
-              description="Get assistance and support"
-              onPress={() => router.push('/(delivery)/help')}
-            />
-            <ProfileOptions
-              leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
-              title="About App"
-              description="App version and details"
-              onPress={() => router.push('/(delivery)/about')}
-              showBorder={false}
-            />
-          </View>
-        </View>
+            {/* Support */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Support</Text>
+              <View style={styles.sectionContent}>
+                <ProfileOptions
+                  leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
+                  title="Help & Support"
+                  description="Get assistance and support"
+                  onPress={() => router.push('/(delivery)/help')}
+                />
+                <ProfileOptions
+                  leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
+                  title="About App"
+                  description="App version and details"
+                  onPress={() => router.push('/(delivery)/about')}
+                  showBorder={false}
+                />
+              </View>
+            </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={20} color={colors.white} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out" size={20} color={colors.white} />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
 
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
 
-      <LogoutModal 
-        visible={showLogoutModal} 
-        onClose={() => setShowLogoutModal(false)} 
-        onConfirm={confirmLogout} 
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
       />
     </View>
   );
@@ -252,6 +252,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: sizes.paddingHorizontal,
+    zIndex: 10,
+    elevation: 8,
   },
 
   headerContent: {

@@ -7,12 +7,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-    Animated,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -36,7 +36,7 @@ const LabDashboard = () => {
       }),
     ]).start();
   }, []);
-  
+
   // Get lab info
   const labInfo = useMemo(() => {
     return user?.additionalInfo as LabInfo | undefined;
@@ -46,11 +46,10 @@ const LabDashboard = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-      
-      {/* Premium Gradient Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+
       <LinearGradient
-        colors={['#7C3AED', '#9F67FF', '#A78BFA']}
+        colors={['#0891B2', '#06B6D4', '#22D3EE']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -62,10 +61,10 @@ const LabDashboard = () => {
               <Text style={styles.nameText}>{fullName}</Text>
             </View>
             <View style={styles.headerAvatar}>
-              <Ionicons name="flask" size={28} color="#7C3AED" />
+              <Ionicons name="flask" size={28} color="#0891B2" />
             </View>
           </View>
-          
+
           {labInfo?.labName && (
             <View style={styles.labBadge}>
               <Ionicons name="business" size={14} color={colors.white} />
@@ -96,106 +95,63 @@ const LabDashboard = () => {
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        {/* Stats Grid */}
-        <View style={styles.statsContainer}>
-          <DashboardStatCard
-            title="Operating Hours"
-            value={labInfo?.operatingHours || '-'}
-            icon="time"
-            color={colors.primary}
-          />
-          <DashboardStatCard
-            title="Home Sampling"
-            value={labInfo?.homeSampling ? 'Available' : 'Not Available'}
-            icon="home"
-            color="#2196F3"
-          />
-          <DashboardStatCard
-            title="License"
-            value={labInfo?.licenseNumber ? 'Verified' : 'Not Added'}
-            icon="shield-checkmark"
-            color="#4CAF50"
-          />
-        </View>
+            {/* Stats Grid - Appointment Stats */}
+            <View style={styles.statsContainer}>
+              <DashboardStatCard
+                title="Pending"
+                value="12"
+                icon="time-outline"
+                color="#FF9800"
+                containerStyle={styles.statCardHalf}
+              />
+              <DashboardStatCard
+                title="Processing"
+                value="5"
+                icon="flask"
+                color="#9C27B0"
+                containerStyle={styles.statCardHalf}
+              />
+              <DashboardStatCard
+                title="Completed"
+                value="28"
+                icon="checkmark-circle"
+                color="#4CAF50"
+                containerStyle={styles.statCardHalf}
+              />
+              <DashboardStatCard
+                title="Total Today"
+                value="45"
+                icon="analytics"
+                color="#0891B2"
+                containerStyle={styles.statCardHalf}
+              />
+            </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <QuickActionCard
-            title="Test Requests"
-            subtitle="View and manage test requests"
-            icon="flask"
-            color={colors.primary}
-            onPress={() => router.push("/(lab)/(tabs)/test-requests")}
-          />
-          <QuickActionCard
-            title="Reports"
-            subtitle="View and send reports"
-            icon="document-text"
-            color="#FF9800"
-            onPress={() => router.push("/(lab)/(tabs)/reports")}
-          />
-          <QuickActionCard
-            title="Edit Profile"
-            subtitle="Update lab information"
-            icon="settings"
-            color="#9C27B0"
-            onPress={() => router.push("/(lab)/edit-profile")}
-          />
-        </View>
-
-        {/* Info Cards */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Lab Information</Text>
-          
-          {labInfo?.licenseNumber && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name="card" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>License Number</Text>
-                <Text style={styles.infoValue}>{labInfo.licenseNumber}</Text>
-              </View>
+            {/* Quick Actions */}
+            <View style={styles.quickActionsContainer}>
+              <Text style={styles.sectionTitle}>Quick Actions</Text>
+              <QuickActionCard
+                title="Test Requests"
+                subtitle="View and manage test requests"
+                icon="flask"
+                color="#0891B2"
+                onPress={() => router.push("/(lab)/(tabs)/test-requests")}
+              />
+              <QuickActionCard
+                title="Reports"
+                subtitle="View and send reports"
+                icon="document-text"
+                color="#FF9800"
+                onPress={() => router.push("/(lab)/(tabs)/reports")}
+              />
+              <QuickActionCard
+                title="Edit Profile"
+                subtitle="Update lab information"
+                icon="settings"
+                color="#9C27B0"
+                onPress={() => router.push("/(lab)/edit-profile")}
+              />
             </View>
-          )}
-          
-          {labInfo?.servicesOffered && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#FF9800' + '15' }]}>
-                <Ionicons name="list" size={20} color="#FF9800" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Services Offered</Text>
-                <Text style={styles.infoValue}>{labInfo.servicesOffered}</Text>
-              </View>
-            </View>
-          )}
-          
-          {labInfo?.address && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#2196F3' + '15' }]}>
-                <Ionicons name="location" size={20} color="#2196F3" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Lab Address</Text>
-                <Text style={styles.infoValue}>{labInfo.city ? `${labInfo.city}` : labInfo.address}</Text>
-              </View>
-            </View>
-          )}
-          
-          {user?.phoneNumber && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#4CAF50' + '15' }]}>
-                <Ionicons name="call" size={20} color="#4CAF50" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Contact</Text>
-                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
-              </View>
-            </View>
-          )}
-        </View>
 
           </Animated.View>
         </ScrollView>
@@ -209,13 +165,15 @@ export default LabDashboard;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#0891B2',
   },
 
   headerGradient: {
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: sizes.paddingHorizontal,
+    zIndex: 10,
+    elevation: 8,
   },
 
   headerContent: {
@@ -314,8 +272,15 @@ const styles = StyleSheet.create({
   },
 
   statsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginBottom: 24,
     gap: 12,
+  },
+
+  statCardHalf: {
+    width: '48%',
   },
 
   sectionTitle: {

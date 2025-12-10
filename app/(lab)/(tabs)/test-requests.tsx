@@ -3,16 +3,20 @@ import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const LAB_THEME_COLOR = '#0891B2';
 
 interface TestRequest {
   id: string;
@@ -108,7 +112,7 @@ const TestRequests = () => {
     switch (priority) {
       case 'Critical': return '#F44336';
       case 'Urgent': return '#FF9800';
-      case 'Normal': return colors.primary;
+      case 'Normal': return '#0891B2';
       default: return colors.gray;
     }
   };
@@ -124,7 +128,7 @@ const TestRequests = () => {
       case "Processing":
         return "#9C27B0";
       case "Report Ready":
-        return colors.primary;
+        return '#0891B2';
       case "Sent":
         return colors.gray;
       default:
@@ -158,183 +162,245 @@ const TestRequests = () => {
   ];
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      {/* Search Bar */}
-      <FormInput
-        LeftIcon={SearchIcon}
-        placeholder="Search patient or test..."
-        containerStyle={styles.searchInput}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={LAB_THEME_COLOR} />
 
-      {/* Type Filter (Home Sampling / Lab Visit) */}
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.typeFilterContainer}
-        >
-          {typeFilterOptions.map((filter) => (
-            <FilterChip
-              key={filter.label}
-              label={filter.label}
-              icon={filter.icon}
-              isActive={selectedType === filter.label}
-              onPress={() => setSelectedType(filter.label)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Status Filter Tabs */}
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {statusFilterOptions.map((filter) => (
-            <FilterChip
-              key={filter.label}
-              label={filter.label}
-              icon={filter.icon}
-              isActive={selectedFilter === filter.label}
-              onPress={() => setSelectedFilter(filter.label)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Requests List */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[LAB_THEME_COLOR, '#06B6D4', '#22D3EE']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {filteredRequests.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="flask-outline" size={60} color={colors.gray} />
-            <Text style={styles.emptyText}>No requests found</Text>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Test Requests</Text>
+            <Text style={styles.headerSubtitle}>{filteredRequests.length} requests found</Text>
           </View>
-        ) : (
-          filteredRequests.map((request) => (
-            <TouchableOpacity
-              key={request.id}
-              style={styles.requestCard}
-              onPress={() =>
-                router.push({
-                  pathname: "/(lab)/test-detail" as any,
-                  params: { id: request.id },
-                })
-              }
-            >
-              <View style={styles.requestHeader}>
-                <View style={styles.patientInfo}>
-                  <View style={styles.avatarContainer}>
-                    <Ionicons name="person" size={20} color={colors.white} />
+          <View style={styles.headerIcon}>
+            <Ionicons name="flask" size={24} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        {/* Search Bar */}
+        <FormInput
+          LeftIcon={SearchIcon}
+          placeholder="Search patient or test..."
+          containerStyle={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {/* Type Filter (Home Sampling / Lab Visit) */}
+        <View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.typeFilterContainer}
+          >
+            {typeFilterOptions.map((filter) => (
+              <FilterChip
+                key={filter.label}
+                label={filter.label}
+                icon={filter.icon}
+                isActive={selectedType === filter.label}
+                onPress={() => setSelectedType(filter.label)}
+                accentColor={LAB_THEME_COLOR}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Status Filter Tabs */}
+        <View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterContainer}
+          >
+            {statusFilterOptions.map((filter) => (
+              <FilterChip
+                key={filter.label}
+                label={filter.label}
+                icon={filter.icon}
+                isActive={selectedFilter === filter.label}
+                onPress={() => setSelectedFilter(filter.label)}
+                accentColor={LAB_THEME_COLOR}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Requests List */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {filteredRequests.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="flask-outline" size={60} color={colors.gray} />
+              <Text style={styles.emptyText}>No requests found</Text>
+            </View>
+          ) : (
+            filteredRequests.map((request) => (
+              <TouchableOpacity
+                key={request.id}
+                style={styles.requestCard}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(lab)/test-detail" as any,
+                    params: { id: request.id },
+                  })
+                }
+              >
+                <View style={styles.requestHeader}>
+                  <View style={styles.patientInfo}>
+                    <View style={styles.avatarContainer}>
+                      <Ionicons name="person" size={20} color={colors.white} />
+                    </View>
+                    <View>
+                      <Text style={styles.patientName}>{request.patientName}</Text>
+                      <Text style={styles.patientPhone}>{request.patientPhone}</Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.patientName}>{request.patientName}</Text>
-                    <Text style={styles.patientPhone}>{request.patientPhone}</Text>
-                  </View>
-                </View>
-                <View
-                  style={[
-                    styles.priorityBadge,
-                    { backgroundColor: getPriorityColor(request.priority) + "15" },
-                  ]}
-                >
-                  <Text
+                  <View
                     style={[
-                      styles.priorityText,
-                      { color: getPriorityColor(request.priority) },
+                      styles.priorityBadge,
+                      { backgroundColor: getPriorityColor(request.priority) + "15" },
                     ]}
                   >
-                    {request.priority}
+                    <Text
+                      style={[
+                        styles.priorityText,
+                        { color: getPriorityColor(request.priority) },
+                      ]}
+                    >
+                      {request.priority}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Collection Type Badge */}
+                <View style={styles.collectionTypeBadge}>
+                  <Ionicons
+                    name={request.collectionType === "Home Sampling" ? "home" : "business"}
+                    size={14}
+                    color={request.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0"}
+                  />
+                  <Text
+                    style={[
+                      styles.collectionTypeText,
+                      {
+                        color:
+                          request.collectionType === "Home Sampling"
+                            ? "#2196F3"
+                            : "#9C27B0",
+                      },
+                    ]}
+                  >
+                    {request.collectionType}
+                  </Text>
+                  <Text style={styles.scheduledTime}>
+                    • {request.scheduledDate}, {request.scheduledTime}
                   </Text>
                 </View>
-              </View>
 
-              {/* Collection Type Badge */}
-              <View style={styles.collectionTypeBadge}>
-                <Ionicons
-                  name={request.collectionType === "Home Sampling" ? "home" : "business"}
-                  size={14}
-                  color={request.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0"}
-                />
-                <Text
-                  style={[
-                    styles.collectionTypeText,
-                    {
-                      color:
-                        request.collectionType === "Home Sampling"
-                          ? "#2196F3"
-                          : "#9C27B0",
-                    },
-                  ]}
-                >
-                  {request.collectionType}
-                </Text>
-                <Text style={styles.scheduledTime}>
-                  • {request.scheduledDate}, {request.scheduledTime}
-                </Text>
-              </View>
-
-              <View style={styles.testInfo}>
-                <View style={styles.testRow}>
-                  <Ionicons name="flask-outline" size={16} color={colors.gray} />
-                  <Text style={styles.testLabel}>{request.testType}</Text>
-                </View>
-                <View style={styles.testRow}>
-                  <Ionicons name="water-outline" size={16} color={colors.gray} />
-                  <Text style={styles.testLabel}>Sample: {request.sampleType}</Text>
-                </View>
-                {request.doctor && (
+                <View style={styles.testInfo}>
                   <View style={styles.testRow}>
-                    <Ionicons name="medkit-outline" size={16} color={colors.gray} />
-                    <Text style={styles.testLabel}>Referred by: {request.doctor}</Text>
+                    <Ionicons name="flask-outline" size={16} color={colors.gray} />
+                    <Text style={styles.testLabel}>{request.testType}</Text>
+                  </View>
+                  <View style={styles.testRow}>
+                    <Ionicons name="water-outline" size={16} color={colors.gray} />
+                    <Text style={styles.testLabel}>Sample: {request.sampleType}</Text>
+                  </View>
+                  {request.doctor && (
+                    <View style={styles.testRow}>
+                      <Ionicons name="medkit-outline" size={16} color={colors.gray} />
+                      <Text style={styles.testLabel}>Referred by: {request.doctor}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {request.address && (
+                  <View style={styles.addressContainer}>
+                    <Ionicons name="location-outline" size={14} color={colors.gray} />
+                    <Text style={styles.addressText} numberOfLines={1}>
+                      {request.address}
+                    </Text>
                   </View>
                 )}
-              </View>
 
-              {request.address && (
-                <View style={styles.addressContainer}>
-                  <Ionicons name="location-outline" size={14} color={colors.gray} />
-                  <Text style={styles.addressText} numberOfLines={1}>
-                    {request.address}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.requestFooter}>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(request.status) + "15" },
-                  ]}
-                >
-                  <Text
-                    style={[styles.statusText, { color: getStatusColor(request.status) }]}
+                <View style={styles.requestFooter}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: getStatusColor(request.status) + "15" },
+                    ]}
                   >
-                    {request.status}
-                  </Text>
+                    <Text
+                      style={[styles.statusText, { color: getStatusColor(request.status) }]}
+                    >
+                      {request.status}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.gray} />
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.gray} />
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default TestRequests;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
+    flex: 1,
+    backgroundColor: LAB_THEME_COLOR,
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+    zIndex: 10,
+    elevation: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
     flex: 1,
     backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -10,
   },
   searchInput: {
     marginHorizontal: sizes.paddingHorizontal,
@@ -391,7 +457,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary,
+    backgroundColor: '#0891B2',
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,

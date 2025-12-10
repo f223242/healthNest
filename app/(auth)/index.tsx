@@ -32,7 +32,7 @@ const index = () => {
   const router = useRouter();
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -99,7 +99,7 @@ const index = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header Background */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -107,7 +107,7 @@ const index = () => {
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
-        <Animated.View style={[styles.logoContainer, { 
+        <Animated.View style={[styles.logoContainer, {
           opacity: fadeAnim,
           transform: [{ scale: logoScale }]
         }]}>
@@ -121,145 +121,145 @@ const index = () => {
           <Text style={styles.brandTagline}>Your Health, Our Priority</Text>
         </Animated.View>
       </LinearGradient>
-      
-      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-      >
-        <Animated.View style={[styles.formCard, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.welcomeText}>Welcome Back!</Text>
-          <Text style={styles.subheadingStyle}>
-            Login to continue your health journey
-          </Text>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputWrapper}>
-              <FormInput
-                LeftIcon={Email}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                onBlur={handleBlur("email")}
-                onChangeText={handleChange("email")}
-                value={values.email}
-                error={touched.email && errors.email ? errors.email : undefined}
-                autoCapitalize="none"
-              />
-            </View>
-            <View style={styles.inputWrapper}>
-              <FormInput
-                LeftIcon={Lock}
-                placeholder="Enter your password"
-                isPassword
-                onBlur={handleBlur("password")}
-                onChangeText={handleChange("password")}
-                value={values.password}
-                error={
-                  touched.password && errors.password ? errors.password : undefined
-                }
-              />
-            </View>
-            
-            <View style={styles.rememberMeContainer}>
-              <View style={styles.rememberMeRow}>
-                <Switch
-                  value={rememberMe}
-                  onValueChange={setRememberMe}
-                  trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
-                  thumbColor={rememberMe ? colors.primary : "#F3F4F6"}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <Animated.View style={[styles.formCard, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.welcomeText}>Welcome Back!</Text>
+            <Text style={styles.subheadingStyle}>
+              Login to continue your health journey
+            </Text>
+
+            <View style={styles.formContainer}>
+              <View style={styles.inputWrapper}>
+                <FormInput
+                  LeftIcon={Email}
+                  placeholder="Enter your email"
+                  keyboardType="email-address"
+                  onBlur={handleBlur("email")}
+                  onChangeText={handleChange("email")}
+                  value={values.email}
+                  error={touched.email && errors.email ? errors.email : undefined}
+                  autoCapitalize="none"
                 />
-                <Text style={styles.rememberMeText}>Remember Me</Text>
               </View>
-              <TouchableOpacity
-                onPress={() => router.push("/(auth)/forgot-password")}
+              <View style={styles.inputWrapper}>
+                <FormInput
+                  LeftIcon={Lock}
+                  placeholder="Enter your password"
+                  isPassword
+                  onBlur={handleBlur("password")}
+                  onChangeText={handleChange("password")}
+                  value={values.password}
+                  error={
+                    touched.password && errors.password ? errors.password : undefined
+                  }
+                />
+              </View>
+
+              <View style={styles.rememberMeContainer}>
+                <View style={styles.rememberMeRow}>
+                  <Switch
+                    value={rememberMe}
+                    onValueChange={setRememberMe}
+                    trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
+                    thumbColor={rememberMe ? colors.primary : "#F3F4F6"}
+                  />
+                  <Text style={styles.rememberMeText}>Remember Me</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push("/(auth)/forgot-password")}
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animated.View>
+
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                (!isValid || !dirty || isSubmitting) && styles.loginButtonDisabled
+              ]}
+              disabled={!isValid || !dirty || isSubmitting}
+              onPress={() => handleSubmit()}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={(!isValid || !dirty || isSubmitting)
+                  ? ["#A8A8A8", "#888888"]
+                  : [colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.loginButtonGradient}
               >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                {isSubmitting && (
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.loginButtonText}>
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </Text>
+                {!isSubmitting && (
+                  <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Divider with OR */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>Or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Login Buttons */}
+            <View style={styles.socialContainer}>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                <LinearGradient
+                  colors={["#fff", "#F8F8F8"]}
+                  style={styles.socialButtonInner}
+                >
+                  <Ionicons name="logo-google" size={24} color="#DB4437" />
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                <LinearGradient
+                  colors={["#fff", "#F8F8F8"]}
+                  style={styles.socialButtonInner}
+                >
+                  <Ionicons name="logo-facebook" size={24} color="#4267B2" />
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                <LinearGradient
+                  colors={["#fff", "#F8F8F8"]}
+                  style={styles.socialButtonInner}
+                >
+                  <Ionicons name="logo-apple" size={24} color="#000" />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
-          </View>
-        </Animated.View>
 
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity
-            style={[
-              styles.loginButton,
-              (!isValid || !dirty || isSubmitting) && styles.loginButtonDisabled
-            ]}
-            disabled={!isValid || !dirty || isSubmitting}
-            onPress={() => handleSubmit()}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={(!isValid || !dirty || isSubmitting) 
-                ? ["#A8A8A8", "#888888"] 
-                : [colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButtonGradient}
-            >
-              {isSubmitting && (
-                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-              )}
-              <Text style={styles.loginButtonText}>
-                {isSubmitting ? "Logging in..." : "Login"}
+            <View style={styles.bottomTextStyle}>
+              <Text style={styles.bottomText}>
+                Don't have an account?{" "}
               </Text>
-              {!isSubmitting && (
-                <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Divider with OR */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Social Login Buttons */}
-          <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-              <LinearGradient
-                colors={["#fff", "#F8F8F8"]}
-                style={styles.socialButtonInner}
-              >
-                <Ionicons name="logo-google" size={24} color="#DB4437" />
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-              <LinearGradient
-                colors={["#fff", "#F8F8F8"]}
-                style={styles.socialButtonInner}
-              >
-                <Ionicons name="logo-facebook" size={24} color="#4267B2" />
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-              <LinearGradient
-                colors={["#fff", "#F8F8F8"]}
-                style={styles.socialButtonInner}
-              >
-                <Ionicons name="logo-apple" size={24} color="#000" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.bottomTextStyle}>
-            <Text style={styles.bottomText}>
-              Don't have an account?{" "}
-            </Text>
-            <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
-              <Text style={styles.signUpText}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+              <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
+                <Text style={styles.signUpText}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
     </View>
   );
 };
@@ -276,6 +276,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   logoContainer: {
     alignItems: "center",

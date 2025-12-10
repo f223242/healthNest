@@ -49,7 +49,7 @@ const LabProfile = () => {
     const homeSampling = additionalInfo?.homeSampling || false;
     const address = additionalInfo?.address || null;
     const city = additionalInfo?.city || null;
-    
+
     return {
       fullName,
       firstName,
@@ -87,11 +87,10 @@ const LabProfile = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-      
-      {/* Premium Gradient Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+
       <LinearGradient
-        colors={['#7C3AED', '#9F67FF', '#A78BFA']}
+        colors={['#0891B2', '#06B6D4', '#22D3EE']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -99,14 +98,14 @@ const LabProfile = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Lab Profile</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.settingsButton}
               onPress={() => router.push("/(lab)/edit-profile")}
             >
               <Ionicons name="settings-outline" size={24} color={colors.white} />
             </TouchableOpacity>
           </View>
-          
+
           {/* Profile Avatar in Header */}
           <View style={styles.headerProfileSection}>
             {labInfo.profileImage ? (
@@ -116,7 +115,7 @@ const LabProfile = () => {
               />
             ) : (
               <View style={styles.headerAvatarPlaceholder}>
-                <Ionicons name="flask" size={36} color="#7C3AED" />
+                <Ionicons name="flask" size={36} color="#0891B2" />
               </View>
             )}
             <View style={styles.headerProfileInfo}>
@@ -141,108 +140,108 @@ const LabProfile = () => {
 
       {/* Content Area */}
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer} 
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        {/* Quick Info Section */}
-        {(labInfo.operatingHours || labInfo.licenseNumber || labInfo.servicesOffered) && (
-          <View style={styles.quickInfoCard}>
-            {labInfo.licenseNumber && (
-              <View style={styles.quickInfoItem}>
-                <Ionicons name="card-outline" size={18} color={colors.primary} />
-                <Text style={styles.quickInfoText}>License: {labInfo.licenseNumber}</Text>
+            {/* Quick Info Section */}
+            {(labInfo.operatingHours || labInfo.licenseNumber || labInfo.servicesOffered) && (
+              <View style={styles.quickInfoCard}>
+                {labInfo.licenseNumber && (
+                  <View style={styles.quickInfoItem}>
+                    <Ionicons name="card-outline" size={18} color="#0891B2" />
+                    <Text style={styles.quickInfoText}>License: {labInfo.licenseNumber}</Text>
+                  </View>
+                )}
+                {labInfo.operatingHours && (
+                  <View style={styles.quickInfoItem}>
+                    <Ionicons name="time-outline" size={18} color="#0891B2" />
+                    <Text style={styles.quickInfoText}>{labInfo.operatingHours}</Text>
+                  </View>
+                )}
+                {labInfo.servicesOffered && (
+                  <View style={styles.quickInfoItem}>
+                    <Ionicons name="medical-outline" size={18} color="#0891B2" />
+                    <Text style={styles.quickInfoText} numberOfLines={2}>{labInfo.servicesOffered}</Text>
+                  </View>
+                )}
               </View>
             )}
-            {labInfo.operatingHours && (
-              <View style={styles.quickInfoItem}>
-                <Ionicons name="time-outline" size={18} color={colors.primary} />
-                <Text style={styles.quickInfoText}>{labInfo.operatingHours}</Text>
-              </View>
-            )}
-            {labInfo.servicesOffered && (
-              <View style={styles.quickInfoItem}>
-                <Ionicons name="medical-outline" size={18} color={colors.primary} />
-                <Text style={styles.quickInfoText} numberOfLines={2}>{labInfo.servicesOffered}</Text>
-              </View>
-            )}
-          </View>
-        )}
 
-        {/* Location Info */}
-        {(labInfo.address || labInfo.city) && (
-          <View style={styles.quickInfoCard}>
-            <View style={styles.quickInfoItem}>
-              <Ionicons name="location-outline" size={18} color={colors.primary} />
-              <Text style={styles.quickInfoText} numberOfLines={2}>
-                {labInfo.address}{labInfo.city ? `, ${labInfo.city}` : ""}
-              </Text>
+            {/* Location Info */}
+            {(labInfo.address || labInfo.city) && (
+              <View style={styles.quickInfoCard}>
+                <View style={styles.quickInfoItem}>
+                  <Ionicons name="location-outline" size={18} color="#0891B2" />
+                  <Text style={styles.quickInfoText} numberOfLines={2}>
+                    {labInfo.address}{labInfo.city ? `, ${labInfo.city}` : ""}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Account Settings */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Account</Text>
+              <View style={styles.sectionContent}>
+
+                <ProfileOptions
+                  leftIcon={<Ionicons name="person-outline" size={22} color="#0891B2" />}
+                  title="Edit Profile"
+                  description="Update personal details"
+                  onPress={() => router.push("/(lab)/edit-profile")}
+                />
+
+                <ProfileOptions
+                  leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
+                  title="Delete Account"
+                  description="Permanently remove your account"
+                  onPress={() => router.push("/(lab)/delete-account")}
+                  showBorder={false}
+                />
+
+              </View>
             </View>
-          </View>
-        )}
-        
-        {/* Account Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.sectionContent}>
-            
-            <ProfileOptions
-              leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
-              title="Edit Profile"
-              description="Update personal details"
-              onPress={() => router.push("/(lab)/edit-profile")}
-            />
 
-            <ProfileOptions
-              leftIcon={<Ionicons name="trash-outline" size={22} color={colors.danger} />}
-              title="Delete Account"
-              description="Permanently remove your account"
-              onPress={() => router.push("/(lab)/delete-account")}
-              showBorder={false}
-            />
-          
-          </View>
-        </View>
+            {/* Support */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Support</Text>
+              <View style={styles.sectionContent}>
 
-        {/* Support */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <View style={styles.sectionContent}>
-            
-            <ProfileOptions
-              leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.primary} />}
-              title="Help & Support"
-              description="Get assistance and support"
-              onPress={() => router.push("/(lab)/help")}
-            />
+                <ProfileOptions
+                  leftIcon={<Ionicons name="help-circle-outline" size={22} color="#0891B2" />}
+                  title="Help & Support"
+                  description="Get assistance and support"
+                  onPress={() => router.push("/(lab)/help")}
+                />
 
-            <ProfileOptions
-              leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.primary} />}
-              title="About App"
-              description="App version and details"
-              onPress={() => router.push("/(lab)/about")}
-              showBorder={false}
-            />
-          
-          </View>
-        </View>
+                <ProfileOptions
+                  leftIcon={<Ionicons name="information-circle-outline" size={22} color="#0891B2" />}
+                  title="About App"
+                  description="App version and details"
+                  onPress={() => router.push("/(lab)/about")}
+                  showBorder={false}
+                />
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={20} color={colors.white} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out" size={20} color={colors.white} />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
 
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
 
-      <LogoutModal 
-        visible={showLogoutModal} 
-        onClose={() => setShowLogoutModal(false)} 
-        onConfirm={confirmLogout} 
+      <LogoutModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
       />
 
     </View>
@@ -254,13 +253,15 @@ export default LabProfile;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#0891B2',
   },
 
   headerGradient: {
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: sizes.paddingHorizontal,
+    zIndex: 10,
+    elevation: 8,
   },
 
   headerContent: {

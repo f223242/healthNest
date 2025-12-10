@@ -95,7 +95,7 @@ const ForgotPassword = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -111,82 +111,82 @@ const ForgotPassword = () => {
           <Text style={styles.headerSubtitle}>We'll help you reset it</Text>
         </Animated.View>
       </LinearGradient>
-      
+
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-      >
-        <Animated.View style={[styles.formCard, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.instructionText}>
-            Enter your phone number and we'll send you a verification code to reset your password.
-          </Text>
-          
-          <View style={styles.inputContainer}>
-            <PhoneInput
-              label="Phone Number"
-              value={values.phoneNumber}
-              onChangeText={(text) => setFieldValue("phoneNumber", text)}
-              onBlur={() => handleBlur("phoneNumber")}
-              error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
-              countryCode={countryCode}
-              countryFlag={countryFlag}
-              onCountryChange={(code, flag) => {
-                setCountryCode(code);
-                setCountryFlag(flag);
-              }}
-              placeholder="3123456789"
-              maxLength={15}
-            />
-          </View>
-        </Animated.View>
-        
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity
-            style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
-            disabled={!dirty || !isValid || isSubmitting}
-            onPress={() => handleSubmit()}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={(!dirty || !isValid || isSubmitting) 
-                ? ["#A8A8A8", "#888888"] 
-                : [colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitButtonGradient}
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <Animated.View style={[styles.formCard, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.instructionText}>
+              Enter your phone number and we'll send you a verification code to reset your password.
+            </Text>
+
+            <View style={styles.inputContainer}>
+              <PhoneInput
+                label="Phone Number"
+                value={values.phoneNumber}
+                onChangeText={(text) => setFieldValue("phoneNumber", text)}
+                onBlur={() => handleBlur("phoneNumber")}
+                error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
+                countryCode={countryCode}
+                countryFlag={countryFlag}
+                onCountryChange={(code, flag) => {
+                  setCountryCode(code);
+                  setCountryFlag(flag);
+                }}
+                placeholder="3123456789"
+                maxLength={15}
+              />
+            </View>
+          </Animated.View>
+
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
+              disabled={!dirty || !isValid || isSubmitting}
+              onPress={() => handleSubmit()}
+              activeOpacity={0.8}
             >
-              {isSubmitting && (
-                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-              )}
-              <Text style={styles.submitButtonText}>
-                {isSubmitting ? "Sending OTP..." : "Send OTP"}
-              </Text>
-              {!isSubmitting && (
-                <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-          
-          <View style={styles.infoText}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.gray} />
-            <Text style={styles.infoTextLabel}>You will receive an OTP on your phone</Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Back to Login</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+              <LinearGradient
+                colors={(!dirty || !isValid || isSubmitting)
+                  ? ["#A8A8A8", "#888888"]
+                  : [colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButtonGradient}
+              >
+                {isSubmitting && (
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting ? "Sending OTP..." : "Send OTP"}
+                </Text>
+                {!isSubmitting && (
+                  <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.infoText}>
+              <Ionicons name="information-circle-outline" size={16} color={colors.gray} />
+              <Text style={styles.infoTextLabel}>You will receive an OTP on your phone</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backButtonText}>Back to Login</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
     </View>
   );
 };
@@ -203,6 +203,8 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerContent: {
     alignItems: "center",

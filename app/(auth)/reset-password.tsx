@@ -39,7 +39,7 @@ const ResetPassword = () => {
   const params = useLocalSearchParams<{ phoneNumber: string }>();
   const { verifyPasswordResetOTP, resendPasswordResetOTP, updatePassword } = useAuthContext();
   const toast = useToast();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -166,7 +166,7 @@ const ResetPassword = () => {
       }
     },
   });
-  
+
   const {
     handleBlur,
     handleChange,
@@ -188,7 +188,7 @@ const ResetPassword = () => {
     return (
       <View style={styles.mainContainer}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-        
+
         {/* Gradient Header */}
         <LinearGradient
           colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -204,92 +204,92 @@ const ResetPassword = () => {
             <Text style={styles.headerSubtitle}>Enter verification code</Text>
           </Animated.View>
         </LinearGradient>
-        
+
         <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <KeyboardAwareScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          enableOnAndroid={true}
-        >
-          <Animated.View style={[styles.formCard, {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }]}>
-            <Text style={styles.otpInfoText}>
-              Enter the 6-digit code sent to{"\n"}
-              <Text style={styles.phoneHighlight}>
-                {params.phoneNumber}
-              </Text>
-            </Text>
-
-            {/* OTP Input using react-native-otp-entry */}
-            <View style={styles.otpWrapper}>
-              <OtpInput
-                numberOfDigits={6}
-                onTextChange={setOtpCode}
-                focusColor={colors.primary}
-                focusStickBlinkingDuration={500}
-                theme={{
-                  containerStyle: styles.otpContainer,
-                  pinCodeContainerStyle: styles.otpPinContainer,
-                  pinCodeTextStyle: styles.otpPinText,
-                  focusedPinCodeContainerStyle: styles.otpPinContainerFocused,
-                  filledPinCodeContainerStyle: styles.otpPinContainerFilled,
-                }}
-              />
-            </View>
-
-            <View style={styles.resendOtpContainer}>
-              {canResend ? (
-                <TouchableOpacity 
-                  onPress={handleResendOTP} 
-                  disabled={isResending}
-                >
-                  <Text style={styles.resendOtpText}>
-                    {isResending ? "Sending..." : "Resend OTP"}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.timerBadge}>
-                  <Ionicons name="time-outline" size={16} color={colors.primary} />
-                  <Text style={styles.timerText}>
-                    Resend in {timer}s
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Animated.View>
-
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <TouchableOpacity
-              style={[styles.submitButton, (otpCode.length !== 6 || isVerifying) && styles.submitButtonDisabled]}
-              disabled={otpCode.length !== 6 || isVerifying}
-              onPress={handleVerifyOTP}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={(otpCode.length !== 6 || isVerifying) 
-                  ? ["#A8A8A8", "#888888"] 
-                  : [colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitButtonGradient}
-              >
-                {isVerifying && (
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-                )}
-                <Text style={styles.submitButtonText}>
-                  {isVerifying ? "Verifying..." : "Verify OTP"}
+          <KeyboardAwareScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid={true}
+          >
+            <Animated.View style={[styles.formCard, {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }]}>
+              <Text style={styles.otpInfoText}>
+                Enter the 6-digit code sent to{"\n"}
+                <Text style={styles.phoneHighlight}>
+                  {params.phoneNumber}
                 </Text>
-                {!isVerifying && (
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+              </Text>
+
+              {/* OTP Input using react-native-otp-entry */}
+              <View style={styles.otpWrapper}>
+                <OtpInput
+                  numberOfDigits={6}
+                  onTextChange={setOtpCode}
+                  focusColor={colors.primary}
+                  focusStickBlinkingDuration={500}
+                  theme={{
+                    containerStyle: styles.otpContainer,
+                    pinCodeContainerStyle: styles.otpPinContainer,
+                    pinCodeTextStyle: styles.otpPinText,
+                    focusedPinCodeContainerStyle: styles.otpPinContainerFocused,
+                    filledPinCodeContainerStyle: styles.otpPinContainerFilled,
+                  }}
+                />
+              </View>
+
+              <View style={styles.resendOtpContainer}>
+                {canResend ? (
+                  <TouchableOpacity
+                    onPress={handleResendOTP}
+                    disabled={isResending}
+                  >
+                    <Text style={styles.resendOtpText}>
+                      {isResending ? "Sending..." : "Resend OTP"}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.timerBadge}>
+                    <Ionicons name="time-outline" size={16} color={colors.primary} />
+                    <Text style={styles.timerText}>
+                      Resend in {timer}s
+                    </Text>
+                  </View>
                 )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
+              </View>
+            </Animated.View>
+
+            <Animated.View style={{ opacity: fadeAnim }}>
+              <TouchableOpacity
+                style={[styles.submitButton, (otpCode.length !== 6 || isVerifying) && styles.submitButtonDisabled]}
+                disabled={otpCode.length !== 6 || isVerifying}
+                onPress={handleVerifyOTP}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={(otpCode.length !== 6 || isVerifying)
+                    ? ["#A8A8A8", "#888888"]
+                    : [colors.primary, "#00D68F"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitButtonGradient}
+                >
+                  {isVerifying && (
+                    <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                  )}
+                  <Text style={styles.submitButtonText}>
+                    {isVerifying ? "Verifying..." : "Verify OTP"}
+                  </Text>
+                  {!isVerifying && (
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          </KeyboardAwareScrollView>
+        </SafeAreaView>
       </View>
     );
   }
@@ -298,7 +298,7 @@ const ResetPassword = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -314,136 +314,136 @@ const ResetPassword = () => {
           <Text style={styles.headerSubtitle}>Create a new password</Text>
         </Animated.View>
       </LinearGradient>
-      
+
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-      >
-        <Animated.View style={[styles.formCard, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.passwordInfoText}>
-            Create a strong password to secure your account
-          </Text>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <Animated.View style={[styles.formCard, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.passwordInfoText}>
+              Create a strong password to secure your account
+            </Text>
 
-          <View style={styles.formContainer}>
-            <FormInput
-              LeftIcon={Lock}
-              placeholder="New Password"
-              containerStyle={{ marginTop: 12 }}
-              isPassword
-              onBlur={handleBlur("password")}
-              onChangeText={handleChange("password")}
-              value={values.password}
-              error={touched.password && errors.password ? errors.password : undefined}
-            />
+            <View style={styles.formContainer}>
+              <FormInput
+                LeftIcon={Lock}
+                placeholder="New Password"
+                containerStyle={{ marginTop: 12 }}
+                isPassword
+                onBlur={handleBlur("password")}
+                onChangeText={handleChange("password")}
+                value={values.password}
+                error={touched.password && errors.password ? errors.password : undefined}
+              />
 
-            <FormInput
-              LeftIcon={Lock}
-              placeholder="Confirm Password"
-              containerStyle={{ marginTop: 12 }}
-              isPassword
-              onBlur={handleBlur("confirmPassword")}
-              onChangeText={handleChange("confirmPassword")}
-              value={values.confirmPassword}
-              error={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : undefined}
-            />
+              <FormInput
+                LeftIcon={Lock}
+                placeholder="Confirm Password"
+                containerStyle={{ marginTop: 12 }}
+                isPassword
+                onBlur={handleBlur("confirmPassword")}
+                onChangeText={handleChange("confirmPassword")}
+                value={values.confirmPassword}
+                error={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : undefined}
+              />
 
-            {/* Password Requirements */}
-            <View style={styles.requirementsContainer}>
-              <Text style={styles.requirementsTitle}>Password must contain:</Text>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={values.password.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={values.password.length >= 8 ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>At least 8 characters</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[a-z]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[a-z]/.test(values.password) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One lowercase letter</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[A-Z]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[A-Z]/.test(values.password) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One uppercase letter</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[0-9]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[0-9]/.test(values.password) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One number</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[^a-zA-Z0-9]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[^a-zA-Z0-9]/.test(values.password) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One special character</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={values.password && values.confirmPassword && values.password === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={values.password && values.confirmPassword && values.password === values.confirmPassword ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>Passwords match</Text>
+              {/* Password Requirements */}
+              <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>Password must contain:</Text>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={values.password.length >= 8 ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={values.password.length >= 8 ? colors.primary : colors.gray}
+                  />
+                  <Text style={styles.requirementText}>At least 8 characters</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={/[a-z]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={/[a-z]/.test(values.password) ? colors.primary : colors.gray}
+                  />
+                  <Text style={styles.requirementText}>One lowercase letter</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={/[A-Z]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={/[A-Z]/.test(values.password) ? colors.primary : colors.gray}
+                  />
+                  <Text style={styles.requirementText}>One uppercase letter</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={/[0-9]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={/[0-9]/.test(values.password) ? colors.primary : colors.gray}
+                  />
+                  <Text style={styles.requirementText}>One number</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={/[^a-zA-Z0-9]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={/[^a-zA-Z0-9]/.test(values.password) ? colors.primary : colors.gray}
+                  />
+                  <Text style={styles.requirementText}>One special character</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons
+                    name={values.password && values.confirmPassword && values.password === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={values.password && values.confirmPassword && values.password === values.confirmPassword ? colors.primary : colors.gray}
+                  />
+                  <Text style={styles.requirementText}>Passwords match</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Animated.View>
+          </Animated.View>
 
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity
-            style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
-            disabled={!dirty || !isValid || isSubmitting}
-            onPress={() => handleSubmit()}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={(!dirty || !isValid || isSubmitting) 
-                ? ["#A8A8A8", "#888888"] 
-                : [colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitButtonGradient}
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
+              disabled={!dirty || !isValid || isSubmitting}
+              onPress={() => handleSubmit()}
+              activeOpacity={0.8}
             >
-              {isSubmitting && (
-                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-              )}
-              <Text style={styles.submitButtonText}>
-                {isSubmitting ? "Updating..." : "Reset Password"}
-              </Text>
-              {!isSubmitting && (
-                <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-      </KeyboardAwareScrollView>
-      <ResetPasswordModal
-        visible={modalVisible}
-        onClose={() => {
-          setModalVisible(false);
-          router.replace("/(auth)");
-        }}
-      />
-    </SafeAreaView>
+              <LinearGradient
+                colors={(!dirty || !isValid || isSubmitting)
+                  ? ["#A8A8A8", "#888888"]
+                  : [colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButtonGradient}
+              >
+                {isSubmitting && (
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting ? "Updating..." : "Reset Password"}
+                </Text>
+                {!isSubmitting && (
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+        <ResetPasswordModal
+          visible={modalVisible}
+          onClose={() => {
+            setModalVisible(false);
+            router.replace("/(auth)");
+          }}
+        />
+      </SafeAreaView>
     </View>
   );
 };
@@ -460,6 +460,8 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerContent: {
     alignItems: "center",

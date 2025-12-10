@@ -5,15 +5,15 @@ import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
@@ -117,7 +117,7 @@ export default function SignupScreen() {
         const formattedPhone = `${countryCode}${values.phoneNumber}`;
         const payload = { ...values, phoneNumber: formattedPhone };
         await register(payload);
-        
+
         // Don't navigate manually - _layout.tsx will detect pending user 
         // and automatically redirect to otp-screen
       } catch (error: any) {
@@ -155,7 +155,7 @@ export default function SignupScreen() {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -171,196 +171,196 @@ export default function SignupScreen() {
           <Text style={styles.headerSubtitle}>Sign up to get started</Text>
         </Animated.View>
       </LinearGradient>
-      
+
       <SafeAreaView edges={['bottom']} style={styles.contentContainer}>
-    <KeyboardAwareScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      enableOnAndroid
-      extraScrollHeight={120}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Animated.View style={[styles.formCard, {
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }]
-      }]}>
-
-      <FormInput
-        label="First Name"
-        LeftIcon={Person}
-        value={values.firstname}
-        onChangeText={handleChange("firstname")}
-        onBlur={handleBlur("firstname")}
-        error={touched.firstname && errors.firstname ? errors.firstname : ""}
-        placeholder="Enter your first name"
-      />
-
-      <FormInput
-        label="Last Name"
-        LeftIcon={Person}
-        value={values.lastname}
-        onChangeText={handleChange("lastname")}
-        onBlur={handleBlur("lastname")}
-        error={touched.lastname && errors.lastname ? errors.lastname : ""}
-        placeholder="Enter your last name"
-      />
-
-      <FormInput
-        label="Email"
-        LeftIcon={Email}
-        value={values.email}
-        onChangeText={handleChange("email")}
-        onBlur={handleBlur("email")}
-        error={touched.email && errors.email ? errors.email : ""}
-        keyboardType="email-address"
-        placeholder="Enter your email"
-        autoCapitalize="none"
-      />
-
-      {/* PHONE INPUT */}
-      <PhoneInput
-        label="Phone Number"
-        value={values.phoneNumber}
-        onChangeText={(text) => setFieldValue("phoneNumber", text)}
-        onBlur={() => handleBlur("phoneNumber")}
-        error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
-        countryCode={countryCode}
-        countryFlag={countryFlag}
-        onCountryChange={(code, flag) => {
-          setCountryCode(code);
-          setCountryFlag(flag);
-        }}
-        placeholder="3123456789"
-        maxLength={10}
-      />
-
-      {/* PASSWORDS */}
-      <FormInput
-        label="Password"
-        value={values.password}
-        isPassword
-        onChangeText={handleChange("password")}
-        onBlur={handleBlur("password")}
-        error={touched.password && errors.password ? errors.password : ""}
-        placeholder="Enter password"
-      />
-
-      <FormInput
-        label="Confirm Password"
-        value={values.confirmPassword}
-        isPassword
-        onChangeText={handleChange("confirmPassword")}
-        onBlur={handleBlur("confirmPassword")}
-        error={
-          touched.confirmPassword && errors.confirmPassword
-            ? errors.confirmPassword
-            : ""
-        }
-        placeholder="Confirm password"
-      />
-
-      {/* ROLE */}
-      <FormInput
-        label="Role"
-        isDropdown
-        data={roleOptions}
-        value={values.role}
-        onDropdownChange={(item) => setFieldValue("role", item.value)}
-        error={touched.role && errors.role ? errors.role : ""}
-        placeholder="Select your role"
-        RightIcon={DropDownIcon}
-      />
-
-      {/* DATE PICKER */}
-      <View style={styles.datePickerContainer}>
-        <Text style={styles.datePickerLabel}>Date of Birth</Text>
-        <TouchableOpacity
-          style={[
-            styles.datePickerButton,
-            {
-              borderColor:
-                touched.dateOfBirth && errors.dateOfBirth
-                  ? colors.danger
-                  : values.dateOfBirth
-                  ? colors.primary
-                  : colors.borderGray,
-            },
-          ]}
-          onPress={() => {
-            setShowPicker(true);
-            setFieldTouched("dateOfBirth", true);
-          }}
+        <KeyboardAwareScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid
+          extraScrollHeight={120}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={[styles.dateValue, !values.dateOfBirth && styles.datePlaceholder]}>
-            {values.dateOfBirth
-              ? new Date(values.dateOfBirth).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })
-              : "Select your date of birth"}
-          </Text>
-          <Ionicons name="calendar-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+          <Animated.View style={[styles.formCard, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
 
-      {touched.dateOfBirth && errors.dateOfBirth && (
-        <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
-      )}
+            <FormInput
+              label="First Name"
+              LeftIcon={Person}
+              value={values.firstname}
+              onChangeText={handleChange("firstname")}
+              onBlur={handleBlur("firstname")}
+              error={touched.firstname && errors.firstname ? errors.firstname : ""}
+              placeholder="Enter your first name"
+            />
 
-    {showPicker && (
-  <DateTimePicker
-    value={
-      values.dateOfBirth
-        ? new Date(values.dateOfBirth)
-        : new Date(2010, 12,31) // default selected date
-    }
-    mode="date"
-    display="calendar"
-    onChange={onDateSelect}
-    minimumDate={new Date(1950, 0, 1)} // Jan 1, 1950
-    maximumDate={new Date(2010, 11, 31)} // Dec 31, 2010
-  />
-)}
+            <FormInput
+              label="Last Name"
+              LeftIcon={Person}
+              value={values.lastname}
+              onChangeText={handleChange("lastname")}
+              onBlur={handleBlur("lastname")}
+              error={touched.lastname && errors.lastname ? errors.lastname : ""}
+              placeholder="Enter your last name"
+            />
+
+            <FormInput
+              label="Email"
+              LeftIcon={Email}
+              value={values.email}
+              onChangeText={handleChange("email")}
+              onBlur={handleBlur("email")}
+              error={touched.email && errors.email ? errors.email : ""}
+              keyboardType="email-address"
+              placeholder="Enter your email"
+              autoCapitalize="none"
+            />
+
+            {/* PHONE INPUT */}
+            <PhoneInput
+              label="Phone Number"
+              value={values.phoneNumber}
+              onChangeText={(text) => setFieldValue("phoneNumber", text)}
+              onBlur={() => handleBlur("phoneNumber")}
+              error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
+              countryCode={countryCode}
+              countryFlag={countryFlag}
+              onCountryChange={(code, flag) => {
+                setCountryCode(code);
+                setCountryFlag(flag);
+              }}
+              placeholder="3123456789"
+              maxLength={10}
+            />
+
+            {/* PASSWORDS */}
+            <FormInput
+              label="Password"
+              value={values.password}
+              isPassword
+              onChangeText={handleChange("password")}
+              onBlur={handleBlur("password")}
+              error={touched.password && errors.password ? errors.password : ""}
+              placeholder="Enter password"
+            />
+
+            <FormInput
+              label="Confirm Password"
+              value={values.confirmPassword}
+              isPassword
+              onChangeText={handleChange("confirmPassword")}
+              onBlur={handleBlur("confirmPassword")}
+              error={
+                touched.confirmPassword && errors.confirmPassword
+                  ? errors.confirmPassword
+                  : ""
+              }
+              placeholder="Confirm password"
+            />
+
+            {/* ROLE */}
+            <FormInput
+              label="Role"
+              isDropdown
+              data={roleOptions}
+              value={values.role}
+              onDropdownChange={(item) => setFieldValue("role", item.value)}
+              error={touched.role && errors.role ? errors.role : ""}
+              placeholder="Select your role"
+              RightIcon={DropDownIcon}
+            />
+
+            {/* DATE PICKER */}
+            <View style={styles.datePickerContainer}>
+              <Text style={styles.datePickerLabel}>Date of Birth</Text>
+              <TouchableOpacity
+                style={[
+                  styles.datePickerButton,
+                  {
+                    borderColor:
+                      touched.dateOfBirth && errors.dateOfBirth
+                        ? colors.danger
+                        : values.dateOfBirth
+                          ? colors.primary
+                          : colors.borderGray,
+                  },
+                ]}
+                onPress={() => {
+                  setShowPicker(true);
+                  setFieldTouched("dateOfBirth", true);
+                }}
+              >
+                <Text style={[styles.dateValue, !values.dateOfBirth && styles.datePlaceholder]}>
+                  {values.dateOfBirth
+                    ? new Date(values.dateOfBirth).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                    : "Select your date of birth"}
+                </Text>
+                <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {touched.dateOfBirth && errors.dateOfBirth && (
+              <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
+            )}
+
+            {showPicker && (
+              <DateTimePicker
+                value={
+                  values.dateOfBirth
+                    ? new Date(values.dateOfBirth)
+                    : new Date(2010, 12, 31) // default selected date
+                }
+                mode="date"
+                display="calendar"
+                onChange={onDateSelect}
+                minimumDate={new Date(1950, 0, 1)} // Jan 1, 1950
+                maximumDate={new Date(2010, 11, 31)} // Dec 31, 2010
+              />
+            )}
 
 
-      {/* SUBMIT BUTTON */}
-      <TouchableOpacity
-        style={[styles.submitButton, (!isValid || isSubmitting) && styles.submitButtonDisabled]}
-        disabled={!isValid || isSubmitting}
-        onPress={() => handleSubmit()}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={(!isValid || isSubmitting) 
-            ? ["#A8A8A8", "#888888"] 
-            : [colors.primary, "#00D68F"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.submitButtonGradient}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <Text style={styles.submitButtonText}>Sign Up</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
-            </>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
+            {/* SUBMIT BUTTON */}
+            <TouchableOpacity
+              style={[styles.submitButton, (!isValid || isSubmitting) && styles.submitButtonDisabled]}
+              disabled={!isValid || isSubmitting}
+              onPress={() => handleSubmit()}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={(!isValid || isSubmitting)
+                  ? ["#A8A8A8", "#888888"]
+                  : [colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButtonGradient}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.submitButtonText}>Sign Up</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
-      {/* LOGIN LINK */}
-      <View style={styles.loginContainer}>
-        <Text style={styles.loginText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push("/(auth)")}>
-          <Text style={styles.loginLink}>Sign In</Text>
-        </TouchableOpacity>
-      </View>
-      </Animated.View>
-    </KeyboardAwareScrollView>
-    </SafeAreaView>
+            {/* LOGIN LINK */}
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)")}>
+                <Text style={styles.loginLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -375,6 +375,8 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerContent: {
     alignItems: "center",

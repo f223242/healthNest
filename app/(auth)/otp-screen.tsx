@@ -7,15 +7,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -158,7 +158,7 @@ const OtpScreen = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -174,115 +174,115 @@ const OtpScreen = () => {
           <Text style={styles.headerSubtitle}>Check your inbox</Text>
         </Animated.View>
       </LinearGradient>
-      
+
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-      >
-        <Animated.View style={[styles.formCard, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.emailText}>
-            We've sent a verification link to{"\n"}
-            <Text style={styles.emailHighlight}>
-              {email || "your email"}
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <Animated.View style={[styles.formCard, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.emailText}>
+              We've sent a verification link to{"\n"}
+              <Text style={styles.emailHighlight}>
+                {email || "your email"}
+              </Text>
             </Text>
-          </Text>
 
-          {/* Instructions */}
-          <InstructionSteps
-            steps={verificationSteps}
-            containerStyle={styles.instructionsContainer}
-          />
+            {/* Instructions */}
+            <InstructionSteps
+              steps={verificationSteps}
+              containerStyle={styles.instructionsContainer}
+            />
 
-          {/* Timer */}
-          <View style={styles.timerSection}>
-            <View style={styles.timerBadge}>
-              <Ionicons name="time-outline" size={16} color={colors.primary} />
-              <Text style={styles.timerText}>
-                {canResend
-                  ? "You can resend now"
-                  : `Resend in ${minutes}:${seconds.toString().padStart(2, "0")}`}
+            {/* Timer */}
+            <View style={styles.timerSection}>
+              <View style={styles.timerBadge}>
+                <Ionicons name="time-outline" size={16} color={colors.primary} />
+                <Text style={styles.timerText}>
+                  {canResend
+                    ? "You can resend now"
+                    : `Resend in ${minutes}:${seconds.toString().padStart(2, "0")}`}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              style={[styles.submitButton, isChecking && styles.submitButtonDisabled]}
+              disabled={isChecking}
+              onPress={handleCheckVerification}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={isChecking
+                  ? ["#A8A8A8", "#888888"]
+                  : [colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButtonGradient}
+              >
+                {isChecking && (
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.submitButtonText}>
+                  {isChecking ? "Checking..." : "I've Verified My Email"}
+                </Text>
+                {!isChecking && (
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.resendContainer}>
+              <Text style={styles.resendLabel}>
+                Didn't receive the email?
+              </Text>
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={!canResend || isResending}
+                style={styles.resendButton}
+              >
+                {isResending ? (
+                  <ActivityIndicator color={colors.primary} size="small" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.resendText,
+                      !canResend && styles.resendTextDisabled
+                    ]}
+                  >
+                    Resend Email
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Check Spam Notice */}
+            <View style={styles.spamNotice}>
+              <Ionicons name="information-circle-outline" size={18} color={colors.gray} />
+              <Text style={styles.spamNoticeText}>
+                Check your spam folder if you don't see the email
               </Text>
             </View>
-          </View>
-        </Animated.View>
 
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity
-            style={[styles.submitButton, isChecking && styles.submitButtonDisabled]}
-            disabled={isChecking}
-            onPress={handleCheckVerification}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={isChecking 
-                ? ["#A8A8A8", "#888888"] 
-                : [colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitButtonGradient}
-            >
-              {isChecking && (
-                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-              )}
-              <Text style={styles.submitButtonText}>
-                {isChecking ? "Checking..." : "I've Verified My Email"}
-              </Text>
-              {!isChecking && (
-                <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.resendContainer}>
-            <Text style={styles.resendLabel}>
-              Didn't receive the email?
-            </Text>
+            {/* Back to Login */}
             <TouchableOpacity
-              onPress={handleResend}
-              disabled={!canResend || isResending}
-              style={styles.resendButton}
+              onPress={handleBackToLogin}
+              style={styles.backToLoginButton}
             >
-              {isResending ? (
-                <ActivityIndicator color={colors.primary} size="small" />
-              ) : (
-                <Text
-                  style={[
-                    styles.resendText,
-                    !canResend && styles.resendTextDisabled
-                  ]}
-                >
-                  Resend Email
-                </Text>
-              )}
+              <Text style={styles.backToLoginText}>
+                Back to Login
+              </Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Check Spam Notice */}
-          <View style={styles.spamNotice}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.gray} />
-            <Text style={styles.spamNoticeText}>
-              Check your spam folder if you don't see the email
-            </Text>
-          </View>
-          
-          {/* Back to Login */}
-          <TouchableOpacity
-            onPress={handleBackToLogin}
-            style={styles.backToLoginButton}
-          >
-            <Text style={styles.backToLoginText}>
-              Back to Login
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
     </View>
   );
 };
@@ -299,6 +299,8 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerContent: {
     alignItems: "center",

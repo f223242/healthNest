@@ -57,11 +57,10 @@ const DeleteAccount = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-      
-      {/* Premium Gradient Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+
       <LinearGradient
-        colors={["#7C3AED", "#A78BFA"]}
+        colors={["#0891B2", "#22D3EE"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -81,53 +80,53 @@ const DeleteAccount = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Warning Card */}
-        <View style={styles.warningCard}>
-          <View style={styles.warningIconContainer}>
-            <Ionicons name="warning" size={40} color={colors.danger} />
-          </View>
-          <Text style={styles.warningTitle}>Delete Your Account?</Text>
-          <Text style={styles.warningDescription}>
-            This action is permanent and cannot be undone. All your data, including lab reports, test records, and personal information will be permanently removed.
-          </Text>
-        </View>
-
-        {/* What You'll Lose */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What you'll lose:</Text>
-          <View style={styles.itemsList}>
-            {[
-              { icon: "flask-outline", text: "All test records and history" },
-              { icon: "document-text-outline", text: "Generated lab reports" },
-              { icon: "analytics-outline", text: "Performance analytics" },
-              { icon: "person-outline", text: "Profile and credentials" },
-            ].map((item, index) => (
-              <View key={index} style={[styles.listItem, index === 3 && { borderBottomWidth: 0 }]}>
-                <View style={styles.listIconContainer}>
-                  <Ionicons name={item.icon as any} size={20} color={colors.danger} />
-                </View>
-                <Text style={styles.listText}>{item.text}</Text>
+            <View style={styles.warningCard}>
+              <View style={styles.warningIconContainer}>
+                <Ionicons name="warning" size={40} color={colors.danger} />
               </View>
-            ))}
-          </View>
-        </View>
+              <Text style={styles.warningTitle}>Delete Your Account?</Text>
+              <Text style={styles.warningDescription}>
+                This action is permanent and cannot be undone. All your data, including lab reports, test records, and personal information will be permanently removed.
+              </Text>
+            </View>
 
-        {/* Delete Button */}
-        <TouchableOpacity style={styles.deleteButton} onPress={openModal}>
-          <Ionicons name="trash" size={20} color={colors.white} />
-          <Text style={styles.deleteButtonText}>Delete My Account</Text>
-        </TouchableOpacity>
-      </ScrollView>
-      </Animated.View>
-    </SafeAreaView>
+            {/* What You'll Lose */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>What you'll lose:</Text>
+              <View style={styles.itemsList}>
+                {[
+                  { icon: "flask-outline", text: "All test records and history" },
+                  { icon: "document-text-outline", text: "Generated lab reports" },
+                  { icon: "analytics-outline", text: "Performance analytics" },
+                  { icon: "person-outline", text: "Profile and credentials" },
+                ].map((item, index) => (
+                  <View key={index} style={[styles.listItem, index === 3 && { borderBottomWidth: 0 }]}>
+                    <View style={styles.listIconContainer}>
+                      <Ionicons name={item.icon as any} size={20} color={colors.danger} />
+                    </View>
+                    <Text style={styles.listText}>{item.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Delete Button */}
+            <TouchableOpacity style={styles.deleteButton} onPress={openModal}>
+              <Ionicons name="trash" size={20} color={colors.white} />
+              <Text style={styles.deleteButtonText}>Delete My Account</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      </SafeAreaView>
 
       <DeleteAccountModal
         visible={showModal}
@@ -144,7 +143,7 @@ export default DeleteAccount;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#0891B2",
   },
   headerGradient: {
     paddingTop: 50,

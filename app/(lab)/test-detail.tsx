@@ -8,13 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -99,7 +99,7 @@ const TestDetailScreen = () => {
       case "Confirmed": return "#00BCD4";
       case "Sample Collected": return "#FF9800";
       case "Processing": return "#9C27B0";
-      case "Report Ready": return colors.primary;
+      case "Report Ready": return "#0891B2";
       case "Sent": return colors.gray;
       default: return colors.gray;
     }
@@ -158,11 +158,10 @@ const TestDetailScreen = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-      
-      {/* Premium Gradient Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+
       <LinearGradient
-        colors={["#7C3AED", "#A78BFA"]}
+        colors={["#0891B2", "#22D3EE"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -187,198 +186,198 @@ const TestDetailScreen = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-        {/* Status Progress */}
-        <View style={styles.statusCard}>
-          <Text style={styles.sectionTitle}>Status Progress</Text>
-          <View style={styles.statusFlow}>
-            {statusFlow.map((status, index) => {
-              const isCompleted = statusFlow.indexOf(testDetail.status) >= index;
-              const isCurrent = testDetail.status === status;
-              return (
-                <View key={status} style={styles.statusStep}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      isCompleted && { backgroundColor: colors.primary },
-                      isCurrent && styles.currentDot,
-                    ]}
-                  >
-                    {isCompleted && !isCurrent && (
-                      <Ionicons name="checkmark" size={12} color={colors.white} />
-                    )}
-                  </View>
+            {/* Status Progress */}
+            <View style={styles.statusCard}>
+              <Text style={styles.sectionTitle}>Status Progress</Text>
+              <View style={styles.statusFlow}>
+                {statusFlow.map((status, index) => {
+                  const isCompleted = statusFlow.indexOf(testDetail.status) >= index;
+                  const isCurrent = testDetail.status === status;
+                  return (
+                    <View key={status} style={styles.statusStep}>
+                      <View
+                        style={[
+                          styles.statusDot,
+                          isCompleted && { backgroundColor: "#0891B2" },
+                          isCurrent && styles.currentDot,
+                        ]}
+                      >
+                        {isCompleted && !isCurrent && (
+                          <Ionicons name="checkmark" size={12} color={colors.white} />
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.statusLabel,
+                          isCompleted && { color: "#0891B2" },
+                          isCurrent && { fontFamily: Fonts.bold },
+                        ]}
+                      >
+                        {status}
+                      </Text>
+                      {index < statusFlow.length - 1 && (
+                        <View
+                          style={[
+                            styles.statusLine,
+                            isCompleted && { backgroundColor: "#0891B2" },
+                          ]}
+                        />
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Patient Info */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.sectionTitle}>Patient Information</Text>
+                <View
+                  style={[
+                    styles.priorityBadge,
+                    { backgroundColor: testDetail.priority === "Urgent" ? "#F44336" + "15" : "#0891B2" + "15" },
+                  ]}
+                >
                   <Text
                     style={[
-                      styles.statusLabel,
-                      isCompleted && { color: colors.primary },
-                      isCurrent && { fontFamily: Fonts.bold },
+                      styles.priorityText,
+                      { color: testDetail.priority === "Urgent" ? "#F44336" : "#0891B2" },
                     ]}
                   >
-                    {status}
+                    {testDetail.priority}
                   </Text>
-                  {index < statusFlow.length - 1 && (
-                    <View
-                      style={[
-                        styles.statusLine,
-                        isCompleted && { backgroundColor: colors.primary },
-                      ]}
-                    />
-                  )}
                 </View>
-              );
-            })}
-          </View>
-        </View>
+              </View>
 
-        {/* Patient Info */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>Patient Information</Text>
-            <View
-              style={[
-                styles.priorityBadge,
-                { backgroundColor: testDetail.priority === "Urgent" ? "#F44336" + "15" : colors.primary + "15" },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.priorityText,
-                  { color: testDetail.priority === "Urgent" ? "#F44336" : colors.primary },
-                ]}
-              >
-                {testDetail.priority}
-              </Text>
-            </View>
-          </View>
+              <View style={styles.patientRow}>
+                <View style={styles.avatarLarge}>
+                  <Ionicons name="person" size={28} color={colors.white} />
+                </View>
+                <View style={styles.patientDetails}>
+                  <Text style={styles.patientName}>{testDetail.patientName}</Text>
+                  <Text style={styles.patientContact}>{testDetail.patientPhone}</Text>
+                  <Text style={styles.patientContact}>{testDetail.patientEmail}</Text>
+                </View>
+              </View>
 
-          <View style={styles.patientRow}>
-            <View style={styles.avatarLarge}>
-              <Ionicons name="person" size={28} color={colors.white} />
+              {/* Quick Actions */}
+              <View style={styles.quickActions}>
+                <QuickActionButton
+                  icon="call"
+                  label="Call"
+                  onPress={handleCall}
+                />
+                <QuickActionButton
+                  icon="chatbubble"
+                  label="Message"
+                  onPress={() => toast.info("Opening messaging...")}
+                />
+                {testDetail.collectionType === "Home Sampling" && (
+                  <QuickActionButton
+                    icon="navigate"
+                    label="Navigate"
+                    onPress={handleNavigate}
+                  />
+                )}
+              </View>
             </View>
-            <View style={styles.patientDetails}>
-              <Text style={styles.patientName}>{testDetail.patientName}</Text>
-              <Text style={styles.patientContact}>{testDetail.patientPhone}</Text>
-              <Text style={styles.patientContact}>{testDetail.patientEmail}</Text>
-            </View>
-          </View>
 
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <QuickActionButton
-              icon="call"
-              label="Call"
-              onPress={handleCall}
+            {/* Collection Details */}
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Collection Details</Text>
+
+              <View style={styles.collectionTypeRow}>
+                <View
+                  style={[
+                    styles.collectionBadge,
+                    {
+                      backgroundColor:
+                        testDetail.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={testDetail.collectionType === "Home Sampling" ? "home" : "business"}
+                    size={20}
+                    color={colors.white}
+                  />
+                </View>
+                <View>
+                  <Text style={styles.collectionType}>{testDetail.collectionType}</Text>
+                  <Text style={styles.scheduleText}>
+                    {testDetail.scheduledDate} at {testDetail.scheduledTime}
+                  </Text>
+                </View>
+              </View>
+
+              {testDetail.address && (
+                <View style={styles.addressBox}>
+                  <Ionicons name="location" size={18} color="#0891B2" />
+                  <Text style={styles.addressText}>{testDetail.address}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Test Details */}
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Test Details</Text>
+
+              <View style={styles.detailRow}>
+                <Ionicons name="flask" size={18} color={colors.gray} />
+                <Text style={styles.detailLabel}>Test Type:</Text>
+                <Text style={styles.detailValue}>{testDetail.testType}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Ionicons name="water" size={18} color={colors.gray} />
+                <Text style={styles.detailLabel}>Sample:</Text>
+                <Text style={styles.detailValue}>{testDetail.sampleType}</Text>
+              </View>
+
+              {testDetail.doctor && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="medkit" size={18} color={colors.gray} />
+                  <Text style={styles.detailLabel}>Doctor:</Text>
+                  <Text style={styles.detailValue}>{testDetail.doctor}</Text>
+                </View>
+              )}
+
+              {testDetail.notes && (
+                <View style={styles.notesBox}>
+                  <Text style={styles.notesLabel}>Notes:</Text>
+                  <Text style={styles.notesText}>{testDetail.notes}</Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </Animated.View>
+
+        {/* Bottom Action Button */}
+        {getNextActionLabel() && (
+          <View style={styles.bottomAction}>
+            <AppButton
+              title={getNextActionLabel()!}
+              onPress={handleUpdateStatus}
+              containerStyle={{
+                ...styles.actionButton,
+                backgroundColor: getStatusColor(getNextStatus()!),
+              }}
             />
-            <QuickActionButton
-              icon="chatbubble"
-              label="Message"
-              onPress={() => toast.info("Opening messaging...")}
-            />
-            {testDetail.collectionType === "Home Sampling" && (
-              <QuickActionButton
-                icon="navigate"
-                label="Navigate"
-                onPress={handleNavigate}
-              />
-            )}
           </View>
-        </View>
-
-        {/* Collection Details */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Collection Details</Text>
-
-          <View style={styles.collectionTypeRow}>
-            <View
-              style={[
-                styles.collectionBadge,
-                {
-                  backgroundColor:
-                    testDetail.collectionType === "Home Sampling" ? "#2196F3" : "#9C27B0",
-                },
-              ]}
-            >
-              <Ionicons
-                name={testDetail.collectionType === "Home Sampling" ? "home" : "business"}
-                size={20}
-                color={colors.white}
-              />
-            </View>
-            <View>
-              <Text style={styles.collectionType}>{testDetail.collectionType}</Text>
-              <Text style={styles.scheduleText}>
-                {testDetail.scheduledDate} at {testDetail.scheduledTime}
-              </Text>
-            </View>
-          </View>
-
-          {testDetail.address && (
-            <View style={styles.addressBox}>
-              <Ionicons name="location" size={18} color={colors.primary} />
-              <Text style={styles.addressText}>{testDetail.address}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Test Details */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Test Details</Text>
-
-          <View style={styles.detailRow}>
-            <Ionicons name="flask" size={18} color={colors.gray} />
-            <Text style={styles.detailLabel}>Test Type:</Text>
-            <Text style={styles.detailValue}>{testDetail.testType}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Ionicons name="water" size={18} color={colors.gray} />
-            <Text style={styles.detailLabel}>Sample:</Text>
-            <Text style={styles.detailValue}>{testDetail.sampleType}</Text>
-          </View>
-
-          {testDetail.doctor && (
-            <View style={styles.detailRow}>
-              <Ionicons name="medkit" size={18} color={colors.gray} />
-              <Text style={styles.detailLabel}>Doctor:</Text>
-              <Text style={styles.detailValue}>{testDetail.doctor}</Text>
-            </View>
-          )}
-
-          {testDetail.notes && (
-            <View style={styles.notesBox}>
-              <Text style={styles.notesLabel}>Notes:</Text>
-              <Text style={styles.notesText}>{testDetail.notes}</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-      </Animated.View>
-
-      {/* Bottom Action Button */}
-      {getNextActionLabel() && (
-        <View style={styles.bottomAction}>
-          <AppButton
-            title={getNextActionLabel()!}
-            onPress={handleUpdateStatus}
-            containerStyle={{
-              ...styles.actionButton,
-              backgroundColor: getStatusColor(getNextStatus()!),
-            }}
-          />
-        </View>
-      )}
-    </SafeAreaView>
+        )}
+      </SafeAreaView>
 
       {/* Confirmation Modal */}
       <ConfirmationModal
@@ -414,7 +413,7 @@ export default TestDetailScreen;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#0891B2",
   },
   headerGradient: {
     paddingTop: 50,
@@ -508,7 +507,7 @@ const styles = StyleSheet.create({
   },
   currentDot: {
     borderWidth: 3,
-    borderColor: colors.primary,
+    borderColor: "#0891B2",
     backgroundColor: colors.white,
   },
   statusLabel: {
@@ -566,7 +565,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary,
+    backgroundColor: "#0891B2",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,

@@ -1,5 +1,4 @@
 import PremiumActionCard from '@/component/PremiumActionCard';
-import PremiumStatCard from '@/component/PremiumStatCard';
 import SectionHeader from '@/component/SectionHeader';
 import WelcomeHeader from '@/component/WelcomeHeader';
 import { colors, Fonts } from '@/constant/theme';
@@ -9,19 +8,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NurseDashboard = () => {
   const { user } = useAuthContext();
-  
+
   const nurseInfo = useMemo(() => {
     return user?.additionalInfo as NurseInfo | undefined;
   }, [user]);
@@ -31,7 +30,7 @@ const NurseDashboard = () => {
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={[colors.primary, '#00D68F'] as const}
@@ -44,42 +43,13 @@ const NurseDashboard = () => {
           name={fullName}
           subtitle={nurseInfo?.specialization}
           avatar={nurseInfo?.profileImage}
+          whiteText={true}
         />
 
-        {/* Quick Stats in Header */}
-        <View style={styles.headerStats}>
-          <Animatable.View animation="fadeInUp" delay={100} style={styles.headerStatItem}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="time-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{nurseInfo?.experience || '-'}</Text>
-            <Text style={styles.headerStatLabel}>Experience</Text>
-          </Animatable.View>
-          
-          <View style={styles.headerStatDivider} />
-          
-          <Animatable.View animation="fadeInUp" delay={200} style={styles.headerStatItem}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="cash-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>Rs. {nurseInfo?.hourlyRate || '-'}</Text>
-            <Text style={styles.headerStatLabel}>Per Hour</Text>
-          </Animatable.View>
-          
-          <View style={styles.headerStatDivider} />
-          
-          <Animatable.View animation="fadeInUp" delay={300} style={styles.headerStatItem}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="calendar-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{nurseInfo?.availability || '-'}</Text>
-            <Text style={styles.headerStatLabel}>Availability</Text>
-          </Animatable.View>
-        </View>
       </LinearGradient>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
       >
@@ -96,7 +66,7 @@ const NurseDashboard = () => {
               <Text style={styles.overviewSubtitle}>
                 You have patients waiting for your care. Check your chats to respond.
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.overviewButton}
                 onPress={() => router.push('/(nurse)/(tabs)/nurse-chats')}
               >
@@ -112,13 +82,13 @@ const NurseDashboard = () => {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <SectionHeader 
-            title="Quick Actions" 
+          <SectionHeader
+            title="Quick Actions"
             icon="flash"
             animation="fadeInUp"
             delay={300}
           />
-          
+
           <PremiumActionCard
             title="Patient Chats"
             subtitle="View and respond to messages"
@@ -128,7 +98,7 @@ const NurseDashboard = () => {
             animation="fadeInUp"
             delay={350}
           />
-          
+
           <PremiumActionCard
             title="Edit Profile"
             subtitle="Update your professional information"
@@ -138,7 +108,7 @@ const NurseDashboard = () => {
             animation="fadeInUp"
             delay={400}
           />
-          
+
           <PremiumActionCard
             title="Help & Support"
             subtitle="Get assistance when you need it"
@@ -150,36 +120,7 @@ const NurseDashboard = () => {
           />
         </View>
 
-        {/* Service Stats */}
-        <View style={styles.section}>
-          <SectionHeader 
-            title="Your Stats" 
-            icon="bar-chart"
-            animation="fadeInUp"
-            delay={500}
-          />
-          
-          <View style={styles.statsGrid}>
-            <PremiumStatCard
-              title="Certifications"
-              value={nurseInfo?.certifications ? '✓' : '-'}
-              icon="ribbon"
-              color="#4CAF50"
-              animation="fadeInUp"
-              delay={550}
-              style={styles.statCard}
-            />
-            <PremiumStatCard
-              title="Service Area"
-              value={nurseInfo?.city || 'N/A'}
-              icon="location"
-              color="#2196F3"
-              animation="fadeInUp"
-              delay={600}
-              style={styles.statCard}
-            />
-          </View>
-        </View>
+
 
         {/* Tips Card */}
         <Animatable.View animation="fadeInUp" delay={650} style={styles.section}>
@@ -211,6 +152,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerStats: {
     flexDirection: 'row',
