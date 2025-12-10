@@ -51,7 +51,7 @@ const Profile = () => {
     const bloodGroup = additionalInfo?.bloodGroup || null;
     const address = additionalInfo?.address || null;
     const city = additionalInfo?.city || null;
-    
+
     return {
       fullName,
       firstName,
@@ -85,11 +85,11 @@ const Profile = () => {
         text2: error.text2 || error.message || "Logout failed. Please try again.",
       });
     }
-  }; 
+  };
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header with Profile */}
       <LinearGradient
         colors={[colors.primary, "#00D68F", "#00B37A"]}
@@ -124,121 +124,121 @@ const Profile = () => {
           </Animated.View>
         </SafeAreaView>
       </LinearGradient>
-      
-    <SafeAreaView edges={[ "bottom"]} style={styles.container}>
-      <ScrollView
-        contentContainerStyle={[styles.scrollContainer]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Quick Info Section */}
-        {(userInfo.address || userInfo.city) && (
-          <Animated.View style={[styles.quickInfoCard, {
+
+      <SafeAreaView edges={["bottom"]} style={styles.container}>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContainer]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Quick Info Section */}
+          {(userInfo.address || userInfo.city) && (
+            <Animated.View style={[styles.quickInfoCard, {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }]}>
+              <View style={styles.quickInfoItem}>
+                <View style={styles.quickInfoIconContainer}>
+                  <Ionicons name="location" size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.quickInfoText} numberOfLines={2}>
+                  {userInfo.address}{userInfo.city ? `, ${userInfo.city}` : ""}
+                </Text>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Account Settings Section */}
+          <Animated.View style={[styles.section, {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }]}>
-            <View style={styles.quickInfoItem}>
-              <View style={styles.quickInfoIconContainer}>
-                <Ionicons name="location" size={18} color={colors.primary} />
-              </View>
-              <Text style={styles.quickInfoText} numberOfLines={2}>
-                {userInfo.address}{userInfo.city ? `, ${userInfo.city}` : ""}
-              </Text>
+            <Text style={styles.sectionTitle}>Account Settings</Text>
+            <View style={styles.sectionContent}>
+              <ProfileOptions
+                leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
+                title="Edit Profile"
+                description="Update information"
+                onPress={() => router.push("/(protected)/edit-profile")}
+              />
+              <ProfileOptions
+                leftIcon={<Ionicons name="lock-closed-outline" size={22} color={colors.primary} />}
+                title="Change Password"
+                description="Update your account password"
+                onPress={() => router.push("/(protected)/change-password")}
+                showBorder={false}
+              />
             </View>
           </Animated.View>
-        )}
 
-        {/* Account Settings Section */}
-        <Animated.View style={[styles.section, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
-          <View style={styles.sectionContent}>
-            <ProfileOptions
-              leftIcon={<Ionicons name="person-outline" size={22} color={colors.primary} />}
-              title="Edit Profile"
-              description="Update information"
-              onPress={() => router.push("/(protected)/edit-profile")}
-            />
-            <ProfileOptions
-              leftIcon={<Ionicons name="lock-closed-outline" size={22} color={colors.primary} />}
-              title="Change Password"
-              description="Update your account password"
-              onPress={() => router.push("/(protected)/change-password")}
-              showBorder={false}
-            />
-          </View>
-        </Animated.View>
+          {/* Preferences Section */}
+          <Animated.View style={[styles.section, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.sectionTitle}>Preferences</Text>
+            <View style={styles.sectionContent}>
+              <ProfileOptions
+                leftIcon={<Ionicons name="chatbubbles-outline" size={22} color={colors.primary} />}
+                title="AI Assistant"
+                description="Chat with AI health assistant"
+                onPress={() => router.push("/(protected)/general-chat")}
+              />
+              <ProfileOptions
+                leftIcon={<Ionicons name="notifications-outline" size={22} color={colors.primary} />}
+                title="Notifications"
+                description="Manage notification preferences"
+                onPress={() => router.push("/(protected)/notifications")}
+              />
+              <ProfileOptions
+                leftIcon={<Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />}
+                title="Privacy & Security"
+                description="Control your privacy settings"
+                onPress={() => router.push("/(protected)/privacy")}
+                showBorder={false}
+              />
+            </View>
+          </Animated.View>
 
-        {/* Preferences Section */}
-        <Animated.View style={[styles.section, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.sectionContent}>
-            <ProfileOptions
-              leftIcon={<Ionicons name="chatbubbles-outline" size={22} color={colors.primary} />}
-              title="AI Assistant"
-              description="Chat with AI health assistant"
-              onPress={() => router.push("/(protected)/general-chat")}
-            />
-            <ProfileOptions
-              leftIcon={<Ionicons name="notifications-outline" size={22} color={colors.primary} />}
-              title="Notifications"
-              description="Manage notification preferences"
-              onPress={() => router.push("/(protected)/notifications")}
-            />
-            <ProfileOptions
-              leftIcon={<Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />}
-              title="Privacy & Security"
-              description="Control your privacy settings"
-              onPress={() => router.push("/(protected)/privacy")}
-              showBorder={false}
-            />
-          </View>
-        </Animated.View>
+          {/* Support Section */}
+          <Animated.View style={[styles.section, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.sectionTitle}>Support</Text>
+            <View style={styles.sectionContent}>
+              <ProfileOptions
+                leftIcon={<Ionicons name="chatbox-ellipses-outline" size={22} color={colors.primary} />}
+                title="Complain to Admin"
+                description="Report issues or concerns"
+                onPress={() => router.push("/(protected)/complain")}
+                showBorder={false}
+              />
+            </View>
+          </Animated.View>
 
-        {/* Support Section */}
-        <Animated.View style={[styles.section, {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }]}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          <View style={styles.sectionContent}>
-            <ProfileOptions
-              leftIcon={<Ionicons name="chatbox-ellipses-outline" size={22} color={colors.primary} />}
-              title="Complain to Admin"
-              description="Report issues or concerns"
-              onPress={() => router.push("/(protected)/complain")}
-              showBorder={false}
-            />
-          </View>
-        </Animated.View>
+          {/* Logout Button */}
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+              <LinearGradient
+                colors={[colors.danger, "#FF6B6B"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.logoutButtonGradient}
+              >
+                <Ionicons name="log-out" size={20} color={colors.white} />
+                <Text style={styles.logoutText}>Logout</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </ScrollView>
 
-        {/* Logout Button */}
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-            <LinearGradient
-              colors={[colors.danger, "#FF6B6B"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.logoutButtonGradient}
-            >
-              <Ionicons name="log-out" size={20} color={colors.white} />
-              <Text style={styles.logoutText}>Logout</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-      </ScrollView>
-
-      {/* Logout Modal */}
-      <LogoutModal
-        visible={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={confirmLogout}
-      />
-    </SafeAreaView>
+        {/* Logout Modal */}
+        <LogoutModal
+          visible={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={confirmLogout}
+        />
+      </SafeAreaView>
     </View>
   );
 };
@@ -254,6 +254,8 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerSafeArea: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,

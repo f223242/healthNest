@@ -27,9 +27,9 @@ const DashboardStatCard: React.FC<DashboardStatCardProps> = ({
       </View>
     </View>
     <View style={styles.statContent}>
-      <Text style={styles.statTitle}>{title}</Text>
+      <Text style={styles.statTitle} numberOfLines={1}>{title}</Text>
       <View style={styles.statValueRow}>
-        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
         {trend && (
           <View style={styles.trendBadge}>
             <Ionicons name="trending-up" size={12} color={colors.success} />

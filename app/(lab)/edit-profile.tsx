@@ -63,11 +63,11 @@ const EditProfile = () => {
   const [location, setLocation] = useState<LocationData | null>(
     labInfo?.address
       ? {
-          address: labInfo.address,
-          city: labInfo.city || "",
-          latitude: labInfo?.coordinates?.latitude,
-          longitude: labInfo?.coordinates?.longitude,
-        }
+        address: labInfo.address,
+        city: labInfo.city || "",
+        latitude: labInfo?.coordinates?.latitude,
+        longitude: labInfo?.coordinates?.longitude,
+      }
       : null
   );
 
@@ -99,7 +99,7 @@ const EditProfile = () => {
           } : null,
           profileImage: profileImage,
         } as LabInfo);
-        
+
         toast.show({
           type: "success",
           text1: "Profile Updated",
@@ -123,11 +123,10 @@ const EditProfile = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-      
-      {/* Premium Gradient Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+
       <LinearGradient
-        colors={["#7C3AED", "#A78BFA"]}
+        colors={["#0891B2", "#22D3EE"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -147,11 +146,11 @@ const EditProfile = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <KeyboardAwareScrollView
@@ -199,95 +198,95 @@ const EditProfile = () => {
                 onChangeText={handleChange("phone")}
                 onBlur={handleBlur("phone")}
                 placeholder="Phone Number"
-            keyboardType="phone-pad"
-            editable={false}
-            LeftIcon={() => <Ionicons name="call-outline" size={20} color={colors.gray} />}
-            error={touched.phone && errors.phone ? errors.phone : undefined}
-          />
+                keyboardType="phone-pad"
+                editable={false}
+                LeftIcon={() => <Ionicons name="call-outline" size={20} color={colors.gray} />}
+                error={touched.phone && errors.phone ? errors.phone : undefined}
+              />
 
-          <FormInput
-            value={values.labName}
-            onChangeText={handleChange("labName")}
-            onBlur={handleBlur("labName")}
-            placeholder="Lab Name"
-            LeftIcon={() => <Ionicons name="business-outline" size={20} color={colors.gray} />}
-            error={touched.labName && errors.labName ? errors.labName : undefined}
-          />
+              <FormInput
+                value={values.labName}
+                onChangeText={handleChange("labName")}
+                onBlur={handleBlur("labName")}
+                placeholder="Lab Name"
+                LeftIcon={() => <Ionicons name="business-outline" size={20} color={colors.gray} />}
+                error={touched.labName && errors.labName ? errors.labName : undefined}
+              />
 
-          <FormInput
-            value={values.licenseNumber}
-            onChangeText={handleChange("licenseNumber")}
-            onBlur={handleBlur("licenseNumber")}
-            placeholder="License Number"
-            LeftIcon={() => <Ionicons name="card-outline" size={20} color={colors.gray} />}
-            error={touched.licenseNumber && errors.licenseNumber ? errors.licenseNumber : undefined}
-          />
+              <FormInput
+                value={values.licenseNumber}
+                onChangeText={handleChange("licenseNumber")}
+                onBlur={handleBlur("licenseNumber")}
+                placeholder="License Number"
+                LeftIcon={() => <Ionicons name="card-outline" size={20} color={colors.gray} />}
+                error={touched.licenseNumber && errors.licenseNumber ? errors.licenseNumber : undefined}
+              />
 
-          <FormInput
-            value={values.operatingHours}
-            onChangeText={handleChange("operatingHours")}
-            onBlur={handleBlur("operatingHours")}
-            placeholder="Operating Hours (e.g., 9 AM - 6 PM)"
-            LeftIcon={() => <Ionicons name="time-outline" size={20} color={colors.gray} />}
-            error={touched.operatingHours && errors.operatingHours ? errors.operatingHours : undefined}
-          />
+              <FormInput
+                value={values.operatingHours}
+                onChangeText={handleChange("operatingHours")}
+                onBlur={handleBlur("operatingHours")}
+                placeholder="Operating Hours (e.g., 9 AM - 6 PM)"
+                LeftIcon={() => <Ionicons name="time-outline" size={20} color={colors.gray} />}
+                error={touched.operatingHours && errors.operatingHours ? errors.operatingHours : undefined}
+              />
 
-          <FormInput
-            value={values.servicesOffered}
-            onChangeText={handleChange("servicesOffered")}
-            onBlur={handleBlur("servicesOffered")}
-            placeholder="Services Offered (e.g., Blood tests, X-ray)"
-            LeftIcon={() => <Ionicons name="flask-outline" size={20} color={colors.gray} />}
-            error={touched.servicesOffered && errors.servicesOffered ? errors.servicesOffered : undefined}
-          />
+              <FormInput
+                value={values.servicesOffered}
+                onChangeText={handleChange("servicesOffered")}
+                onBlur={handleBlur("servicesOffered")}
+                placeholder="Services Offered (e.g., Blood tests, X-ray)"
+                LeftIcon={() => <Ionicons name="flask-outline" size={20} color={colors.gray} />}
+                error={touched.servicesOffered && errors.servicesOffered ? errors.servicesOffered : undefined}
+              />
 
-          {/* Location Picker */}
-          <LocationPicker
-            label="Lab Address"
-            value={location || undefined}
-            onLocationSelect={setLocation}
-            placeholder="Select your lab address"
-          />
+              {/* Location Picker */}
+              <LocationPicker
+                label="Lab Address"
+                value={location || undefined}
+                onLocationSelect={setLocation}
+                placeholder="Select your lab address"
+              />
 
-          {/* Home Sampling Toggle */}
-          <View style={styles.selectContainer}>
-            <Text style={styles.selectLabel}>Home Sampling Available?</Text>
-            <View style={styles.optionsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.optionChip,
-                  homeSampling && styles.optionChipSelected,
-                ]}
-                onPress={() => setHomeSampling(true)}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    homeSampling && styles.optionTextSelected,
-                  ]}
-                >
-                  Yes
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.optionChip,
-                  !homeSampling && styles.optionChipSelected,
-                ]}
-                onPress={() => setHomeSampling(false)}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    !homeSampling && styles.optionTextSelected,
-                  ]}
-                >
-                  No
-                </Text>
-              </TouchableOpacity>
+              {/* Home Sampling Toggle */}
+              <View style={styles.selectContainer}>
+                <Text style={styles.selectLabel}>Home Sampling Available?</Text>
+                <View style={styles.optionsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.optionChip,
+                      homeSampling && styles.optionChipSelected,
+                    ]}
+                    onPress={() => setHomeSampling(true)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        homeSampling && styles.optionTextSelected,
+                      ]}
+                    >
+                      Yes
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.optionChip,
+                      !homeSampling && styles.optionChipSelected,
+                    ]}
+                    onPress={() => setHomeSampling(false)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        !homeSampling && styles.optionTextSelected,
+                      ]}
+                    >
+                      No
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
 
             {/* Update Button */}
             <AppButton
@@ -312,7 +311,7 @@ export default EditProfile;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#0891B2",
   },
   headerGradient: {
     paddingTop: 50,
@@ -387,8 +386,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
   },
   optionChipSelected: {
-    backgroundColor: "#7C3AED",
-    borderColor: "#7C3AED",
+    backgroundColor: "#0891B2",
+    borderColor: "#0891B2",
   },
   optionText: {
     fontFamily: Fonts.medium,

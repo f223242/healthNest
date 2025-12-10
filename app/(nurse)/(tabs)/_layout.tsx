@@ -1,10 +1,8 @@
-import HomeHeader from '@/component/HomeHeader';
 import { colors, Fonts } from '@/constant/theme';
 import { useAuthContext } from '@/hooks/useFirebaseAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function NurseLayout() {
@@ -39,36 +37,14 @@ export default function NurseLayout() {
           paddingBottom: insets.bottom ? insets.bottom / 2 : 10,
         },
         tabBarItemStyle: { paddingVertical: 5 },
-        headerTitleAlign: 'center',
-        headerStyle: { backgroundColor: colors.white },
-        headerTintColor: colors.text,
-        headerShadowVisible: false,
+        headerShown: false,
       }}
     >
       {/* Dashboard */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          headerShown: true,
-          header: () => (
-            <HomeHeader
-              rightAction={
-                <TouchableOpacity onPress={logout} accessibilityLabel="Logout">
-                  <Ionicons
-                    name="log-out-outline"
-                    size={24}
-                    color={colors.white}
-                    style={{ marginRight: 10 }}
-                  />
-                </TouchableOpacity>
-              }
-              title="Nurse Dashboard"
-              subtitle="Manage your nursing services"
-              onNotificationPress={() => {}}
-            />
-          ),
-          headerStyle: { backgroundColor: 'transparent' },
+          headerShown: false,
           tabBarLabel: 'Dashboard',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons
@@ -84,19 +60,7 @@ export default function NurseLayout() {
       <Tabs.Screen
         name="nurse-chats"
         options={{
-          title: 'Chats',
-          headerShown: true,
-          header: () => (
-            <HomeHeader
-              title="Patient Chats"
-              subtitle="Connect with your patients instantly"
-              onNotificationPress={() => {}}
-              leftAction={
-                <Ionicons name="chatbubbles" size={40} color={colors.white} />
-              }
-            />
-          ),
-          headerStyle: { backgroundColor: 'transparent' },
+          headerShown: false,
           tabBarLabel: 'Chats',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons
@@ -111,16 +75,7 @@ export default function NurseLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          headerShown: true,
-          header: () => (
-            <HomeHeader
-              title="Profile"
-              subtitle="Manage your account"
-              showGreeting={false}
-              showNotification={false}
-            />
-          ),
+          headerShown: false,
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />

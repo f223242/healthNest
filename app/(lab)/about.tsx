@@ -41,11 +41,10 @@ const About = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-      
-      {/* Premium Gradient Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#0891B2" />
+
       <LinearGradient
-        colors={["#7C3AED", "#A78BFA"]}
+        colors={["#0891B2", "#22D3EE"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -59,7 +58,7 @@ const About = () => {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <View style={styles.logoContainer}>
-              <Ionicons name="flask" size={32} color="#7C3AED" />
+              <Ionicons name="flask" size={32} color="#0891B2" />
             </View>
             <Text style={styles.appName}>HealthNest</Text>
             <Text style={styles.appTagline}>Laboratory Portal</Text>
@@ -71,73 +70,73 @@ const About = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* About Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About HealthNest Lab</Text>
-          <View style={styles.descriptionCard}>
-            <Text style={styles.descriptionText}>
-              HealthNest Laboratory Portal is a comprehensive solution for lab technicians to manage test requests, process samples, and generate accurate reports efficiently.
-            </Text>
-            <Text style={styles.descriptionText}>
-              We empower laboratory professionals with cutting-edge tools to deliver precise diagnostics and maintain the highest standards of quality.
-            </Text>
-          </View>
-        </View>
-
-        {/* Features */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Features</Text>
-          <View style={styles.featuresGrid}>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureCard}>
-                <View style={styles.featureIconContainer}>
-                  <Ionicons name={feature.icon as any} size={24} color={colors.primary} />
-                </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
+            {/* About Description */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>About HealthNest Lab</Text>
+              <View style={styles.descriptionCard}>
+                <Text style={styles.descriptionText}>
+                  HealthNest Laboratory Portal is a comprehensive solution for lab technicians to manage test requests, process samples, and generate accurate reports efficiently.
+                </Text>
+                <Text style={styles.descriptionText}>
+                  We empower laboratory professionals with cutting-edge tools to deliver precise diagnostics and maintain the highest standards of quality.
+                </Text>
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
 
-        {/* Social Links */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Connect With Us</Text>
-          <View style={styles.socialContainer}>
-            {[
-              { icon: "logo-facebook", color: "#1877F2", url: "https://facebook.com" },
-              { icon: "logo-twitter", color: "#1DA1F2", url: "https://twitter.com" },
-              { icon: "logo-instagram", color: "#E4405F", url: "https://instagram.com" },
-              { icon: "logo-linkedin", color: "#0A66C2", url: "https://linkedin.com" },
-            ].map((social, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.socialButton, { backgroundColor: social.color + "15" }]}
-                onPress={() => openLink(social.url)}
-              >
-                <Ionicons name={social.icon as any} size={24} color={social.color} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+            {/* Features */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Features</Text>
+              <View style={styles.featuresGrid}>
+                {features.map((feature, index) => (
+                  <View key={index} style={styles.featureCard}>
+                    <View style={styles.featureIconContainer}>
+                      <Ionicons name={feature.icon as any} size={24} color="#0891B2" />
+                    </View>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureDescription}>{feature.description}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Made with ❤️ in Pakistan</Text>
-          <Text style={styles.copyrightText}>© 2025 HealthNest. All rights reserved.</Text>
-        </View>
-      </ScrollView>
-      </Animated.View>
-    </SafeAreaView>
+            {/* Social Links */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Connect With Us</Text>
+              <View style={styles.socialContainer}>
+                {[
+                  { icon: "logo-facebook", color: "#1877F2", url: "https://facebook.com" },
+                  { icon: "logo-twitter", color: "#1DA1F2", url: "https://twitter.com" },
+                  { icon: "logo-instagram", color: "#E4405F", url: "https://instagram.com" },
+                  { icon: "logo-linkedin", color: "#0A66C2", url: "https://linkedin.com" },
+                ].map((social, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.socialButton, { backgroundColor: social.color + "15" }]}
+                    onPress={() => openLink(social.url)}
+                  >
+                    <Ionicons name={social.icon as any} size={24} color={social.color} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Made with ❤️ in Pakistan</Text>
+              <Text style={styles.copyrightText}>© 2025 HealthNest. All rights reserved.</Text>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </SafeAreaView>
     </View>
   );
 };
@@ -147,7 +146,7 @@ export default About;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#0891B2",
   },
   headerGradient: {
     paddingTop: 50,
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.primary + "15",
+    backgroundColor: "#0891B2" + "15",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,

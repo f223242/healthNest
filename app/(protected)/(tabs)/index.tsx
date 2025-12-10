@@ -1,5 +1,6 @@
 import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
+import GradientHeader from "@/component/GradientHeader";
 import PremiumActionCard from "@/component/PremiumActionCard";
 import SectionHeader from "@/component/SectionHeader";
 import ServiceCard from "@/component/ServiceCard";
@@ -9,10 +10,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl, StatusBar, StyleSheet, Text, View } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const index = () => {
   const router = useRouter();
@@ -24,6 +24,7 @@ const index = () => {
     delivery: 0,
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(250); // Default estimate
 
   // Extract user info
   const userInfo = useMemo(() => {
@@ -32,7 +33,7 @@ const index = () => {
     const lastName = user?.lastname || "";
     const fullName = `${firstName} ${lastName}`.trim() || "User";
     const profileImage = additionalInfo?.profileImage || null;
-    
+
     return {
       fullName,
       firstName,
@@ -48,7 +49,7 @@ const index = () => {
         getAllUsers("Lab"),
         getAllUsers("Medicine Delivery"),
       ]);
-      
+
       setServiceStats({
         nurses: nurses.filter(u => u.profileCompleted).length,
         labs: labs.filter(u => u.profileCompleted).length,
@@ -104,12 +105,12 @@ const index = () => {
       onPress: handleRequestMedicine,
     },
     {
-     id: 3,
-     title:"Nursing Services",
-     description:"Book nursing care",
-     icon:<Ionicons name="people" size={28} color={colors.primary} />,
-     color:"#F3E8FF",
-     onPress:handleNursingServices
+      id: 3,
+      title: "Nursing Services",
+      description: "Book nursing care",
+      icon: <Ionicons name="people" size={28} color={colors.primary} />,
+      color: "#F3E8FF",
+      onPress: handleNursingServices
     },
     {
       id: 4,
@@ -122,79 +123,34 @@ const index = () => {
   ];
 
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={[colors.primary, '#00D68F'] as const}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Animatable.View animation="fadeInDown" duration={600} style={styles.welcomeSection}>
-          <View style={styles.welcomeContent}>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.nameText}>{userInfo.firstName || userInfo.fullName}</Text>
-          </View>
-          {userInfo.profileImage ? (
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: userInfo.profileImage }}
-                style={styles.welcomeAvatar}
-              />
-            </View>
-          ) : (
-            <View style={styles.avatarContainer}>
-              <View style={styles.welcomeAvatarPlaceholder}>
-                <Text style={styles.avatarInitials}>
-                  {(userInfo.firstName || userInfo.fullName).substring(0, 2).toUpperCase()}
-                </Text>
-              </View>
-            </View>
-          )}
-        </Animatable.View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-        {/* Stats in Header */}
-        <Animatable.View animation="fadeInUp" delay={100} style={styles.headerStats}>
-          <TouchableOpacity style={styles.headerStatItem} onPress={handleNursingServices}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="people-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{serviceStats.nurses}</Text>
-            <Text style={styles.headerStatLabel}>Nurses</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.headerStatDivider} />
-          
-          <TouchableOpacity style={styles.headerStatItem} onPress={handleLabPress}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="flask-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{serviceStats.labs}</Text>
-            <Text style={styles.headerStatLabel}>Labs</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.headerStatDivider} />
-          
-          <TouchableOpacity style={styles.headerStatItem} onPress={handleRequestMedicine}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="bicycle-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{serviceStats.delivery}</Text>
-            <Text style={styles.headerStatLabel}>Delivery</Text>
-          </TouchableOpacity>
-        </Animatable.View>
-      </LinearGradient>
+      {/* Absolute Header */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, elevation: 20 }}>
+        <GradientHeader
+          userInfo={userInfo}
+          stats={serviceStats}
+          onPressNurses={handleNursingServices}
+          onPressLabs={handleLabPress}
+          onPressDelivery={handleRequestMedicine}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        />
+      </View>
 
       <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[styles.scrollContainer, { paddingTop: headerHeight - 20 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            progressViewOffset={headerHeight}
+          />
         }
       >
         {/* Search Bar */}
@@ -210,8 +166,8 @@ const index = () => {
 
         {/* Quick Services Grid */}
         <Animatable.View animation="fadeInUp" delay={300}>
-          <SectionHeader 
-            title="Quick Services" 
+          <SectionHeader
+            title="Quick Services"
             icon="grid"
             action="See All"
             style={{ paddingHorizontal: sizes.paddingHorizontal }}
@@ -220,9 +176,9 @@ const index = () => {
 
         <View style={styles.servicesGrid}>
           {services.map((service, index) => (
-            <Animatable.View 
-              key={service.id} 
-              animation="fadeInUp" 
+            <Animatable.View
+              key={service.id}
+              animation="fadeInUp"
               delay={350 + index * 50}
               style={styles.serviceCardWrapper}
             >
@@ -239,8 +195,8 @@ const index = () => {
 
         {/* Quick Actions */}
         <View style={styles.actionsSection}>
-          <SectionHeader 
-            title="Quick Actions" 
+          <SectionHeader
+            title="Quick Actions"
             icon="flash"
             animation="fadeInUp"
             delay={500}
@@ -299,7 +255,7 @@ const index = () => {
 
         <View style={{ height: 20 }} />
       </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

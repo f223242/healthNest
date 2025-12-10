@@ -39,7 +39,7 @@ const AdminDashboard = () => {
   const fetchStats = useCallback(async () => {
     try {
       const allUsers = await getAllUsers();
-      
+
       const stats = {
         total: allUsers.length,
         users: allUsers.filter(u => u.role === "user").length,
@@ -47,7 +47,7 @@ const AdminDashboard = () => {
         labs: allUsers.filter(u => u.role === "lab").length,
         delivery: allUsers.filter(u => u.role === "delivery").length,
       };
-      
+
       setUserStats(stats);
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -126,7 +126,7 @@ const AdminDashboard = () => {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={['#1a1a2e', '#16213e'] as const}
@@ -183,18 +183,18 @@ const AdminDashboard = () => {
       >
         {/* Statistics Cards */}
         <View style={styles.section}>
-          <SectionHeader 
-            title="User Statistics" 
+          <SectionHeader
+            title="User Statistics"
             icon="stats-chart"
             animation="fadeInUp"
             delay={200}
           />
           <View style={styles.statsGrid}>
             {stats.map((stat, index) => (
-              <Animatable.View 
-                key={index} 
-                animation="fadeInUp" 
-                delay={250 + index * 50} 
+              <Animatable.View
+                key={index}
+                animation="fadeInUp"
+                delay={250 + index * 50}
                 style={styles.statCardWrapper}
               >
                 <AdminStatCard {...stat} />
@@ -205,13 +205,13 @@ const AdminDashboard = () => {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <SectionHeader 
-            title="Quick Actions" 
+          <SectionHeader
+            title="Quick Actions"
             icon="flash"
             animation="fadeInUp"
             delay={400}
           />
-          
+
           <PremiumActionCard
             title="Manage Users"
             subtitle="View, edit, and manage all users"
@@ -222,7 +222,7 @@ const AdminDashboard = () => {
             animation="fadeInUp"
             delay={450}
           />
-          
+
           <PremiumActionCard
             title="View Complaints"
             subtitle="Review and respond to user complaints"
@@ -281,6 +281,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   welcomeSection: {
     flexDirection: 'row',

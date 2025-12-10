@@ -1,5 +1,4 @@
 import PremiumActionCard from '@/component/PremiumActionCard';
-import PremiumStatCard from '@/component/PremiumStatCard';
 import SectionHeader from '@/component/SectionHeader';
 import WelcomeHeader from '@/component/WelcomeHeader';
 import { colors, Fonts } from '@/constant/theme';
@@ -9,19 +8,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const DeliveryDashboard = () => {
   const { user } = useAuthContext();
-  
+
   const deliveryInfo = useMemo(() => {
     return user?.additionalInfo as DeliveryInfo | undefined;
   }, [user]);
@@ -40,11 +39,11 @@ const DeliveryDashboard = () => {
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#FF5722" />
-      
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#FF5722', '#FF8A65'] as const}
+        colors={[colors.primary, '#00D68F'] as const}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -56,40 +55,10 @@ const DeliveryDashboard = () => {
           avatar={deliveryInfo?.profileImage}
         />
 
-        {/* Quick Stats in Header */}
-        <View style={styles.headerStats}>
-          <Animatable.View animation="fadeInUp" delay={100} style={styles.headerStatItem}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name={getVehicleIcon(deliveryInfo?.vehicleType)} size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{deliveryInfo?.vehicleNumber || '-'}</Text>
-            <Text style={styles.headerStatLabel}>Vehicle</Text>
-          </Animatable.View>
-          
-          <View style={styles.headerStatDivider} />
-          
-          <Animatable.View animation="fadeInUp" delay={200} style={styles.headerStatItem}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="time-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{deliveryInfo?.availability || '-'}</Text>
-            <Text style={styles.headerStatLabel}>Available</Text>
-          </Animatable.View>
-          
-          <View style={styles.headerStatDivider} />
-          
-          <Animatable.View animation="fadeInUp" delay={300} style={styles.headerStatItem}>
-            <View style={styles.headerStatIcon}>
-              <Ionicons name="card-outline" size={18} color={colors.white} />
-            </View>
-            <Text style={styles.headerStatValue}>{deliveryInfo?.licenseNumber ? '✓' : '-'}</Text>
-            <Text style={styles.headerStatLabel}>License</Text>
-          </Animatable.View>
-        </View>
       </LinearGradient>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
       >
@@ -106,7 +75,7 @@ const DeliveryDashboard = () => {
               <Text style={styles.overviewSubtitle}>
                 Check your customer chats for new delivery requests and updates.
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.overviewButton}
                 onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}
               >
@@ -122,24 +91,23 @@ const DeliveryDashboard = () => {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <SectionHeader 
-            title="Quick Actions" 
+          <SectionHeader
+            title="Quick Actions"
             icon="flash"
             animation="fadeInUp"
             delay={300}
           />
-          
+
           <PremiumActionCard
             title="Customer Chats"
             subtitle="View and respond to messages"
             icon="chatbubbles"
             gradient
-            gradientColors={['#FF5722', '#FF8A65'] as const}
             onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}
             animation="fadeInUp"
             delay={350}
           />
-          
+
           <PremiumActionCard
             title="Edit Profile"
             subtitle="Update your delivery information"
@@ -149,7 +117,7 @@ const DeliveryDashboard = () => {
             animation="fadeInUp"
             delay={400}
           />
-          
+
           <PremiumActionCard
             title="Help & Support"
             subtitle="Get assistance when you need it"
@@ -161,36 +129,7 @@ const DeliveryDashboard = () => {
           />
         </View>
 
-        {/* Service Stats */}
-        <View style={styles.section}>
-          <SectionHeader 
-            title="Your Stats" 
-            icon="bar-chart"
-            animation="fadeInUp"
-            delay={500}
-          />
-          
-          <View style={styles.statsGrid}>
-            <PremiumStatCard
-              title="Vehicle Type"
-              value={deliveryInfo?.vehicleType || 'N/A'}
-              icon="car"
-              color="#FF5722"
-              animation="fadeInUp"
-              delay={550}
-              style={styles.statCard}
-            />
-            <PremiumStatCard
-              title="Service Area"
-              value={deliveryInfo?.city || 'N/A'}
-              icon="location"
-              color="#2196F3"
-              animation="fadeInUp"
-              delay={600}
-              style={styles.statCard}
-            />
-          </View>
-        </View>
+
 
         {/* Tips Card */}
         <Animatable.View animation="fadeInUp" delay={650} style={styles.section}>
@@ -222,6 +161,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 10,
+    elevation: 8,
   },
   headerStats: {
     flexDirection: 'row',
