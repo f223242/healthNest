@@ -3,14 +3,17 @@ import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -31,6 +34,23 @@ const ComplaintsManagement = () => {
   const [filterStatus, setFilterStatus] = useState<"All" | "Pending" | "In Progress" | "Resolved" | "Rejected">("All");
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Sample data
   const complaints: Complaint[] = [
@@ -218,26 +238,52 @@ const ComplaintsManagement = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={['#1E293B', '#334155', '#475569']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          {stats.map((stat, index) => (
-            <View
-              key={index}
-              style={[
-                styles.statCard,
-                { borderLeftColor: stat.color, borderLeftWidth: 4 },
-              ]}
-            >
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Complaints</Text>
+          <Text style={styles.headerSubtitle}>Manage user complaints & issues</Text>
+          
+          {/* Stats in Header */}
+          <View style={styles.headerStats}>
+            <View style={styles.headerStatItem}>
+              <Text style={styles.headerStatValue}>{complaints.length}</Text>
+              <Text style={styles.headerStatLabel}>Total</Text>
             </View>
-          ))}
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <Text style={[styles.headerStatValue, { color: '#FCD34D' }]}>{complaints.filter(c => c.status === "Pending").length}</Text>
+              <Text style={styles.headerStatLabel}>Pending</Text>
+            </View>
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <Text style={[styles.headerStatValue, { color: '#60A5FA' }]}>{complaints.filter(c => c.status === "In Progress").length}</Text>
+              <Text style={styles.headerStatLabel}>In Progress</Text>
+            </View>
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <Text style={[styles.headerStatValue, { color: '#4ADE80' }]}>{complaints.filter(c => c.status === "Resolved").length}</Text>
+              <Text style={styles.headerStatLabel}>Resolved</Text>
+            </View>
+          </View>
         </View>
+      </LinearGradient>
+
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
         {/* Search and Filters */}
         <View style={styles.searchSection}>
@@ -286,7 +332,10 @@ const ComplaintsManagement = () => {
             emptyMessage="No complaints found"
           />
         </View>
-      </ScrollView>
+
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
 
       {/* Detail Modal */}
       <Modal
@@ -397,51 +446,89 @@ const ComplaintsManagement = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default ComplaintsManagement;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: '#1E293B',
   },
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+
+  headerContent: {
+    width: '100%',
+  },
+
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 4,
+  },
+
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 20,
+  },
+
+  headerStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+
+  headerStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  headerStatValue: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 2,
+  },
+
+  headerStatLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.3,
+  },
+
+  headerStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -10,
+  },
+
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 20,
+    paddingTop: 24,
     paddingBottom: 100,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: "47%",
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  statValue: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: colors.gray,
   },
   searchSection: {
     marginBottom: 20,

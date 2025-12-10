@@ -2,18 +2,40 @@ import DeleteAccountModal from "@/component/ModalComponent/DeleteAccountModal";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useRef, useState } from "react";
-import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const DeleteAccount = () => {
+  const router = useRouter();
   const { logout } = useAuthContext();
   const [showModal, setShowModal] = useState(false);
+  const modalFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Animation refs for content
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const openModal = () => {
     setShowModal(true);
-    Animated.timing(fadeAnim, {
+    Animated.timing(modalFadeAnim, {
       toValue: 1,
       duration: 200,
       useNativeDriver: true,
@@ -21,7 +43,7 @@ const DeleteAccount = () => {
   };
 
   const closeModal = () => {
-    Animated.timing(fadeAnim, {
+    Animated.timing(modalFadeAnim, {
       toValue: 0,
       duration: 150,
       useNativeDriver: true,
@@ -34,9 +56,40 @@ const DeleteAccount = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Warning Card */}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={["#7C3AED", "#A78BFA"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Delete Account</Text>
+          <View style={styles.headerIcon}>
+            <Ionicons name="trash" size={22} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Warning Card */}
         <View style={styles.warningCard}>
           <View style={styles.warningIconContainer}>
             <Ionicons name="warning" size={40} color={colors.danger} />
@@ -73,28 +126,70 @@ const DeleteAccount = () => {
           <Text style={styles.deleteButtonText}>Delete My Account</Text>
         </TouchableOpacity>
       </ScrollView>
+      </Animated.View>
+    </SafeAreaView>
 
       <DeleteAccountModal
         visible={showModal}
-        fadeAnim={fadeAnim}
+        fadeAnim={modalFadeAnim}
         onCancel={closeModal}
         onConfirm={handleDeleteConfirm}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default DeleteAccount;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
+    backgroundColor: "#7C3AED",
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 25,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   scrollContent: {
     flexGrow: 1,
     padding: sizes.paddingHorizontal,
-    paddingTop: 20,
+    paddingTop: 30,
     paddingBottom: 40,
   },
   warningCard: {

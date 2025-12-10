@@ -1,13 +1,16 @@
 import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
+import PremiumActionCard from "@/component/PremiumActionCard";
+import SectionHeader from "@/component/SectionHeader";
 import ServiceCard from "@/component/ServiceCard";
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { PatientInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as Animatable from 'react-native-animatable';
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -119,158 +122,180 @@ const index = () => {
   ];
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        enableOnAndroid={true}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
-        }
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00D68F'] as const}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
+        <Animatable.View animation="fadeInDown" duration={600} style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.nameText}>{userInfo.firstName || userInfo.fullName}</Text>
           </View>
           {userInfo.profileImage ? (
-            <Image
-              source={{ uri: userInfo.profileImage }}
-              style={styles.welcomeAvatar}
-            />
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: userInfo.profileImage }}
+                style={styles.welcomeAvatar}
+              />
+            </View>
           ) : (
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.welcomeAvatarPlaceholder}
-            >
-              <Ionicons name="person" size={24} color={colors.white} />
-            </LinearGradient>
+            <View style={styles.avatarContainer}>
+              <View style={styles.welcomeAvatarPlaceholder}>
+                <Text style={styles.avatarInitials}>
+                  {(userInfo.firstName || userInfo.fullName).substring(0, 2).toUpperCase()}
+                </Text>
+              </View>
+            </View>
           )}
-        </View>
+        </Animatable.View>
 
+        {/* Stats in Header */}
+        <Animatable.View animation="fadeInUp" delay={100} style={styles.headerStats}>
+          <TouchableOpacity style={styles.headerStatItem} onPress={handleNursingServices}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="people-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{serviceStats.nurses}</Text>
+            <Text style={styles.headerStatLabel}>Nurses</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.headerStatDivider} />
+          
+          <TouchableOpacity style={styles.headerStatItem} onPress={handleLabPress}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="flask-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{serviceStats.labs}</Text>
+            <Text style={styles.headerStatLabel}>Labs</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.headerStatDivider} />
+          
+          <TouchableOpacity style={styles.headerStatItem} onPress={handleRequestMedicine}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="bicycle-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{serviceStats.delivery}</Text>
+            <Text style={styles.headerStatLabel}>Delivery</Text>
+          </TouchableOpacity>
+        </Animatable.View>
+      </LinearGradient>
+
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
+      >
         {/* Search Bar */}
-        <FormInput
-          LeftIcon={SearchIcon}
-          placeholder="Search for services, labs, medicines..."
-          containerStyle={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-
-        {/* Service Stats Cards */}
-        <View style={styles.quickInfoContainer}>
-          <TouchableOpacity 
-            style={[styles.quickInfoCard, { backgroundColor: "#F3E8FF" }]}
-            onPress={handleNursingServices}
-          >
-            <Ionicons name="people" size={20} color="#9C27B0" />
-            <Text style={[styles.quickInfoValue, { color: "#9C27B0" }]}>{serviceStats.nurses}</Text>
-            <Text style={styles.quickInfoLabel}>Nurses</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.quickInfoCard, { backgroundColor: "#E8F5F0" }]}
-            onPress={handleLabPress}
-          >
-            <Ionicons name="flask" size={20} color={colors.primary} />
-            <Text style={[styles.quickInfoValue, { color: colors.primary }]}>{serviceStats.labs}</Text>
-            <Text style={styles.quickInfoLabel}>Labs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.quickInfoCard, { backgroundColor: "#FFF4E6" }]}
-            onPress={handleRequestMedicine}
-          >
-            <Ionicons name="bicycle" size={20} color="#FF9800" />
-            <Text style={[styles.quickInfoValue, { color: "#FF9800" }]}>{serviceStats.delivery}</Text>
-            <Text style={styles.quickInfoLabel}>Delivery</Text>
-          </TouchableOpacity>
-        </View>
+        <Animatable.View animation="fadeInUp" delay={200}>
+          <FormInput
+            LeftIcon={SearchIcon}
+            placeholder="Search for services, labs, medicines..."
+            containerStyle={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </Animatable.View>
 
         {/* Quick Services Grid */}
-        <View style={styles.sectionHeader}>
-          <Text style={appStyles.h3}>Quick Services</Text>
-          <TouchableOpacity>
-            <Text style={appStyles.linkText}>See All</Text>
-          </TouchableOpacity>
-        </View>
+        <Animatable.View animation="fadeInUp" delay={300}>
+          <SectionHeader 
+            title="Quick Services" 
+            icon="grid"
+            action="See All"
+            style={{ paddingHorizontal: sizes.paddingHorizontal }}
+          />
+        </Animatable.View>
 
         <View style={styles.servicesGrid}>
-          {services.map((service) => (
-            <ServiceCard
-              key={service.id}
-              title={service.title}
-              description={service.description}
-              icon={service.icon}
-              backgroundColor={service.color}
-              onPress={service.onPress}
-            />
+          {services.map((service, index) => (
+            <Animatable.View 
+              key={service.id} 
+              animation="fadeInUp" 
+              delay={350 + index * 50}
+              style={styles.serviceCardWrapper}
+            >
+              <ServiceCard
+                title={service.title}
+                description={service.description}
+                icon={service.icon}
+                backgroundColor={service.color}
+                onPress={service.onPress}
+              />
+            </Animatable.View>
           ))}
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.sectionHeader}>
-          <Text style={appStyles.h3}>Quick Actions</Text>
-        </View>
+        <View style={styles.actionsSection}>
+          <SectionHeader 
+            title="Quick Actions" 
+            icon="flash"
+            animation="fadeInUp"
+            delay={500}
+          />
 
-        <View style={styles.quickActionsContainer}>
-          <TouchableOpacity 
-            style={styles.quickActionCard}
+          <PremiumActionCard
+            title="Edit Profile"
+            subtitle="Update your personal information"
+            icon="person"
+            gradient
             onPress={() => router.push("/(protected)/edit-profile")}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + "15" }]}>
-              <Ionicons name="person" size={22} color={colors.primary} />
-            </View>
-            <View style={styles.quickActionContent}>
-              <Text style={styles.quickActionTitle}>Edit Profile</Text>
-              <Text style={styles.quickActionSubtitle}>Update your information</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
+            animation="fadeInUp"
+            delay={550}
+          />
 
-          <TouchableOpacity 
-            style={styles.quickActionCard}
+          <PremiumActionCard
+            title="Medical Records"
+            subtitle="View your complete health history"
+            icon="document-text"
+            color="#4CAF50"
             onPress={() => router.push("/(protected)/(tabs)/madical-record")}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: "#4CAF50" + "15" }]}>
-              <Ionicons name="document-text" size={22} color="#4CAF50" />
-            </View>
-            <View style={styles.quickActionContent}>
-              <Text style={styles.quickActionTitle}>Medical Records</Text>
-              <Text style={styles.quickActionSubtitle}>View your health history</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
+            animation="fadeInUp"
+            delay={600}
+          />
 
-          <TouchableOpacity 
-            style={styles.quickActionCard}
+          <PremiumActionCard
+            title="Appointments"
+            subtitle="Manage your upcoming bookings"
+            icon="calendar"
+            color="#FF9800"
             onPress={() => router.push("/(protected)/(tabs)/appointment")}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: "#FF9800" + "15" }]}>
-              <Ionicons name="calendar" size={22} color="#FF9800" />
-            </View>
-            <View style={styles.quickActionContent}>
-              <Text style={styles.quickActionTitle}>Appointments</Text>
-              <Text style={styles.quickActionSubtitle}>Manage your bookings</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
+            animation="fadeInUp"
+            delay={650}
+          />
         </View>
 
         {/* Health Tips Banner */}
-        <View style={styles.tipsBanner}>
-          <View style={styles.tipsIconContainer}>
-            <Text style={styles.tipsIcon}>💡</Text>
-          </View>
-          <View style={styles.tipsContent}>
-            <Text style={styles.tipsTitle}>Health Tip of the Day</Text>
-            <Text style={styles.tipsText}>
-              Stay hydrated! Drink at least 8 glasses of water daily for better health.
-            </Text>
-          </View>
-        </View>
+        <Animatable.View animation="fadeInUp" delay={700} style={styles.tipsContainer}>
+          <LinearGradient
+            colors={['#667eea', '#764ba2'] as const}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tipsBanner}
+          >
+            <View style={styles.tipsIconContainer}>
+              <Ionicons name="bulb" size={28} color="#FFD700" />
+            </View>
+            <View style={styles.tipsContent}>
+              <Text style={styles.tipsTitle}>Health Tip of the Day</Text>
+              <Text style={styles.tipsText}>
+                Stay hydrated! Drink at least 8 glasses of water daily for better health.
+              </Text>
+            </View>
+          </LinearGradient>
+        </Animatable.View>
 
         <View style={{ height: 20 }} />
       </KeyboardAwareScrollView>
@@ -283,19 +308,29 @@ export default index;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.background,
+  },
+  headerGradient: {
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: -15,
   },
   scrollContainer: {
     flexGrow: 1,
+    paddingTop: 20,
     paddingBottom: 120,
   },
   welcomeSection: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
-    marginTop: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   welcomeContent: {
     flex: 1,
@@ -303,61 +338,84 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: colors.gray,
+    color: 'rgba(255,255,255,0.85)',
   },
   nameText: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: Fonts.bold,
-    color: colors.text,
+    color: colors.white,
     marginTop: 4,
   },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
+    overflow: 'hidden',
+  },
   welcomeAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    width: '100%',
+    height: '100%',
   },
   welcomeAvatarPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarInitials: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  headerStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerStatIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerStatValue: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerStatLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  headerStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   searchInput: {
     marginHorizontal: sizes.paddingHorizontal,
     marginBottom: 20,
-  },
-  quickInfoContainer: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: sizes.paddingHorizontal,
-    marginBottom: 24,
-  },
-  quickInfoCard: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
+    backgroundColor: colors.white,
     borderRadius: 16,
-    gap: 6,
-  },
-  quickInfoValue: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-  },
-  quickInfoLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   servicesGrid: {
     flexDirection: "row",
@@ -366,79 +424,45 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
-  quickActionsContainer: {
+  serviceCardWrapper: {
+    width: '47%',
+  },
+  actionsSection: {
     paddingHorizontal: sizes.paddingHorizontal,
     marginBottom: 24,
-    gap: 12,
   },
-  quickActionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  quickActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-  quickActionContent: {
-    flex: 1,
-  },
-  quickActionTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    color: colors.text,
-  },
-  quickActionSubtitle: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-    marginTop: 2,
+  tipsContainer: {
+    paddingHorizontal: sizes.paddingHorizontal,
   },
   tipsBanner: {
     flexDirection: "row",
-    backgroundColor: colors.lightGreen,
-    marginHorizontal: sizes.paddingHorizontal,
-    borderRadius: 16,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+    borderRadius: 20,
+    padding: 20,
+    overflow: 'hidden',
   },
   tipsIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.white,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
-  tipsIcon: {
-    fontSize: 24,
+    marginRight: 16,
   },
   tipsContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   tipsTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: Fonts.semiBold,
-    color: colors.black,
-    marginBottom: 4,
+    color: colors.white,
+    marginBottom: 6,
   },
   tipsText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: Fonts.regular,
-    color: colors.gray,
+    color: 'rgba(255,255,255,0.9)',
     lineHeight: 18,
   },
 });

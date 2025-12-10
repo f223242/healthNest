@@ -4,11 +4,14 @@ import { firebaseMessages } from "@/constant/messages";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+    Animated,
     Image,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Switch,
     Text,
@@ -24,6 +27,23 @@ const SettingsScreen = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Get admin info from context
   const adminInfo = useMemo(() => {
@@ -114,28 +134,50 @@ const SettingsScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={['#1E293B', '#334155', '#475569']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Admin Info Card */}
-        <View style={styles.adminCard}>
-          {adminInfo.profileImage ? (
-            <Image
-              source={{ uri: adminInfo.profileImage }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={32} color={colors.white} />
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Settings</Text>
+          
+          {/* Admin Info in Header */}
+          <View style={styles.headerProfileSection}>
+            {adminInfo.profileImage ? (
+              <Image
+                source={{ uri: adminInfo.profileImage }}
+                style={styles.headerAvatar}
+              />
+            ) : (
+              <View style={styles.headerAvatarPlaceholder}>
+                <Ionicons name="shield" size={28} color="#1E293B" />
+              </View>
+            )}
+            <View style={styles.headerProfileInfo}>
+              <Text style={styles.headerName}>{adminInfo.fullName}</Text>
+              <Text style={styles.headerEmail}>{adminInfo.email}</Text>
+              <View style={styles.headerBadge}>
+                <Ionicons name="shield-checkmark" size={12} color={colors.white} />
+                <Text style={styles.headerBadgeText}>ADMIN</Text>
+              </View>
             </View>
-          )}
-          <View style={styles.adminInfo}>
-            <Text style={styles.adminName}>{adminInfo.fullName}</Text>
-            <Text style={styles.adminEmail}>{adminInfo.email}</Text>
           </View>
         </View>
+      </LinearGradient>
+
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
         {/* Settings Sections */}
         {settingSections.map((section, sectionIndex) => (
@@ -183,7 +225,10 @@ const SettingsScreen = () => {
 
         {/* Version Info */}
         <Text style={styles.versionText}>HealthNest Admin v1.0.0</Text>
-      </ScrollView>
+
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
 
       {/* Logout Modal */}
       <LogoutModal
@@ -191,65 +236,109 @@ const SettingsScreen = () => {
         onClose={() => setShowLogoutModal(false)}
         onConfirm={confirmLogout}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: '#1E293B',
   },
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+
+  headerContent: {
+    width: '100%',
+  },
+
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 20,
+  },
+
+  headerProfileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  headerAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
+
+  headerAvatarPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+
+  headerProfileInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+
+  headerName: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 4,
+  },
+
+  headerEmail: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 8,
+  },
+
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+
+  headerBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -10,
+  },
+
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 20,
+    paddingTop: 24,
     paddingBottom: 100,
-  },
-  adminCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-    elevation: 2,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    marginRight: 16,
-  },
-  adminInfo: {
-    flex: 1,
-  },
-  adminName: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: colors.black,
-    marginBottom: 4,
-  },
-  adminEmail: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
   },
   section: {
     marginBottom: 24,

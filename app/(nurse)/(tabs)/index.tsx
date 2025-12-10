@@ -1,22 +1,27 @@
-import DashboardStatCard from '@/component/DashboardStatCard';
-import QuickActionCard from '@/component/QuickActionCard';
+import PremiumActionCard from '@/component/PremiumActionCard';
+import PremiumStatCard from '@/component/PremiumStatCard';
+import SectionHeader from '@/component/SectionHeader';
+import WelcomeHeader from '@/component/WelcomeHeader';
 import { colors, Fonts } from '@/constant/theme';
 import { NurseInfo, useAuthContext } from '@/hooks/useFirebaseAuth';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NurseDashboard = () => {
   const { user } = useAuthContext();
   
-  // Get nurse info
   const nurseInfo = useMemo(() => {
     return user?.additionalInfo as NurseInfo | undefined;
   }, [user]);
@@ -24,104 +29,172 @@ const NurseDashboard = () => {
   const fullName = `${user?.firstname || ''} ${user?.lastname || ''}`.trim() || 'Nurse';
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
-    
-      {/* Scrollable Content */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.nameText}>{fullName}</Text>
-          {nurseInfo?.specialization && (
-            <View style={styles.specBadge}>
-              <Ionicons name="medical" size={14} color={colors.primary} />
-              <Text style={styles.specText}>{nurseInfo.specialization}</Text>
-            </View>
-          )}
-        </View>
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00D68F'] as const}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <WelcomeHeader
+          greeting="Welcome back,"
+          name={fullName}
+          subtitle={nurseInfo?.specialization}
+          avatar={nurseInfo?.profileImage}
+        />
 
-        {/* Stats Overview */}
-        <View style={styles.statsContainer}>
-          <DashboardStatCard
-            title="Experience"
-            value={nurseInfo?.experience || '-'}
-            icon="time"
-            color={colors.primary}
-          />
-          <DashboardStatCard
-            title="Hourly Rate"
-            value={nurseInfo?.hourlyRate ? `Rs. ${nurseInfo.hourlyRate}` : '-'}
-            icon="cash"
-            color="#FF9800"
-          />
-          <DashboardStatCard
-            title="Availability"
-            value={nurseInfo?.availability || '-'}
-            icon="calendar"
-            color="#2196F3"
-          />
+        {/* Quick Stats in Header */}
+        <View style={styles.headerStats}>
+          <Animatable.View animation="fadeInUp" delay={100} style={styles.headerStatItem}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="time-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{nurseInfo?.experience || '-'}</Text>
+            <Text style={styles.headerStatLabel}>Experience</Text>
+          </Animatable.View>
+          
+          <View style={styles.headerStatDivider} />
+          
+          <Animatable.View animation="fadeInUp" delay={200} style={styles.headerStatItem}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="cash-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>Rs. {nurseInfo?.hourlyRate || '-'}</Text>
+            <Text style={styles.headerStatLabel}>Per Hour</Text>
+          </Animatable.View>
+          
+          <View style={styles.headerStatDivider} />
+          
+          <Animatable.View animation="fadeInUp" delay={300} style={styles.headerStatItem}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="calendar-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{nurseInfo?.availability || '-'}</Text>
+            <Text style={styles.headerStatLabel}>Availability</Text>
+          </Animatable.View>
         </View>
+      </LinearGradient>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+      >
+        {/* Today's Overview Card */}
+        <Animatable.View animation="fadeInUp" delay={200}>
+          <LinearGradient
+            colors={['#667eea', '#764ba2'] as const}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.overviewCard}
+          >
+            <View style={styles.overviewContent}>
+              <Text style={styles.overviewTitle}>Ready to Help!</Text>
+              <Text style={styles.overviewSubtitle}>
+                You have patients waiting for your care. Check your chats to respond.
+              </Text>
+              <TouchableOpacity 
+                style={styles.overviewButton}
+                onPress={() => router.push('/(nurse)/(tabs)/nurse-chats')}
+              >
+                <Text style={styles.overviewButtonText}>View Chats</Text>
+                <Ionicons name="arrow-forward" size={16} color="#764ba2" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.overviewIconContainer}>
+              <Ionicons name="heart-circle" size={80} color="rgba(255,255,255,0.2)" />
+            </View>
+          </LinearGradient>
+        </Animatable.View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <QuickActionCard
+        <View style={styles.section}>
+          <SectionHeader 
+            title="Quick Actions" 
+            icon="flash"
+            animation="fadeInUp"
+            delay={300}
+          />
+          
+          <PremiumActionCard
             title="Patient Chats"
             subtitle="View and respond to messages"
             icon="chatbubbles"
-            color={colors.primary}
+            gradient
             onPress={() => router.push('/(nurse)/(tabs)/nurse-chats')}
+            animation="fadeInUp"
+            delay={350}
           />
-          <QuickActionCard
+          
+          <PremiumActionCard
             title="Edit Profile"
-            subtitle="Update your information"
+            subtitle="Update your professional information"
             icon="person"
             color="#9C27B0"
             onPress={() => router.push('/(nurse)/edit-profile')}
+            animation="fadeInUp"
+            delay={400}
+          />
+          
+          <PremiumActionCard
+            title="Help & Support"
+            subtitle="Get assistance when you need it"
+            icon="help-circle"
+            color="#2196F3"
+            onPress={() => router.push('/(nurse)/help')}
+            animation="fadeInUp"
+            delay={450}
           />
         </View>
 
-        {/* Info Cards */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Your Information</Text>
+        {/* Service Stats */}
+        <View style={styles.section}>
+          <SectionHeader 
+            title="Your Stats" 
+            icon="bar-chart"
+            animation="fadeInUp"
+            delay={500}
+          />
           
-          {nurseInfo?.certifications && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name="ribbon" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Certifications</Text>
-                <Text style={styles.infoValue}>{nurseInfo.certifications}</Text>
-              </View>
-            </View>
-          )}
-          
-          {nurseInfo?.address && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#2196F3' + '15' }]}>
-                <Ionicons name="location" size={20} color="#2196F3" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Service Area</Text>
-                <Text style={styles.infoValue}>{nurseInfo.city ? `${nurseInfo.city}` : nurseInfo.address}</Text>
-              </View>
-            </View>
-          )}
-          
-          {user?.phoneNumber && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#4CAF50' + '15' }]}>
-                <Ionicons name="call" size={20} color="#4CAF50" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Contact</Text>
-                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
-              </View>
-            </View>
-          )}
+          <View style={styles.statsGrid}>
+            <PremiumStatCard
+              title="Certifications"
+              value={nurseInfo?.certifications ? '✓' : '-'}
+              icon="ribbon"
+              color="#4CAF50"
+              animation="fadeInUp"
+              delay={550}
+              style={styles.statCard}
+            />
+            <PremiumStatCard
+              title="Service Area"
+              value={nurseInfo?.city || 'N/A'}
+              icon="location"
+              color="#2196F3"
+              animation="fadeInUp"
+              delay={600}
+              style={styles.statCard}
+            />
+          </View>
         </View>
+
+        {/* Tips Card */}
+        <Animatable.View animation="fadeInUp" delay={650} style={styles.section}>
+          <View style={styles.tipsCard}>
+            <View style={styles.tipsIconContainer}>
+              <Ionicons name="bulb" size={24} color="#FF9800" />
+            </View>
+            <View style={styles.tipsContent}>
+              <Text style={styles.tipsTitle}>Pro Tip</Text>
+              <Text style={styles.tipsText}>
+                Keep your profile updated with your latest certifications to attract more patients.
+              </Text>
+            </View>
+          </View>
+        </Animatable.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,94 +207,142 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  headerGradient: {
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  headerStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerStatIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerStatValue: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    textAlign: 'center',
+  },
+  headerStatLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  headerStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: -15,
+  },
   scrollContent: {
-    paddingTop: 10,
+    paddingTop: 20,
     paddingBottom: 100,
   },
-  welcomeSection: {
+  section: {
     paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  welcomeText: {
+  overviewCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    borderRadius: 24,
+    padding: 24,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  overviewContent: {
+    flex: 1,
+  },
+  overviewTitle: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 8,
+  },
+  overviewSubtitle: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  nameText: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.text,
-    marginTop: 4,
-  },
-  specBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginTop: 10,
-    gap: 6,
-  },
-  specText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: colors.primary,
-  },
-  statsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: colors.text,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 20,
     marginBottom: 16,
   },
-  quickActionsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  infoSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  infoCard: {
+  overviewButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    alignSelf: 'flex-start',
+    gap: 6,
   },
-  infoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  overviewButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#764ba2',
+  },
+  overviewIconContainer: {
+    position: 'absolute',
+    right: -10,
+    bottom: -10,
+    opacity: 0.5,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  statCard: {
+    flex: 1,
+  },
+  tipsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  tipsIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFECB3',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
-  infoContent: {
+  tipsContent: {
     flex: 1,
   },
-  infoLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-    marginBottom: 2,
-  },
-  infoValue: {
+  tipsTitle: {
     fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: colors.text,
+    fontFamily: Fonts.semiBold,
+    color: '#F57C00',
+    marginBottom: 4,
+  },
+  tipsText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#795548',
+    lineHeight: 18,
   },
 });

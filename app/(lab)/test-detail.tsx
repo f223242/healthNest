@@ -4,13 +4,17 @@ import QuickActionButton from "@/component/QuickActionButton";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    Animated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -37,6 +41,25 @@ interface TestDetail {
 const TestDetailScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -134,11 +157,47 @@ const TestDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={["#7C3AED", "#A78BFA"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Test Details</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(testDetail.status) }]}>
+              <Text style={styles.statusBadgeText}>{testDetail.status}</Text>
+            </View>
+          </View>
+          <View style={styles.headerIcon}>
+            <Ionicons name="flask" size={24} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
         {/* Status Progress */}
         <View style={styles.statusCard}>
           <Text style={styles.sectionTitle}>Status Progress</Text>
@@ -304,6 +363,7 @@ const TestDetailScreen = () => {
           )}
         </View>
       </ScrollView>
+      </Animated.View>
 
       {/* Bottom Action Button */}
       {getNextActionLabel() && (
@@ -318,6 +378,7 @@ const TestDetailScreen = () => {
           />
         </View>
       )}
+    </SafeAreaView>
 
       {/* Confirmation Modal */}
       <ConfirmationModal
@@ -344,16 +405,72 @@ const TestDetailScreen = () => {
         confirmText="OK"
         showCancelButton={false}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default TestDetailScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#7C3AED",
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 25,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 6,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   scrollContent: {
     flexGrow: 1,

@@ -2,11 +2,33 @@ import FAQAccordion, { FAQItem } from "@/component/FAQAccordion";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import { Animated, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Help = () => {
+  const router = useRouter();
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const faqs: FAQItem[] = [
     {
       question: "How do I accept a delivery order?",
@@ -31,27 +53,45 @@ const Help = () => {
   ];
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Contact Card */}
-        <LinearGradient
-          colors={[colors.primary, "#00B976", "#00D68F"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.contactCard}
-        >
-          <View style={styles.contactIconContainer}>
-            <Ionicons name="headset" size={32} color={colors.primary} />
-          </View>
-          <Text style={styles.contactTitle}>Need Help?</Text>
-          <Text style={styles.contactDescription}>
-            Our support team is available 24/7 to help you with any issues.
-          </Text>
-          <TouchableOpacity style={styles.contactButton}>
-            <Ionicons name="call" size={18} color={colors.primary} />
-            <Text style={styles.contactButtonText}>Contact Support</Text>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#FF6B35" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={["#FF6B35", "#FFA07A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
           </TouchableOpacity>
-        </LinearGradient>
+          <View style={styles.headerCenter}>
+            <View style={styles.headerIconLarge}>
+              <Ionicons name="headset" size={32} color="rgba(255,255,255,0.9)" />
+            </View>
+            <Text style={styles.headerTitle}>Help & Support</Text>
+            <Text style={styles.headerSubtitle}>Available 24/7 to help you</Text>
+          </View>
+          <TouchableOpacity style={styles.contactButton}>
+            <Ionicons name="call" size={18} color="#FF6B35" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* FAQ Section */}
         <View style={styles.section}>
@@ -77,67 +117,85 @@ const Help = () => {
                 <Ionicons name="chevron-forward" size={18} color={colors.gray} />
               </TouchableOpacity>
             ))}
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+        </Animated.View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default Help;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
+    backgroundColor: "#FF6B35",
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerIconLarge: {
+    marginBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 4,
+  },
+  contactButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   scrollContent: {
     flexGrow: 1,
     padding: sizes.paddingHorizontal,
-    paddingTop: 20,
+    paddingTop: 30,
     paddingBottom: 40,
-  },
-  contactCard: {
-    borderRadius: 16,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  contactIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.white,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  contactTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginBottom: 8,
-  },
-  contactDescription: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.white + "DD",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  contactButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-    gap: 8,
-  },
-  contactButtonText: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
   },
   section: {
     marginBottom: 24,

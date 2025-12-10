@@ -7,8 +7,8 @@ import { DeliveryInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const DeliveryProfile = () => {
@@ -16,6 +16,23 @@ const DeliveryProfile = () => {
   const toast = useToast();
   const { user, logout } = useAuthContext();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Extract delivery info from additionalInfo
   const deliveryInfo = useMemo(() => {
@@ -67,42 +84,66 @@ const DeliveryProfile = () => {
   };
 
   return (
-    <SafeAreaView edges={[ "bottom"]} style={styles.container}>
-      {/* Body */}
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        
-        {/* User Profile Card */}
-        <View style={styles.profileCard}>
-          {deliveryInfo.profileImage ? (
-            <Image
-              source={{ uri: deliveryInfo.profileImage }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.profileImagePlaceholder}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#FF6B35" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={['#FF6B35', '#FF8C5A', '#FFA07A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>Delivery Profile</Text>
+            <TouchableOpacity 
+              style={styles.settingsButton}
+              onPress={() => router.push('/(delivery)/edit-profile')}
             >
-              <Ionicons name="person" size={32} color={colors.white} />
-            </LinearGradient>
-          )}
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{deliveryInfo.fullName}</Text>
-            <Text style={styles.profileEmail}>{deliveryInfo.email}</Text>
-            <View style={styles.badgesRow}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>DELIVERY</Text>
+              <Ionicons name="settings-outline" size={24} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Profile Avatar in Header */}
+          <View style={styles.headerProfileSection}>
+            {deliveryInfo.profileImage ? (
+              <Image
+                source={{ uri: deliveryInfo.profileImage }}
+                style={styles.headerAvatar}
+              />
+            ) : (
+              <View style={styles.headerAvatarPlaceholder}>
+                <Ionicons name="bicycle" size={36} color="#FF6B35" />
               </View>
-              {deliveryInfo.vehicleType && (
-                <View style={[styles.roleBadge, { backgroundColor: colors.secondary + "15" }]}>
-                  <Text style={[styles.roleText, { color: colors.secondary }]}>{deliveryInfo.vehicleType}</Text>
+            )}
+            <View style={styles.headerProfileInfo}>
+              <Text style={styles.headerName}>{deliveryInfo.fullName}</Text>
+              <Text style={styles.headerEmail}>{deliveryInfo.email}</Text>
+              <View style={styles.headerBadges}>
+                <View style={styles.headerBadge}>
+                  <Ionicons name="bicycle" size={12} color={colors.white} />
+                  <Text style={styles.headerBadgeText}>DELIVERY</Text>
                 </View>
-              )}
+                {deliveryInfo.vehicleType && (
+                  <View style={[styles.headerBadge, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
+                    <Ionicons name="car" size={12} color={colors.white} />
+                    <Text style={styles.headerBadgeText}>{deliveryInfo.vehicleType}</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         </View>
+      </LinearGradient>
+
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer} 
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
         {/* Quick Info Section */}
         {(deliveryInfo.vehicleNumber || deliveryInfo.availability || deliveryInfo.licenseNumber) && (
@@ -185,92 +226,139 @@ const DeliveryProfile = () => {
           <Ionicons name="log-out" size={20} color={colors.white} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-      </ScrollView>
+
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
 
       <LogoutModal 
         visible={showLogoutModal} 
         onClose={() => setShowLogoutModal(false)} 
         onConfirm={confirmLogout} 
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default DeliveryProfile;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
+    backgroundColor: '#FF6B35',
   },
-  scrollContainer: {
-    flexGrow: 1,
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingTop: 16,
-    paddingBottom: 120,
   },
-  profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 3,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+
+  headerContent: {
+    width: '100%',
   },
-  profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 3,
-    borderColor: colors.primary,
+
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  profileImagePlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  profileName: {
-    fontSize: 18,
+
+  headerTitle: {
+    fontSize: 24,
     fontFamily: Fonts.bold,
-    color: colors.text,
-    marginBottom: 2,
+    color: colors.white,
   },
-  profileEmail: {
-    fontSize: 13,
+
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  headerProfileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  headerAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
+
+  headerAvatarPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+
+  headerProfileInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+
+  headerName: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 4,
+  },
+
+  headerEmail: {
+    fontSize: 14,
     fontFamily: Fonts.regular,
-    color: colors.gray,
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 8,
   },
-  badgesRow: {
-    flexDirection: "row",
-    alignItems: "center",
+
+  headerBadges: {
+    flexDirection: 'row',
     gap: 8,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
-  roleBadge: {
-    backgroundColor: colors.primary + "15",
+
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    gap: 4,
   },
-  roleText: {
+
+  headerBadgeText: {
     fontSize: 11,
     fontFamily: Fonts.semiBold,
-    color: colors.primary,
+    color: colors.white,
     letterSpacing: 0.5,
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -10,
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: sizes.paddingHorizontal,
+    paddingTop: 24,
+    paddingBottom: 120,
   },
   quickInfoCard: {
     backgroundColor: colors.white,

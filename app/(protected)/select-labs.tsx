@@ -7,14 +7,18 @@ import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { LabInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Animated,
     RefreshControl,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -48,12 +52,31 @@ const SelectLabs = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
   const filterOptions: Array<{ label: FilterType; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
     { label: "Home Sampling", icon: "home" },
     { label: "Rated", icon: "star" },
     { label: "Popular", icon: "trending-up" },
   ];
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Fetch labs from Firebase
   const fetchLabs = useCallback(async () => {
@@ -145,23 +168,56 @@ const SelectLabs = () => {
 
   if (loading) {
     return (
-      <SafeAreaView edges={["bottom"]} style={[styles.container, styles.loadingContainer]}>
+      <View style={[styles.mainContainer, styles.loadingContainer]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading labs...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-         <FormInput
-          LeftIcon={SearchIcon}
-          placeholder="Search for labs..."
-          containerStyle={{...styles.searchInput}}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-         
-        />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, "#00C853"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Select Lab</Text>
+          <View style={styles.headerIcon}>
+            <Ionicons name="flask" size={22} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+        <Text style={styles.headerSubtitle}>Choose a lab for your tests</Text>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          {/* Search Input */}
+          <FormInput
+            LeftIcon={SearchIcon}
+            placeholder="Search for labs..."
+            containerStyle={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
        
       {/* Header Stats */}
       <View style={styles.headerStats}>
@@ -263,28 +319,80 @@ const SelectLabs = () => {
               </Text>
             </View>
           )}
-        </ScrollView>
-      </View>
+            </ScrollView>
+          </View>
 
-      {/* Bottom Continue Button */}
-      <View style={styles.bottomContainer}>
-        <AppButton
-          title="Continue"
-          onPress={handleContinue}
-          disabled={!selectedLab}
-          containerStyle={!selectedLab ? styles.disabledButton : undefined}
-        />
-      </View>
-    </SafeAreaView>
+          {/* Bottom Continue Button */}
+          <View style={styles.bottomContainer}>
+            <AppButton
+              title="Continue"
+              onPress={handleContinue}
+              disabled={!selectedLab}
+              containerStyle={!selectedLab ? styles.disabledButton : undefined}
+            />
+          </View>
+        </Animated.View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default SelectLabs;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    textAlign: "center",
+    marginRight: 40,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: "rgba(255,255,255,0.9)",
+    textAlign: "center",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
     paddingHorizontal: sizes.paddingHorizontal,
   },
   loadingContainer: {
@@ -296,19 +404,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.medium,
     color: colors.gray,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-   
-    paddingVertical: 12,
-    backgroundColor: colors.white,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
   },
   headerStats: {
     flexDirection: "row",

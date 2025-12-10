@@ -3,15 +3,18 @@ import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Animated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,6 +24,23 @@ const ComplainToAdmin = () => {
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const categories = [
     { id: 1, label: "Service Quality", icon: "star-outline" },
@@ -50,19 +70,40 @@ const ComplainToAdmin = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00C853']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={24} color={colors.primary} />
-          <Text style={styles.infoText}>
-            We take your feedback seriously. Please provide detailed information
-            about your complaint so we can address it properly.
-          </Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Submit Complaint</Text>
+          <View style={{ width: 44 }} />
         </View>
+      </LinearGradient>
+
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            {/* Info Card */}
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle" size={24} color={colors.primary} />
+              <Text style={styles.infoText}>
+                We take your feedback seriously. Please provide detailed information
+                about your complaint so we can address it properly.
+              </Text>
+            </View>
 
         {/* Subject */}
         <View style={styles.section}>
@@ -162,18 +203,55 @@ const ComplainToAdmin = () => {
           onPress={handleSubmit}
           containerStyle={styles.submitButton}
         />
-      </ScrollView>
-    </SafeAreaView>
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default ComplainToAdmin;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
   },
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,

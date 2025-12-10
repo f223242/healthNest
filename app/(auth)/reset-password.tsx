@@ -1,21 +1,22 @@
 import { Lock } from "@/assets/svg";
-import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import ResetPasswordModal from "@/component/ModalComponent/ResetPasswordModal";
 import { useToast } from "@/component/Toast/ToastProvider";
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Dimensions, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { OtpInput } from "react-native-otp-entry";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
 import { object } from "yup";
+
+const { width } = Dimensions.get("window");
 
 let reset_password_schema = object({
   password: Yup.string()
@@ -48,9 +49,28 @@ const ResetPassword = () => {
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   // Timer for resend OTP
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (timer > 0 && !canResend) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
@@ -58,7 +78,9 @@ const ResetPassword = () => {
     } else if (timer === 0) {
       setCanResend(true);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [timer, canResend]);
 
   const handleVerifyOTP = async () => {
@@ -164,40 +186,39 @@ const ResetPassword = () => {
   // OTP Verification Screen
   if (!otpVerified) {
     return (
-      <SafeAreaView edges={["bottom"]} style={styles.container}>
+      <View style={styles.mainContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[colors.primary, "#00D68F", "#00B37A"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="shield-checkmark-outline" size={36} color={colors.white} />
+            </View>
+            <Text style={styles.headerTitle}>Verify OTP</Text>
+            <Text style={styles.headerSubtitle}>Enter verification code</Text>
+          </Animated.View>
+        </LinearGradient>
+        
+        <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
         <KeyboardAwareScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
         >
-          <View>
-            {/* Back Button
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={handleBack}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.black} />
-            </TouchableOpacity> */}
-
-            {/* Icon with gradient background */}
-            <View style={styles.iconContainer}>
-              <LinearGradient
-                colors={[colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientCircle}
-              >
-                <Ionicons name="shield-checkmark-outline" size={56} color={colors.white} />
-              </LinearGradient>
-            </View>
-
-            <Text style={[appStyles.h3, { marginTop: 32, textAlign: "center" }]}>
-              Verify OTP
-            </Text>
-            <Text style={styles.subheadingStyle}>
+          <Animated.View style={[styles.formCard, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.otpInfoText}>
               Enter the 6-digit code sent to{"\n"}
-              <Text style={{ fontFamily: Fonts.semiBold, color: colors.primary }}>
+              <Text style={styles.phoneHighlight}>
                 {params.phoneNumber}
               </Text>
             </Text>
@@ -219,74 +240,93 @@ const ResetPassword = () => {
               />
             </View>
 
-            <View style={styles.resendContainer}>
+            <View style={styles.resendOtpContainer}>
               {canResend ? (
                 <TouchableOpacity 
                   onPress={handleResendOTP} 
                   disabled={isResending}
                 >
-                  <Text style={styles.resendText}>
+                  <Text style={styles.resendOtpText}>
                     {isResending ? "Sending..." : "Resend OTP"}
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <Text style={styles.timerText}>
-                  Resend OTP in <Text style={styles.timerNumber}>{timer}s</Text>
-                </Text>
+                <View style={styles.timerBadge}>
+                  <Ionicons name="time-outline" size={16} color={colors.primary} />
+                  <Text style={styles.timerText}>
+                    Resend in {timer}s
+                  </Text>
+                </View>
               )}
             </View>
-          </View>
+          </Animated.View>
 
-          <View>
-            <AppButton
-              title={isVerifying ? "Verifying..." : "Verify OTP"}
-              onPress={handleVerifyOTP}
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <TouchableOpacity
+              style={[styles.submitButton, (otpCode.length !== 6 || isVerifying) && styles.submitButtonDisabled]}
               disabled={otpCode.length !== 6 || isVerifying}
+              onPress={handleVerifyOTP}
+              activeOpacity={0.8}
             >
-              {isVerifying && (
-                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-              )}
-            </AppButton>
-          </View>
+              <LinearGradient
+                colors={(otpCode.length !== 6 || isVerifying) 
+                  ? ["#A8A8A8", "#888888"] 
+                  : [colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButtonGradient}
+              >
+                {isVerifying && (
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.submitButtonText}>
+                  {isVerifying ? "Verifying..." : "Verify OTP"}
+                </Text>
+                {!isVerifying && (
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
+      </View>
     );
   }
 
   // Password Reset Screen (after OTP verified)
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, "#00D68F", "#00B37A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
+          <View style={styles.headerIconCircle}>
+            <Ionicons name="key-outline" size={36} color={colors.white} />
+          </View>
+          <Text style={styles.headerTitle}>Reset Password</Text>
+          <Text style={styles.headerSubtitle}>Create a new password</Text>
+        </Animated.View>
+      </LinearGradient>
+      
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         enableOnAndroid={true}
       >
-        <View>
-          {/* Back Button */}
-          {/* <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleBack}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.black} />
-          </TouchableOpacity> */}
-
-          {/* Icon with gradient background */}
-          <View style={styles.iconContainer}>
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCircle}
-            >
-              <Ionicons name="key-outline" size={56} color={colors.white} />
-            </LinearGradient>
-          </View>
-
-          <Text style={[appStyles.h3, { marginTop: 32, textAlign: "center" }]}>
-            Reset Password
-          </Text>
-          <Text style={styles.subheadingStyle}>
+        <Animated.View style={[styles.formCard, {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }]}>
+          <Text style={styles.passwordInfoText}>
             Create a strong password to secure your account
           </Text>
 
@@ -366,20 +406,35 @@ const ResetPassword = () => {
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
-        <View>
-          <AppButton
-            title={isSubmitting ? "Updating..." : "Reset Password"}
-            onPress={handleSubmit}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={[styles.submitButton, (!dirty || !isValid || isSubmitting) && styles.submitButtonDisabled]}
             disabled={!dirty || !isValid || isSubmitting}
-            containerStyle={{ marginTop: 20 }}
+            onPress={() => handleSubmit()}
+            activeOpacity={0.8}
           >
-            {isSubmitting && (
-              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-            )}
-          </AppButton>
-        </View>
+            <LinearGradient
+              colors={(!dirty || !isValid || isSubmitting) 
+                ? ["#A8A8A8", "#888888"] 
+                : [colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitButtonGradient}
+            >
+              {isSubmitting && (
+                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.submitButtonText}>
+                {isSubmitting ? "Updating..." : "Reset Password"}
+              </Text>
+              {!isSubmitting && (
+                <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       </KeyboardAwareScrollView>
       <ResetPasswordModal
         visible={modalVisible}
@@ -389,68 +444,100 @@ const ResetPassword = () => {
         }}
       />
     </SafeAreaView>
+    </View>
   );
 };
 
 export default ResetPassword;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
+    backgroundColor: colors.primary,
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.lightGray,
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 40,
+    paddingBottom: 35,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    alignItems: "center",
+  },
+  headerIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: "rgba(255, 255, 255, 0.85)",
+    marginTop: 4,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
+    paddingTop: 10,
+    paddingBottom: 30,
     justifyContent: "space-between",
+  },
+  formCard: {
     backgroundColor: colors.white,
-    marginBottom: 20,
-  },
-  iconContainer: {
-    alignSelf: "center",
-    marginTop: 40,
-  },
-  gradientCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
+    borderRadius: 20,
+    padding: 24,
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 5,
   },
-  subheadingStyle: {
-    textAlign: "center",
-    fontFamily: Fonts.regular,
+  otpInfoText: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: colors.gray,
-    marginTop: 12,
-    paddingHorizontal: 20,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  phoneHighlight: {
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+  },
+  passwordInfoText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 16,
   },
   otpWrapper: {
     alignSelf: "center",
-    marginTop: 32,
+    marginTop: 28,
   },
   otpContainer: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 8,
-  
   },
   otpPinContainer: {
     width: 48,
@@ -458,7 +545,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.borderGray,
-    backgroundColor: colors.lightGray,
+    backgroundColor: "#F8F9FA",
   },
   otpPinText: {
     fontSize: 24,
@@ -478,32 +565,37 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.lightGreen,
   },
-  resendContainer: {
-    marginTop: 24,
+  resendOtpContainer: {
+    marginTop: 28,
     alignItems: "center",
   },
-  resendText: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 14,
+  resendOtpText: {
+    fontFamily: Fonts.bold,
+    fontSize: 15,
     color: colors.primary,
   },
-  timerText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: colors.gray,
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
   },
-  timerNumber: {
-    fontFamily: Fonts.semiBold,
+  timerText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
     color: colors.primary,
   },
   formContainer: {
-    marginTop: 32,
+    marginTop: 8,
   },
   requirementsContainer: {
     marginTop: 24,
     padding: 16,
     backgroundColor: colors.lightGreen,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.primary + "20",
   },
@@ -517,11 +609,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
-    gap: 8,
+    gap: 10,
   },
   requirementText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
-    color: colors.black,
+    color: colors.text,
+  },
+  submitButton: {
+    marginTop: 24,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonDisabled: {
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  submitButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  submitButtonText: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
   },
 });

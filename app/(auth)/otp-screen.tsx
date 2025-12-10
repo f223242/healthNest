@@ -1,7 +1,6 @@
-import AppButton from "@/component/AppButton";
 import InstructionSteps from "@/component/InstructionSteps";
 import { useToast } from "@/component/Toast/ToastProvider";
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,6 +8,10 @@ import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-ro
 import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Animated,
+    Dimensions,
+    Platform,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -16,6 +19,8 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
 
 // Verification instructions
 const verificationSteps = [
@@ -38,6 +43,25 @@ const OtpScreen = () => {
   const [canResend, setCanResend] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isResending, setIsResending] = useState(false);
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Helper to safely navigate
   const safeNavigate = (route: string) => {
@@ -132,37 +156,39 @@ const OtpScreen = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, "#00D68F", "#00B37A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
+          <View style={styles.headerIconCircle}>
+            <Ionicons name="mail-outline" size={36} color={colors.white} />
+          </View>
+          <Text style={styles.headerTitle}>Verify Email</Text>
+          <Text style={styles.headerSubtitle}>Check your inbox</Text>
+        </Animated.View>
+      </LinearGradient>
+      
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         enableOnAndroid={true}
       >
-        <View>
-          {/* Icon with gradient background */}
-          <View style={styles.iconContainer}>
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCircle}
-            >
-              <Ionicons name="mail-outline" size={56} color={colors.white} />
-            </LinearGradient>
-          </View>
-
-          <Text style={[appStyles.h3, { textAlign: "center", marginTop: 24 }]}>
-            Verify your Email
-          </Text>
-          <Text
-            style={[
-              appStyles.body1,
-              { textAlign: "center", marginTop: 8, color: colors.gray, paddingHorizontal: 16 },
-            ]}
-          >
+        <Animated.View style={[styles.formCard, {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }]}>
+          <Text style={styles.emailText}>
             We've sent a verification link to{"\n"}
-            <Text style={{ fontFamily: Fonts.semiBold, color: colors.primary }}>
+            <Text style={styles.emailHighlight}>
               {email || "your email"}
             </Text>
           </Text>
@@ -175,44 +201,60 @@ const OtpScreen = () => {
 
           {/* Timer */}
           <View style={styles.timerSection}>
-            <Text style={[appStyles.body1, { color: colors.gray }]}>
-              {canResend
-                ? "You can resend the email now"
-                : `Resend email in ${minutes}:${seconds.toString().padStart(2, "0")}`}
-            </Text>
+            <View style={styles.timerBadge}>
+              <Ionicons name="time-outline" size={16} color={colors.primary} />
+              <Text style={styles.timerText}>
+                {canResend
+                  ? "You can resend now"
+                  : `Resend in ${minutes}:${seconds.toString().padStart(2, "0")}`}
+              </Text>
+            </View>
           </View>
-        </View>
+        </Animated.View>
 
-        <View>
-          <AppButton
-            title={isChecking ? "Checking..." : "I've Verified My Email"}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={[styles.submitButton, isChecking && styles.submitButtonDisabled]}
             disabled={isChecking}
             onPress={handleCheckVerification}
+            activeOpacity={0.8}
           >
-            {isChecking && (
-              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-            )}
-          </AppButton>
+            <LinearGradient
+              colors={isChecking 
+                ? ["#A8A8A8", "#888888"] 
+                : [colors.primary, "#00D68F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitButtonGradient}
+            >
+              {isChecking && (
+                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.submitButtonText}>
+                {isChecking ? "Checking..." : "I've Verified My Email"}
+              </Text>
+              {!isChecking && (
+                <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
 
           <View style={styles.resendContainer}>
-            <Text style={[appStyles.body1, { color: colors.gray }]}>
+            <Text style={styles.resendLabel}>
               Didn't receive the email?
             </Text>
             <TouchableOpacity
               onPress={handleResend}
               disabled={!canResend || isResending}
-              style={{ marginTop: 8 }}
+              style={styles.resendButton}
             >
               {isResending ? (
                 <ActivityIndicator color={colors.primary} size="small" />
               ) : (
                 <Text
                   style={[
-                    appStyles.body1,
-                    {
-                      color: canResend ? colors.primary : colors.gray,
-                      fontFamily: Fonts.semiBold,
-                    },
+                    styles.resendText,
+                    !canResend && styles.resendTextDisabled
                   ]}
                 >
                   Resend Email
@@ -234,64 +276,164 @@ const OtpScreen = () => {
             onPress={handleBackToLogin}
             style={styles.backToLoginButton}
           >
-            <Text style={[appStyles.body1, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+            <Text style={styles.backToLoginText}>
               Back to Login
             </Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
+    </View>
   );
 };
 
 export default OtpScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
   },
-  scrollContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    flexGrow: 1,
-    justifyContent: "space-between",
-    paddingBottom: 20,
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 40,
+    paddingBottom: 35,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  iconContainer: {
-    alignSelf: "center",
-    marginTop: 40,
+  headerContent: {
+    alignItems: "center",
   },
-  gradientCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  headerIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: "rgba(255, 255, 255, 0.85)",
+    marginTop: 4,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: sizes.paddingHorizontal,
+    paddingTop: 10,
+    paddingBottom: 30,
+    justifyContent: "space-between",
+  },
+  formCard: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 24,
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 5,
+  },
+  emailText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  emailHighlight: {
+    fontFamily: Fonts.bold,
+    color: colors.primary,
   },
   instructionsContainer: {
-    marginTop: 32,
+    marginTop: 24,
   },
   timerSection: {
     alignItems: "center",
     marginTop: 24,
   },
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  timerText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+  },
+  submitButton: {
+    marginTop: 24,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonDisabled: {
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  submitButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  submitButtonText: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
   resendContainer: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 24,
+  },
+  resendLabel: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  resendButton: {
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  resendText: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+  },
+  resendTextDisabled: {
+    color: colors.gray,
   },
   spamNotice: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 20,
     gap: 6,
   },
   spamNoticeText: {
@@ -303,7 +445,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
     paddingVertical: 12,
-
-    backgroundColor: "red",
+  },
+  backToLoginText: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
   },
 });

@@ -1,14 +1,15 @@
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
-import { colors, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { AdminInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -29,8 +30,25 @@ const EditProfile = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
   // Initialize form with user data
   useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     if (user) {
       formik.setValues({
         firstName: user.firstname || "",
@@ -103,30 +121,62 @@ const EditProfile = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+      
+      {/* Premium Gradient Header with Profile Image */}
+      <LinearGradient
+        colors={["#1E293B", "#475569"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Profile Image */}
-        <View style={styles.imageContainer}>
-          {profileImage ? (
-            <Image
-              source={{ uri: profileImage }}
-              style={styles.imageStyle}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.imageStyle, styles.imagePlaceholder]}>
-              <Ionicons name="person" size={48} color={colors.gray} />
-            </View>
-          )}
-          <TouchableOpacity style={styles.editIconContainer} onPress={pickImage}>
-            <Ionicons name="camera" size={20} color={colors.primary} />
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Edit Profile</Text>
+          <View style={styles.headerPlaceholder} />
         </View>
+        
+        {/* Profile Image in Header */}
+        <View style={styles.profileImageWrapper}>
+          <View style={styles.imageContainer}>
+            {profileImage ? (
+              <Image
+                source={{ uri: profileImage }}
+                style={styles.imageStyle}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.imageStyle, styles.imagePlaceholder]}>
+                <Ionicons name="person" size={48} color={colors.gray} />
+              </View>
+            )}
+            <TouchableOpacity style={styles.editIconContainer} onPress={pickImage}>
+              <Ionicons name="camera" size={20} color="#1E293B" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          <KeyboardAwareScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid={true}
+          >
 
         {/* Form Inputs */}
         <View style={{ gap: 16, marginTop: 32 }}>
@@ -171,26 +221,69 @@ const EditProfile = () => {
         </View>
 
         {/* Update Button */}
-        <AppButton
-          title={isLoading ? "Updating..." : "Update Profile"}
-          containerStyle={{ marginTop: 32 }}
-          onPress={handleSubmit}
-          disabled={isLoading}
-        />
-        {isLoading && (
-          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
-        )}
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+            <AppButton
+              title={isLoading ? "Updating..." : "Update Profile"}
+              containerStyle={{ marginTop: 32 }}
+              onPress={handleSubmit}
+              disabled={isLoading}
+            />
+            {isLoading && (
+              <ActivityIndicator size="small" color="#1E293B" style={{ marginTop: 16 }} />
+            )}
+          </KeyboardAwareScrollView>
+        </Animated.View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default EditProfile;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#1E293B",
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    textAlign: "center",
+  },
+  headerPlaceholder: {
+    width: 40,
+  },
+  profileImageWrapper: {
+    alignItems: "center",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -199,14 +292,13 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     alignItems: "center",
-    marginTop: 16,
   },
   imageStyle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: colors.primary,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: colors.white,
   },
   imagePlaceholder: {
     backgroundColor: colors.lightGray,
@@ -216,12 +308,10 @@ const styles = StyleSheet.create({
   editIconContainer: {
     position: "absolute",
     bottom: 0,
-    right: "35%",
+    right: -5,
     backgroundColor: colors.white,
     borderRadius: 20,
     padding: 8,
-    borderWidth: 3,
-    borderColor: colors.white,
     elevation: 2,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
