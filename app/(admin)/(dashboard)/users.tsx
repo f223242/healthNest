@@ -1,20 +1,22 @@
 import AdminTable, { TableColumn } from "@/component/admin/AdminTable";
 import FormInput from "@/component/FormInput";
+import { db } from "@/config/firebase";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { collection, getDocs } from "firebase/firestore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -67,6 +69,16 @@ const UsersManagement = () => {
   const fetchUsers = useCallback(async () => {
     try {
       const firestoreUsers = await getAllUsers();
+      console.log('[Admin] getAllUsers ->', firestoreUsers && firestoreUsers.length ? `${firestoreUsers.length} users` : 'no users', firestoreUsers);
+      // also include pendingUsers (not yet verified) so admin can manage them
+      let pendingUsers: any[] = [];
+      try {
+        const pendingSnap = await getDocs(collection(db, "pendingUsers"));
+        pendingUsers = pendingSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+        console.log('[Admin] pendingUsers ->', pendingUsers && pendingUsers.length ? `${pendingUsers.length} pending` : 'no pending', pendingUsers);
+      } catch (e) {
+        console.warn("Failed to fetch pendingUsers:", e);
+      }
       const displayUsers: DisplayUser[] = firestoreUsers.map((u: User) => {
         // Get location from additionalInfo
         let location = "";
@@ -86,6 +98,28 @@ const UsersManagement = () => {
           registeredDate: "-", // We can add createdAt field to users if needed
         };
       });
+
+      // append pending users (mark as pending in registeredDate)
+      if (pendingUsers.length) {
+        const pendingDisplay = pendingUsers.map((p) => {
+          const name = `${p.firstname || ""} ${p.lastname || ""}`.trim() || "Unknown";
+          const location = (p.city || p.address) || "-";
+          const role = mapRoleToType(p.role || "user");
+          const created = p.createdAt ? (typeof p.createdAt === 'number' ? new Date(p.createdAt).toISOString() : p.createdAt) : "Pending";
+          return {
+            id: p.uid,
+            name: `${name} (Pending)`,
+            email: p.email || "",
+            phone: p.phoneNumber || "",
+            type: role,
+            location,
+            registeredDate: created,
+          } as DisplayUser;
+        });
+
+        displayUsers.unshift(...pendingDisplay);
+      }
+      console.log('[Admin] displayUsers count ->', displayUsers.length);
       setUsers(displayUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
