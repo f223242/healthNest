@@ -21,7 +21,7 @@ import {
   setDoc,
   where
 } from "firebase/firestore";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { useToast } from "@/component/Toast/ToastProvider";
 import { auth, db } from "@/config/firebase";
@@ -159,6 +159,7 @@ export const AuthProvider = ({ children }: any) => {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const router = useRouter();
+  const skipAuthHandlingRef = useRef(false);
 
   // ---------------------------------------------------
   // GET USER PROFILE
@@ -186,6 +187,9 @@ export const AuthProvider = ({ children }: any) => {
   // ---------------------------------------------------
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (current) => {
+      // If we're performing a temporary sign-in (e.g. to check verification), skip handling
+      if (skipAuthHandlingRef.current) return;
+
       if (current) {
         const profile = await getUserProfile();
         setUser(profile);
@@ -267,6 +271,22 @@ export const AuthProvider = ({ children }: any) => {
     dateOfBirth: string;
     phoneNumber: string;
   }) => {
+    // Normalize display role to internal role value
+    const mapRoleToInternal = (r: string) => {
+      const lookup: { [k: string]: string } = {
+        User: "user",
+        user: "user",
+        Lab: "lab",
+        lab: "lab",
+        Nurse: "nurse",
+        nurse: "nurse",
+        "Medicine Delivery": "delivery",
+        "Medicine delivery": "delivery",
+        Delivery: "delivery",
+        delivery: "delivery",
+      };
+      return lookup[r] || r.toLowerCase();
+    };
     try {
       setLoading(true);
       // Check if email already exists is skipped for brevity
@@ -281,7 +301,7 @@ export const AuthProvider = ({ children }: any) => {
         email: values.email,
         firstname: values.firstname,
         lastname: values.lastname,
-        role: values.role,
+        role: mapRoleToInternal(values.role),
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
         createdAt: new Date().toISOString(),
@@ -502,49 +522,85 @@ export const AuthProvider = ({ children }: any) => {
           }
         },
         checkEmailVerification: async (): Promise<boolean> => {
+          let userCredential: any = null;
           try {
             const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
             if (!pendingUserStr) return false;
             const pendingUser = JSON.parse(pendingUserStr);
-            // Sign in temporarily
-            const userCredential = await signInWithEmailAndPassword(auth, pendingUser.email, pendingUser.password);
-            await userCredential.user.reload();
-            const isVerified = userCredential.user.emailVerified;
-            if (isVerified) {
-              // Move to users collection
-              await setDoc(doc(db, "users", userCredential.user.uid), {
-                uid: userCredential.user.uid,
-                email: pendingUser.email,
-                firstname: pendingUser.firstname,
-                lastname: pendingUser.lastname,
-                role: pendingUser.role,
-                phoneNumber: pendingUser.phoneNumber,
-                dateOfBirth: pendingUser.dateOfBirth,
-                emailVerified: true,
-                profileCompleted: false,
-                createdAt: new Date().toISOString(),
-              });
-              // Delete pending
-              await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
-              // Create publicPhoneIndex
-              const digitsOnly = (pendingUser.phoneNumber || "").replace(/\D+/g, "");
-              if (digitsOnly) {
-                await setDoc(doc(db, "publicPhoneIndex", digitsOnly), { uid: userCredential.user.uid, email: pendingUser.email });
+
+            // Temporarily sign in to check verification; set skip flag so listener ignores this transient sign-in
+            skipAuthHandlingRef.current = true;
+            try {
+              userCredential = await signInWithEmailAndPassword(auth, pendingUser.email, pendingUser.password);
+              await userCredential.user.reload();
+              const isVerified = userCredential.user.emailVerified;
+
+              if (isVerified) {
+                // Move to users collection
+                  // Ensure role is normalized when moving to users collection
+                  const normalizedRole = ((): string => {
+                    const r = pendingUser.role || "user";
+                    const map: { [k: string]: string } = {
+                      User: "user",
+                      user: "user",
+                      Lab: "lab",
+                      lab: "lab",
+                      Nurse: "nurse",
+                      nurse: "nurse",
+                      "Medicine Delivery": "delivery",
+                      "Medicine delivery": "delivery",
+                      Delivery: "delivery",
+                      delivery: "delivery",
+                    };
+                    return map[r] || (typeof r === "string" ? r.toLowerCase() : "user");
+                  })();
+
+                  await setDoc(doc(db, "users", userCredential.user.uid), {
+                    uid: userCredential.user.uid,
+                    email: pendingUser.email,
+                    firstname: pendingUser.firstname,
+                    lastname: pendingUser.lastname,
+                    role: normalizedRole,
+                    phoneNumber: pendingUser.phoneNumber,
+                    dateOfBirth: pendingUser.dateOfBirth,
+                    emailVerified: true,
+                    profileCompleted: false,
+                    createdAt: new Date().toISOString(),
+                  });
+
+                // Delete pending user doc
+                await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+
+                // Create publicPhoneIndex entry
+                const digitsOnly = (pendingUser.phoneNumber || "").replace(/\D+/g, "");
+                if (digitsOnly) {
+                  await setDoc(doc(db, "publicPhoneIndex", digitsOnly), { uid: userCredential.user.uid, email: pendingUser.email });
+                }
+
+                // Mark verification complete and remove pending flag
+                await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
+                await AsyncStorage.removeItem(PENDING_USER_KEY);
+
+                // Navigate to login screen
+                try {
+                  router.replace("/(auth)");
+                } catch (navErr) {
+                  console.warn("Router navigation failed after verification:", navErr);
+                }
+
+                return true;
               }
-              await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
-              await AsyncStorage.removeItem(PENDING_USER_KEY);
-              // Navigate immediately to login screen after successful verification
-              try {
-                router.replace("/(auth)");
-              } catch (navErr) {
-                console.warn("Router navigation failed after verification:", navErr);
-              }
+
+              return false;
+            } finally {
+              // Always sign out the temporary session and resume normal auth handling
+              try { if (userCredential) await signOut(auth); } catch (e) { /* ignore */ }
+              skipAuthHandlingRef.current = false;
             }
-            await signOut(auth);
-            return isVerified;
           } catch (e) {
             console.error("checkEmailVerification error:", e);
-            try { await signOut(auth); } catch(_){}
+            try { if (userCredential) await signOut(auth); } catch (_) {}
+            skipAuthHandlingRef.current = false;
             return false;
           }
         },
