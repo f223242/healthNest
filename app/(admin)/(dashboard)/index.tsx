@@ -125,11 +125,10 @@ const AdminDashboard = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
 
-      {/* Gradient Header */}
       <LinearGradient
-        colors={['#1a1a2e', '#16213e'] as const}
+        colors={['#1E293B', '#334155', '#475569'] as const}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -141,7 +140,7 @@ const AdminDashboard = () => {
           </View>
           <View style={styles.avatarContainer}>
             <LinearGradient
-              colors={[colors.primary, '#00D68F'] as const}
+              colors={['#1E293B', '#475569'] as const}
               style={styles.avatarPlaceholder}
             >
               <Ionicons name="shield-checkmark" size={24} color={colors.white} />
@@ -217,7 +216,7 @@ const AdminDashboard = () => {
             subtitle="View, edit, and manage all users"
             icon="people"
             gradient
-            gradientColors={['#1a1a2e', '#16213e'] as const}
+            gradientColors={['#1E293B', '#475569'] as const}
             onPress={() => router.push("/(admin)/(dashboard)/users" as any)}
             animation="fadeInUp"
             delay={450}
@@ -237,7 +236,7 @@ const AdminDashboard = () => {
         {/* Admin Info Card */}
         <Animatable.View animation="fadeInUp" delay={550} style={styles.section}>
           <LinearGradient
-            colors={[colors.primary, '#00D68F'] as const}
+            colors={['#1E293B', '#475569'] as const}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.adminInfoCard}

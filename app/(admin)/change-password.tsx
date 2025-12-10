@@ -85,7 +85,7 @@ const ChangePassword = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={["#1E293B", "#475569"]}
@@ -109,11 +109,11 @@ const ChangePassword = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <KeyboardAwareScrollView
@@ -122,104 +122,104 @@ const ChangePassword = () => {
             showsVerticalScrollIndicator={false}
             enableOnAndroid={true}
           >
-        <View>
-          {/* Form Inputs */}
-          <View style={styles.formContainer}>
-            <FormInput
-              value={values.currentPassword}
-              onChangeText={handleChange("currentPassword")}
-              onBlur={handleBlur("currentPassword")}
-              placeholder="Current Password"
-              isPassword
-              LeftIcon={LockIcon}
-              error={
-                touched.currentPassword && errors.currentPassword
-                  ? errors.currentPassword
-                  : undefined
-              }
-            />
+            <View>
+              {/* Form Inputs */}
+              <View style={styles.formContainer}>
+                <FormInput
+                  value={values.currentPassword}
+                  onChangeText={handleChange("currentPassword")}
+                  onBlur={handleBlur("currentPassword")}
+                  placeholder="Current Password"
+                  isPassword
+                  LeftIcon={LockIcon}
+                  error={
+                    touched.currentPassword && errors.currentPassword
+                      ? errors.currentPassword
+                      : undefined
+                  }
+                />
 
-            <FormInput
-              value={values.newPassword}
-              onChangeText={handleChange("newPassword")}
-              onBlur={handleBlur("newPassword")}
-              placeholder="New Password"
-              isPassword
-              LeftIcon={LockIcon}
-              containerStyle={{ marginTop: 12 }}
-            />
+                <FormInput
+                  value={values.newPassword}
+                  onChangeText={handleChange("newPassword")}
+                  onBlur={handleBlur("newPassword")}
+                  placeholder="New Password"
+                  isPassword
+                  LeftIcon={LockIcon}
+                  containerStyle={{ marginTop: 12 }}
+                />
 
-            <FormInput
-              value={values.confirmPassword}
-              onChangeText={handleChange("confirmPassword")}
-              onBlur={handleBlur("confirmPassword")}
-              placeholder="Confirm New Password"
-              isPassword
-              LeftIcon={LockIcon}
-              containerStyle={{ marginTop: 12 }}
-            />
+                <FormInput
+                  value={values.confirmPassword}
+                  onChangeText={handleChange("confirmPassword")}
+                  onBlur={handleBlur("confirmPassword")}
+                  placeholder="Confirm New Password"
+                  isPassword
+                  LeftIcon={LockIcon}
+                  containerStyle={{ marginTop: 12 }}
+                />
 
-            {/* Password Requirements */}
-            <View style={styles.requirementsContainer}>
-              <Text style={styles.requirementsTitle}>New password must contain:</Text>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={values.newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={values.newPassword.length >= 8 ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>At least 8 characters</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[a-z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[a-z]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One lowercase letter</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[A-Z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[A-Z]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One uppercase letter</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[0-9]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One number</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[^a-zA-Z0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[^a-zA-Z0-9]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One special character</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>Passwords match</Text>
+                {/* Password Requirements */}
+                <View style={styles.requirementsContainer}>
+                  <Text style={styles.requirementsTitle}>New password must contain:</Text>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={values.newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"}
+                      size={18}
+                      color={values.newPassword.length >= 8 ? '#1E293B' : colors.gray}
+                    />
+                    <Text style={styles.requirementText}>At least 8 characters</Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={/[a-z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                      size={18}
+                      color={/[a-z]/.test(values.newPassword) ? '#1E293B' : colors.gray}
+                    />
+                    <Text style={styles.requirementText}>One lowercase letter</Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={/[A-Z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                      size={18}
+                      color={/[A-Z]/.test(values.newPassword) ? '#1E293B' : colors.gray}
+                    />
+                    <Text style={styles.requirementText}>One uppercase letter</Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={/[0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                      size={18}
+                      color={/[0-9]/.test(values.newPassword) ? '#1E293B' : colors.gray}
+                    />
+                    <Text style={styles.requirementText}>One number</Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={/[^a-zA-Z0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                      size={18}
+                      color={/[^a-zA-Z0-9]/.test(values.newPassword) ? '#1E293B' : colors.gray}
+                    />
+                    <Text style={styles.requirementText}>One special character</Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"}
+                      size={18}
+                      color={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? '#1E293B' : colors.gray}
+                    />
+                    <Text style={styles.requirementText}>Passwords match</Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
 
-        {/* Change Password Button */}
+            {/* Change Password Button */}
             <AppButton
               title={isLoading ? "Changing Password..." : "Change Password"}
               onPress={handleSubmit}
               disabled={!isValid || isLoading}
-              containerStyle={{marginTop:20}}
+              containerStyle={{ marginTop: 20 }}
             />
             {isLoading && (
               <ActivityIndicator size="small" color="#1E293B" style={{ marginTop: 16 }} />
@@ -305,12 +305,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGreen,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.primary + "20",
+    borderColor: '#1E293B' + "20",
   },
   requirementsTitle: {
     fontFamily: Fonts.semiBold,
     fontSize: 14,
-    color: colors.primary,
+    color: '#1E293B',
     marginBottom: 12,
   },
   requirementItem: {

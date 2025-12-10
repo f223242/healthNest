@@ -8,20 +8,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SettingsScreen = () => {
-  const router=useRouter();
+  const router = useRouter();
   const toast = useToast();
   const { logout, user } = useAuthContext();
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -52,7 +52,7 @@ const SettingsScreen = () => {
     const fullName = `${firstName} ${lastName}`.trim() || "Admin User";
     const email = user?.email || "admin@healthnest.com";
     const profileImage = user?.additionalInfo?.profileImage || null;
-    
+
     return { fullName, email, profileImage };
   }, [user]);
 
@@ -108,14 +108,14 @@ const SettingsScreen = () => {
           label: "Admin Profile",
           description: "View and edit your profile",
           type: "navigation" as const,
-          onPress: () => {router.push('/(admin)/edit-profile')},
+          onPress: () => { router.push('/(admin)/edit-profile') },
         },
         {
           icon: "key" as const,
           label: "Change Password",
           description: "Update your password",
           type: "navigation" as const,
-          onPress: () => {router.push('/(admin)/change-password')},
+          onPress: () => { router.push('/(admin)/change-password') },
         },
       ],
     },
@@ -127,7 +127,7 @@ const SettingsScreen = () => {
           label: "About",
           description: "App version and information",
           type: "navigation" as const,
-          onPress: () => {router.push('/(admin)/about')},
+          onPress: () => { router.push('/(admin)/about') },
         },
       ],
     },
@@ -136,7 +136,7 @@ const SettingsScreen = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={['#1E293B', '#334155', '#475569']}
@@ -146,7 +146,7 @@ const SettingsScreen = () => {
       >
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Settings</Text>
-          
+
           {/* Admin Info in Header */}
           <View style={styles.headerProfileSection}>
             {adminInfo.profileImage ? (
@@ -179,52 +179,52 @@ const SettingsScreen = () => {
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        {/* Settings Sections */}
-        {settingSections.map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionContent}>
-              {section.items.map((item, itemIndex) => (
-                <TouchableOpacity
-                  key={itemIndex}
-                  style={[
-                    styles.settingItem,
-                    itemIndex === section.items.length - 1 && styles.settingItemLast,
-                  ]}
-                  onPress={item.type === "navigation" ? item.onPress : undefined}
-                  activeOpacity={item.type === "navigation" ? 0.6 : 1}
-                >
-                  <View style={styles.iconContainer}>
-                    <Ionicons name={item.icon} size={22} color={colors.primary} />
-                  </View>
-                  <View style={styles.settingContent}>
-                    <Text style={styles.settingLabel}>{item.label}</Text>
-                    <Text style={styles.settingDescription}>{item.description}</Text>
-                  </View>
-                  {item.type === "switch" ? (
-                    <Switch
-                      value={item.value}
-                      onValueChange={item.onValueChange}
-                      trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
-                      thumbColor={item.value ? colors.primary : "#F3F4F6"}
-                    />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ))}
+            {/* Settings Sections */}
+            {settingSections.map((section, sectionIndex) => (
+              <View key={sectionIndex} style={styles.section}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <View style={styles.sectionContent}>
+                  {section.items.map((item, itemIndex) => (
+                    <TouchableOpacity
+                      key={itemIndex}
+                      style={[
+                        styles.settingItem,
+                        itemIndex === section.items.length - 1 && styles.settingItemLast,
+                      ]}
+                      onPress={item.type === "navigation" ? item.onPress : undefined}
+                      activeOpacity={item.type === "navigation" ? 0.6 : 1}
+                    >
+                      <View style={styles.iconContainer}>
+                        <Ionicons name={item.icon} size={22} color="#1E293B" />
+                      </View>
+                      <View style={styles.settingContent}>
+                        <Text style={styles.settingLabel}>{item.label}</Text>
+                        <Text style={styles.settingDescription}>{item.description}</Text>
+                      </View>
+                      {item.type === "switch" ? (
+                        <Switch
+                          value={item.value}
+                          onValueChange={item.onValueChange}
+                          trackColor={{ false: "#D1D5DB", true: "#1E293B" + "80" }}
+                          thumbColor={item.value ? "#1E293B" : "#F3F4F6"}
+                        />
+                      ) : (
+                        <Ionicons name="chevron-forward" size={20} color={colors.gray} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ))}
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={20} color={colors.white} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+            {/* Logout Button */}
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Ionicons name="log-out" size={20} color={colors.white} />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
 
-        {/* Version Info */}
-        <Text style={styles.versionText}>HealthNest Admin v1.0.0</Text>
+            {/* Version Info */}
+            <Text style={styles.versionText}>HealthNest Admin v1.0.0</Text>
 
           </Animated.View>
         </ScrollView>
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: colors.primary + "15",
+    backgroundColor: '#1E293B' + "15",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,

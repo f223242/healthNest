@@ -6,14 +6,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -214,7 +214,7 @@ const ComplaintsManagement = () => {
   });
 
   const stats = [
-    { label: "Total", value: complaints.length, color: colors.primary },
+    { label: "Total", value: complaints.length, color: '#1E293B' },
     {
       label: "Pending",
       value: complaints.filter((c) => c.status === "Pending").length,
@@ -240,7 +240,7 @@ const ComplaintsManagement = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={['#1E293B', '#334155', '#475569']}
@@ -251,7 +251,7 @@ const ComplaintsManagement = () => {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Complaints</Text>
           <Text style={styles.headerSubtitle}>Manage user complaints & issues</Text>
-          
+
           {/* Stats in Header */}
           <View style={styles.headerStats}>
             <View style={styles.headerStatItem}>
@@ -285,53 +285,53 @@ const ComplaintsManagement = () => {
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        {/* Search and Filters */}
-        <View style={styles.searchSection}>
-          <FormInput
-            placeholder="Search complaints..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            LeftIcon={() => <Ionicons name="search" size={20} color={colors.gray} />}
-            containerStyle={styles.searchInput}
-          />
+            {/* Search and Filters */}
+            <View style={styles.searchSection}>
+              <FormInput
+                placeholder="Search complaints..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                LeftIcon={() => <Ionicons name="search" size={20} color={colors.gray} />}
+                containerStyle={styles.searchInput}
+              />
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContainer}
-          >
-            {(["All", "Pending", "In Progress", "Resolved", "Rejected"] as const).map((status) => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.filterChip,
-                  filterStatus === status && styles.filterChipActive,
-                ]}
-                onPress={() => setFilterStatus(status)}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filtersContainer}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filterStatus === status && styles.filterTextActive,
-                  ]}
-                >
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                {(["All", "Pending", "In Progress", "Resolved", "Rejected"] as const).map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[
+                      styles.filterChip,
+                      filterStatus === status && styles.filterChipActive,
+                    ]}
+                    onPress={() => setFilterStatus(status)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        filterStatus === status && styles.filterTextActive,
+                      ]}
+                    >
+                      {status}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-        {/* Complaints Table */}
-        <View style={styles.tableSection}>
-          <Text style={styles.tableTitle}>All Complaints</Text>
-          <AdminTable
-            columns={columns}
-            data={filteredComplaints}
-            onRowPress={handleComplaintPress}
-            emptyMessage="No complaints found"
-          />
-        </View>
+            {/* Complaints Table */}
+            <View style={styles.tableSection}>
+              <Text style={styles.tableTitle}>All Complaints</Text>
+              <AdminTable
+                columns={columns}
+                data={filteredComplaints}
+                onRowPress={handleComplaintPress}
+                emptyMessage="No complaints found"
+              />
+            </View>
 
           </Animated.View>
         </ScrollView>
@@ -548,8 +548,8 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
   filterChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#1E293B',
+    borderColor: '#1E293B',
   },
   filterText: {
     fontSize: 13,
