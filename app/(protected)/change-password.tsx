@@ -2,13 +2,13 @@ import { LockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -33,6 +33,23 @@ const passwordSchema = Yup.object({
 const ChangePassword = () => {
   const router = useRouter();
   const toast = useToast();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const formik = useFormik({
     initialValues: {
@@ -55,152 +72,206 @@ const ChangePassword = () => {
     formik;
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00C853']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        <View>
-          {/* Icon with gradient background */}
-          <View style={styles.iconContainer}>
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCircle}
-            >
-              <Ionicons name="key-outline" size={56} color={colors.white} />
-            </LinearGradient>
-          </View>
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Change Password</Text>
+          <View style={{ width: 44 }} />
+        </View>
+      </LinearGradient>
 
-          <Text style={[appStyles.h3, { marginTop: 24, textAlign: "center" }]}>
-            Change Password
-          </Text>
-          <Text style={styles.subheadingStyle}>
-            Your new password must be different from previously used passwords
-          </Text>
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            {/* Icon with gradient background */}
+            <View style={styles.iconContainer}>
+              <LinearGradient
+                colors={[colors.primary, "#00D68F"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientCircle}
+              >
+                <Ionicons name="key-outline" size={56} color={colors.white} />
+              </LinearGradient>
+            </View>
 
-          {/* Form Inputs */}
-          <View style={styles.formContainer}>
-            <FormInput
-              value={values.currentPassword}
-              onChangeText={handleChange("currentPassword")}
-              onBlur={handleBlur("currentPassword")}
-              placeholder="Current Password"
-              isPassword
-              LeftIcon={LockIcon}
-              error={
-                touched.currentPassword && errors.currentPassword
-                  ? errors.currentPassword
-                  : undefined
-              }
-            />
+            <Text style={styles.subheadingStyle}>
+              Your new password must be different from previously used passwords
+            </Text>
 
-            <FormInput
-              value={values.newPassword}
-              onChangeText={handleChange("newPassword")}
-              onBlur={handleBlur("newPassword")}
-              placeholder="New Password"
-              isPassword
-              LeftIcon={LockIcon}
-              containerStyle={{ marginTop: 12 }}
-            />
+            {/* Form Inputs */}
+            <View style={styles.formContainer}>
+              <FormInput
+                value={values.currentPassword}
+                onChangeText={handleChange("currentPassword")}
+                onBlur={handleBlur("currentPassword")}
+                placeholder="Current Password"
+                isPassword
+                LeftIcon={LockIcon}
+                error={
+                  touched.currentPassword && errors.currentPassword
+                    ? errors.currentPassword
+                    : undefined
+                }
+              />
 
-            <FormInput
-              value={values.confirmPassword}
-              onChangeText={handleChange("confirmPassword")}
-              onBlur={handleBlur("confirmPassword")}
-              placeholder="Confirm New Password"
-              isPassword
-              LeftIcon={LockIcon}
-              containerStyle={{ marginTop: 12 }}
-            />
+              <FormInput
+                value={values.newPassword}
+                onChangeText={handleChange("newPassword")}
+                onBlur={handleBlur("newPassword")}
+                placeholder="New Password"
+                isPassword
+                LeftIcon={LockIcon}
+                containerStyle={{ marginTop: 12 }}
+              />
 
-            {/* Password Requirements */}
-            <View style={styles.requirementsContainer}>
-              <Text style={styles.requirementsTitle}>New password must contain:</Text>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={values.newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={values.newPassword.length >= 8 ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>At least 8 characters</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[a-z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[a-z]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One lowercase letter</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[A-Z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[A-Z]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One uppercase letter</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[0-9]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One number</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={/[^a-zA-Z0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={/[^a-zA-Z0-9]/.test(values.newPassword) ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>One special character</Text>
-              </View>
-              <View style={styles.requirementItem}>
-                <Ionicons 
-                  name={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"} 
-                  size={18} 
-                  color={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? colors.primary : colors.gray} 
-                />
-                <Text style={styles.requirementText}>Passwords match</Text>
+              <FormInput
+                value={values.confirmPassword}
+                onChangeText={handleChange("confirmPassword")}
+                onBlur={handleBlur("confirmPassword")}
+                placeholder="Confirm New Password"
+                isPassword
+                LeftIcon={LockIcon}
+                containerStyle={{ marginTop: 12 }}
+              />
+
+              {/* Password Requirements */}
+              <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>New password must contain:</Text>
+                <View style={styles.requirementItem}>
+                  <Ionicons 
+                    name={values.newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
+                    size={18} 
+                    color={values.newPassword.length >= 8 ? colors.primary : colors.gray} 
+                  />
+                  <Text style={styles.requirementText}>At least 8 characters</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons 
+                    name={/[a-z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={18} 
+                    color={/[a-z]/.test(values.newPassword) ? colors.primary : colors.gray} 
+                  />
+                  <Text style={styles.requirementText}>One lowercase letter</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons 
+                    name={/[A-Z]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={18} 
+                    color={/[A-Z]/.test(values.newPassword) ? colors.primary : colors.gray} 
+                  />
+                  <Text style={styles.requirementText}>One uppercase letter</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons 
+                    name={/[0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={18} 
+                    color={/[0-9]/.test(values.newPassword) ? colors.primary : colors.gray} 
+                  />
+                  <Text style={styles.requirementText}>One number</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons 
+                    name={/[^a-zA-Z0-9]/.test(values.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={18} 
+                    color={/[^a-zA-Z0-9]/.test(values.newPassword) ? colors.primary : colors.gray} 
+                  />
+                  <Text style={styles.requirementText}>One special character</Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons 
+                    name={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"} 
+                    size={18} 
+                    color={values.newPassword && values.confirmPassword && values.newPassword === values.confirmPassword ? colors.primary : colors.gray} 
+                  />
+                  <Text style={styles.requirementText}>Passwords match</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
 
-        {/* Change Password Button */}
-        <AppButton
-          title="Change Password"
-          onPress={handleSubmit}
-          disabled={!isValid}
-          containerStyle={{marginTop:20}}
-        />
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+            {/* Change Password Button */}
+            <AppButton
+              title="Change Password"
+              onPress={handleSubmit}
+              disabled={!isValid}
+              containerStyle={{marginTop:20}}
+            />
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default ChangePassword;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
   },
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 24,
-    justifyContent: "space-between",
+    paddingBottom: 40,
   },
+
   iconContainer: {
     alignSelf: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
   gradientCircle: {
     width: 120,

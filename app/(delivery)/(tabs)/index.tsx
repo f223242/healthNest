@@ -1,30 +1,34 @@
-import DashboardStatCard from '@/component/DashboardStatCard';
-import QuickActionCard from '@/component/QuickActionCard';
+import PremiumActionCard from '@/component/PremiumActionCard';
+import PremiumStatCard from '@/component/PremiumStatCard';
+import SectionHeader from '@/component/SectionHeader';
+import WelcomeHeader from '@/component/WelcomeHeader';
 import { colors, Fonts } from '@/constant/theme';
 import { DeliveryInfo, useAuthContext } from '@/hooks/useFirebaseAuth';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const DeliveryDashboard = () => {
   const { user } = useAuthContext();
   
-  // Get delivery info
   const deliveryInfo = useMemo(() => {
     return user?.additionalInfo as DeliveryInfo | undefined;
   }, [user]);
 
   const fullName = `${user?.firstname || ''} ${user?.lastname || ''}`.trim() || 'Delivery Partner';
 
-  // Get vehicle icon based on type
-  const getVehicleIcon = (type?: string) => {
+  const getVehicleIcon = (type?: string): keyof typeof Ionicons.glyphMap => {
     switch (type?.toLowerCase()) {
       case 'motorcycle': return 'bicycle';
       case 'car': return 'car';
@@ -35,103 +39,173 @@ const DeliveryDashboard = () => {
   };
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
-      {/* Scrollable Content */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#FF5722" />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#FF5722', '#FF8A65'] as const}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <WelcomeHeader
+          greeting="Welcome back,"
+          name={fullName}
+          subtitle={deliveryInfo?.vehicleType}
+          avatar={deliveryInfo?.profileImage}
+        />
 
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.nameText}>{fullName}</Text>
-          {deliveryInfo?.vehicleType && (
-            <View style={styles.vehicleBadge}>
-              <Ionicons name={getVehicleIcon(deliveryInfo.vehicleType)} size={14} color="#FF5722" />
-              <Text style={styles.vehicleText}>{deliveryInfo.vehicleType}</Text>
+        {/* Quick Stats in Header */}
+        <View style={styles.headerStats}>
+          <Animatable.View animation="fadeInUp" delay={100} style={styles.headerStatItem}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name={getVehicleIcon(deliveryInfo?.vehicleType)} size={18} color={colors.white} />
             </View>
-          )}
+            <Text style={styles.headerStatValue}>{deliveryInfo?.vehicleNumber || '-'}</Text>
+            <Text style={styles.headerStatLabel}>Vehicle</Text>
+          </Animatable.View>
+          
+          <View style={styles.headerStatDivider} />
+          
+          <Animatable.View animation="fadeInUp" delay={200} style={styles.headerStatItem}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="time-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{deliveryInfo?.availability || '-'}</Text>
+            <Text style={styles.headerStatLabel}>Available</Text>
+          </Animatable.View>
+          
+          <View style={styles.headerStatDivider} />
+          
+          <Animatable.View animation="fadeInUp" delay={300} style={styles.headerStatItem}>
+            <View style={styles.headerStatIcon}>
+              <Ionicons name="card-outline" size={18} color={colors.white} />
+            </View>
+            <Text style={styles.headerStatValue}>{deliveryInfo?.licenseNumber ? '✓' : '-'}</Text>
+            <Text style={styles.headerStatLabel}>License</Text>
+          </Animatable.View>
         </View>
+      </LinearGradient>
 
-        {/* Stats Overview */}
-        <View style={styles.statsContainer}>
-          <DashboardStatCard
-            title="Vehicle Number"
-            value={deliveryInfo?.vehicleNumber || '-'}
-            icon="car"
-            color={colors.primary}
-          />
-          <DashboardStatCard
-            title="Availability"
-            value={deliveryInfo?.availability || '-'}
-            icon="time"
-            color="#FF9800"
-          />
-          <DashboardStatCard
-            title="License"
-            value={deliveryInfo?.licenseNumber ? 'Verified' : 'Not Added'}
-            icon="card"
-            color="#4CAF50"
-          />
-        </View>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+      >
+        {/* Today's Overview Card */}
+        <Animatable.View animation="fadeInUp" delay={200}>
+          <LinearGradient
+            colors={['#11998e', '#38ef7d'] as const}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.overviewCard}
+          >
+            <View style={styles.overviewContent}>
+              <Text style={styles.overviewTitle}>Ready to Deliver!</Text>
+              <Text style={styles.overviewSubtitle}>
+                Check your customer chats for new delivery requests and updates.
+              </Text>
+              <TouchableOpacity 
+                style={styles.overviewButton}
+                onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}
+              >
+                <Text style={styles.overviewButtonText}>View Chats</Text>
+                <Ionicons name="arrow-forward" size={16} color="#11998e" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.overviewIconContainer}>
+              <Ionicons name="bicycle" size={80} color="rgba(255,255,255,0.2)" />
+            </View>
+          </LinearGradient>
+        </Animatable.View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <QuickActionCard
+        <View style={styles.section}>
+          <SectionHeader 
+            title="Quick Actions" 
+            icon="flash"
+            animation="fadeInUp"
+            delay={300}
+          />
+          
+          <PremiumActionCard
             title="Customer Chats"
             subtitle="View and respond to messages"
             icon="chatbubbles"
-            color={colors.primary}
+            gradient
+            gradientColors={['#FF5722', '#FF8A65'] as const}
             onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}
+            animation="fadeInUp"
+            delay={350}
           />
-          <QuickActionCard
+          
+          <PremiumActionCard
             title="Edit Profile"
-            subtitle="Update your information"
+            subtitle="Update your delivery information"
             icon="person"
             color="#9C27B0"
             onPress={() => router.push('/(delivery)/edit-profile')}
+            animation="fadeInUp"
+            delay={400}
+          />
+          
+          <PremiumActionCard
+            title="Help & Support"
+            subtitle="Get assistance when you need it"
+            icon="help-circle"
+            color="#2196F3"
+            onPress={() => router.push('/(delivery)/help')}
+            animation="fadeInUp"
+            delay={450}
           />
         </View>
 
-        {/* Info Cards */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Your Information</Text>
+        {/* Service Stats */}
+        <View style={styles.section}>
+          <SectionHeader 
+            title="Your Stats" 
+            icon="bar-chart"
+            animation="fadeInUp"
+            delay={500}
+          />
           
-          {deliveryInfo?.licenseNumber && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name="card" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>License Number</Text>
-                <Text style={styles.infoValue}>{deliveryInfo.licenseNumber}</Text>
-              </View>
-            </View>
-          )}
-          
-          {deliveryInfo?.address && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#2196F3' + '15' }]}>
-                <Ionicons name="location" size={20} color="#2196F3" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Home Address</Text>
-                <Text style={styles.infoValue}>{deliveryInfo.city ? `${deliveryInfo.city}` : deliveryInfo.address}</Text>
-              </View>
-            </View>
-          )}
-          
-          {user?.phoneNumber && (
-            <View style={styles.infoCard}>
-              <View style={[styles.infoIcon, { backgroundColor: '#4CAF50' + '15' }]}>
-                <Ionicons name="call" size={20} color="#4CAF50" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Contact</Text>
-                <Text style={styles.infoValue}>{user.phoneNumber}</Text>
-              </View>
-            </View>
-          )}
+          <View style={styles.statsGrid}>
+            <PremiumStatCard
+              title="Vehicle Type"
+              value={deliveryInfo?.vehicleType || 'N/A'}
+              icon="car"
+              color="#FF5722"
+              animation="fadeInUp"
+              delay={550}
+              style={styles.statCard}
+            />
+            <PremiumStatCard
+              title="Service Area"
+              value={deliveryInfo?.city || 'N/A'}
+              icon="location"
+              color="#2196F3"
+              animation="fadeInUp"
+              delay={600}
+              style={styles.statCard}
+            />
+          </View>
         </View>
+
+        {/* Tips Card */}
+        <Animatable.View animation="fadeInUp" delay={650} style={styles.section}>
+          <View style={styles.tipsCard}>
+            <View style={styles.tipsIconContainer}>
+              <Ionicons name="bulb" size={24} color="#FF9800" />
+            </View>
+            <View style={styles.tipsContent}>
+              <Text style={styles.tipsTitle}>Pro Tip</Text>
+              <Text style={styles.tipsText}>
+                Keep your vehicle documents updated and respond quickly to customer chats for better ratings.
+              </Text>
+            </View>
+          </View>
+        </Animatable.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -144,94 +218,142 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  headerGradient: {
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
+  headerStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerStatIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerStatValue: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    textAlign: 'center',
+  },
+  headerStatLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  headerStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: -15,
+  },
   scrollContent: {
-    paddingTop: 10,
+    paddingTop: 20,
     paddingBottom: 100,
   },
-  welcomeSection: {
+  section: {
     paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  welcomeText: {
+  overviewCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    borderRadius: 24,
+    padding: 24,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  overviewContent: {
+    flex: 1,
+  },
+  overviewTitle: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 8,
+  },
+  overviewSubtitle: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: colors.gray,
-  },
-  nameText: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.text,
-    marginTop: 4,
-  },
-  vehicleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF5722' + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginTop: 10,
-    gap: 6,
-  },
-  vehicleText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: '#FF5722',
-  },
-  statsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: colors.text,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 20,
     marginBottom: 16,
   },
-  quickActionsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  infoSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  infoCard: {
+  overviewButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    alignSelf: 'flex-start',
+    gap: 6,
   },
-  infoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  overviewButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#11998e',
+  },
+  overviewIconContainer: {
+    position: 'absolute',
+    right: -10,
+    bottom: -10,
+    opacity: 0.5,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  statCard: {
+    flex: 1,
+  },
+  tipsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  tipsIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFECB3',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
-  infoContent: {
+  tipsContent: {
     flex: 1,
   },
-  infoLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.gray,
-    marginBottom: 2,
-  },
-  infoValue: {
+  tipsTitle: {
     fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: colors.text,
+    fontFamily: Fonts.semiBold,
+    color: '#F57C00',
+    marginBottom: 4,
+  },
+  tipsText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#795548',
+    lineHeight: 18,
   },
 });

@@ -1,11 +1,33 @@
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import { Animated, Linking, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const About = () => {
+  const router = useRouter();
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const openLink = (url: string) => {
     Linking.openURL(url);
   };
@@ -18,24 +40,45 @@ const About = () => {
   ];
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* App Info Card */}
-        <LinearGradient
-          colors={[colors.primary, "#00B976", "#00D68F"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.appCard}
-        >
-          <View style={styles.logoContainer}>
-            <Ionicons name="medical" size={40} color={colors.primary} />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#FF6B35" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={["#FF6B35", "#FFA07A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <View style={styles.logoContainer}>
+              <Ionicons name="bicycle" size={32} color="#FF6B35" />
+            </View>
+            <Text style={styles.appName}>HealthNest</Text>
+            <Text style={styles.appTagline}>Delivery Partner App</Text>
           </View>
-          <Text style={styles.appName}>HealthNest</Text>
-          <Text style={styles.appTagline}>Delivery Partner App</Text>
           <View style={styles.versionBadge}>
-            <Text style={styles.versionText}>Version 1.0.0</Text>
+            <Text style={styles.versionText}>v1.0.0</Text>
           </View>
-        </LinearGradient>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* About Description */}
         <View style={styles.section}>
@@ -93,60 +136,91 @@ const About = () => {
           <Text style={styles.copyrightText}>© 2025 HealthNest. All rights reserved.</Text>
         </View>
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
+    </View>
   );
 };
 
 export default About;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F5F6FA",
+    backgroundColor: "#FF6B35",
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  logoContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  appName: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  appTagline: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 2,
+  },
+  versionBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  versionText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   scrollContent: {
     flexGrow: 1,
     padding: sizes.paddingHorizontal,
-    paddingTop: 20,
+    paddingTop: 30,
     paddingBottom: 40,
-  },
-  appCard: {
-    borderRadius: 16,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  appName: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    marginBottom: 4,
-  },
-  appTagline: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.white + "DD",
-    marginBottom: 12,
-  },
-  versionBadge: {
-    backgroundColor: colors.white + "30",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  versionText: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
   },
   section: {
     marginBottom: 24,
@@ -194,7 +268,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary + "15",
+    backgroundColor: "#FF6B35" + "15",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,

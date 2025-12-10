@@ -5,11 +5,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { Bubble, GiftedChat, IMessage, InputToolbar, Send } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -381,73 +382,71 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <GiftedChat
-        messages={messages}
-        onSend={(messages) => onSend(messages)}
-        user={{
-          _id: 1,
-          name: userName,
-        }}
-        renderBubble={renderBubble}
-        renderSend={renderSend}
-        renderInputToolbar={renderInputToolbar}
-        isTyping={isTyping}
-        messagesContainerStyle={styles.messagesContainer}
-        alwaysShowSend
-        scrollToBottom
-        minInputToolbarHeight={60}
-        bottomOffset={Platform.OS === 'ios' ? 15 : 0} // Adjustment for better spacing
-        keyboardShouldPersistTaps="never"
-      />
-    </View>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <View style={styles.innerContainer}>
+        <GiftedChat
+          messages={messages}
+          onSend={(messages) => onSend(messages)}
+          user={{
+            _id: 1,
+            name: userName,
+          }}
+          renderBubble={renderBubble}
+          renderSend={renderSend}
+          renderInputToolbar={renderInputToolbar}
+          isTyping={isTyping}
+          messagesContainerStyle={styles.messagesContainer}
+          minInputToolbarHeight={70}
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA', // Softer background
+    backgroundColor: '#F8F9FA',
+  },
+  innerContainer: {
+    flex: 1,
   },
   messagesContainer: {
     backgroundColor: '#F8F9FA',
-    paddingBottom: 20,
   },
   inputToolbar: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: '#EFEFEF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingBottom: Platform.OS === 'android' ? 12 : 8,
   },
   inputPrimary: {
-    backgroundColor: colors.white,
+    backgroundColor: '#F5F5F5',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
+    borderWidth: 0,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
-    marginBottom: 8,
+    minHeight: 48,
   },
   attachButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.lightGreen,
     marginLeft: 4,
-    marginBottom: 4,
   },
   sendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
     marginRight: 4,
   },
   sendContainer: {

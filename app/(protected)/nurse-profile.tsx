@@ -3,10 +3,12 @@ import { colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
+    Animated,
     Image,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -17,6 +19,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const NurseProfile = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Parse the nurse data from params
   const nurse = {
@@ -62,34 +83,52 @@ const NurseProfile = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header with Image */}
-        <LinearGradient
-          colors={[colors.primary, "#00D68F"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.imageWrapper}>
-            <Image source={{ uri: nurse.image }} style={styles.profileImage} />
-            <View
-              style={[
-                styles.availabilityDot,
-                { backgroundColor: getAvailabilityColor() },
-              ]}
-            />
-          </View>
-          <Text style={styles.headerName}>{nurse.name}</Text>
-          <Text style={styles.headerSpecialization}>{nurse.specialization}</Text>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      <SafeAreaView edges={["bottom"]} style={styles.container}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Header with Image */}
+          <LinearGradient
+            colors={[colors.primary, "#00C853"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.header}
+          >
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.white} />
+            </TouchableOpacity>
+            
+            <View style={styles.imageWrapper}>
+              <Image source={{ uri: nurse.image }} style={styles.profileImage} />
+              <View
+                style={[
+                  styles.availabilityDot,
+                  { backgroundColor: getAvailabilityColor() },
+                ]}
+              />
+            </View>
+            <Text style={styles.headerName}>{nurse.name}</Text>
+            <Text style={styles.headerSpecialization}>{nurse.specialization}</Text>
 
-          {/* Rating */}
-          <View style={styles.headerRating}>
-            <Ionicons name="star" size={18} color="#FFB800" />
-            <Text style={styles.ratingText}>{nurse.rating}</Text>
-            <Text style={styles.headerReviewText}>({nurse.reviewCount} reviews)</Text>
-          </View>
-        </LinearGradient>
+            {/* Rating */}
+            <View style={styles.headerRating}>
+              <Ionicons name="star" size={18} color="#FFB800" />
+              <Text style={styles.ratingText}>{nurse.rating}</Text>
+              <Text style={styles.headerReviewText}>({nurse.reviewCount} reviews)</Text>
+            </View>
+          </LinearGradient>
+
+          <Animated.View 
+            style={{ 
+              opacity: fadeAnim, 
+              transform: [{ translateY: slideAnim }] 
+            }}
+          >
 
         {/* Quick Stats */}
         <View style={styles.quickStats}>
@@ -334,38 +373,56 @@ const NurseProfile = () => {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+            <View style={{ height: 100 }} />
+          </Animated.View>
+        </ScrollView>
 
-      {/* Bottom Action Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.chatIconButton}
-          onPress={handleChatPress}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chatbubbles" size={24} color={colors.primary} />
-        </TouchableOpacity>
+        {/* Bottom Action Bar */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={styles.chatIconButton}
+            onPress={handleChatPress}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chatbubbles" size={24} color={colors.primary} />
+          </TouchableOpacity>
 
-        <AppButton
-          title={`Book Now • ${nurse.hourlyRate}/hr`}
-          onPress={handleBookNow}
-          containerStyle={styles.bookButton}
-        />
-      </View>
-    </SafeAreaView>
+          <AppButton
+            title={`Book Now • ${nurse.hourlyRate}/hr`}
+            onPress={handleBookNow}
+            containerStyle={styles.bookButton}
+          />
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default NurseProfile;
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: colors.primary,
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#F8F9FA",
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   header: {
-    paddingTop: 30,
+    paddingTop: 50,
     paddingBottom: 40,
     alignItems: "center",
     borderBottomLeftRadius: 30,

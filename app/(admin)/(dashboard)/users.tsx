@@ -3,11 +3,14 @@ import FormInput from "@/component/FormInput";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Animated,
     RefreshControl,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -32,6 +35,23 @@ const UsersManagement = () => {
   const [users, setUsers] = useState<DisplayUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Map role to display type
   const mapRoleToType = (role: string): "User" | "Lab" | "Nurse" | "Medicine Delivery" => {
@@ -182,43 +202,76 @@ const UsersManagement = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <View style={styles.mainContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+        <LinearGradient
+          colors={['#1E293B', '#334155', '#475569']}
+          style={styles.headerGradient}
+        >
+          <Text style={styles.headerTitle}>Users Management</Text>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading users...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-          />
-        }
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={['#1E293B', '#334155', '#475569']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          {stats.map((stat, index) => (
-            <View
-              key={index}
-              style={[
-                styles.statCard,
-                { borderLeftColor: stat.color, borderLeftWidth: 4 },
-              ]}
-            >
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Users Management</Text>
+          <Text style={styles.headerSubtitle}>Manage all registered users</Text>
+          
+          {/* Stats in Header */}
+          <View style={styles.headerStats}>
+            <View style={styles.headerStatItem}>
+              <Text style={styles.headerStatValue}>{users.length}</Text>
+              <Text style={styles.headerStatLabel}>Total</Text>
             </View>
-          ))}
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <Text style={styles.headerStatValue}>{users.filter(u => u.type === "User").length}</Text>
+              <Text style={styles.headerStatLabel}>Users</Text>
+            </View>
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <Text style={styles.headerStatValue}>{users.filter(u => u.type === "Nurse").length}</Text>
+              <Text style={styles.headerStatLabel}>Nurses</Text>
+            </View>
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <Text style={styles.headerStatValue}>{users.filter(u => u.type === "Lab").length}</Text>
+              <Text style={styles.headerStatLabel}>Labs</Text>
+            </View>
+          </View>
         </View>
+      </LinearGradient>
+
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+            />
+          }
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
         {/* Search and Filters */}
         <View style={styles.searchSection}>
@@ -266,41 +319,116 @@ const UsersManagement = () => {
             emptyMessage="No users found"
           />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default UsersManagement;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: '#1E293B',
   },
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+
+  headerContent: {
+    width: '100%',
+  },
+
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 4,
+  },
+
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 20,
+  },
+
+  headerStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+
+  headerStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  headerStatValue: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    marginBottom: 2,
+  },
+
+  headerStatLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.3,
+  },
+
+  headerStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -10,
+  },
+
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 20,
+    paddingTop: 24,
     paddingBottom: 100,
   },
+
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: '#F8F9FA',
   },
+
   loadingText: {
     marginTop: 12,
     fontSize: 14,
     fontFamily: Fonts.medium,
     color: colors.gray,
   },
+
   statsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
     marginBottom: 20,
   },
+
   statCard: {
     flex: 1,
     minWidth: "47%",
@@ -313,12 +441,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+
   statValue: {
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: colors.black,
     marginBottom: 4,
   },
+
   statLabel: {
     fontSize: 12,
     fontFamily: Fonts.medium,

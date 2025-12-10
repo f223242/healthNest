@@ -1,9 +1,13 @@
 import AppButton from "@/component/AppButton";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+    Animated,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -116,6 +120,25 @@ const LabServices = () => {
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const categories = ["All", ...Array.from(new Set(servicesData.map((s) => s.category)))];
 
   const filteredServices =
@@ -150,8 +173,41 @@ const LabServices = () => {
   };
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-    
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, "#00C853"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Lab Services</Text>
+            {labName && <Text style={styles.headerSubtitle}>{labName}</Text>}
+          </View>
+          <View style={styles.headerIcon}>
+            <Ionicons name="flask" size={22} color="rgba(255,255,255,0.9)" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
 
       {/* Category Filter */}
       <View style={styles.categoryContainer}>
@@ -238,46 +294,78 @@ const LabServices = () => {
 
       {/* Bottom Summary */}
       {selectedServices.length > 0 && (
-        <View style={styles.bottomContainer}>
-          <View style={styles.summaryRow}>
-            <Text style={appStyles.bodyText}>
-              {selectedServices.length} test{selectedServices.length > 1 ? "s" : ""} selected
-            </Text>
-            <Text style={styles.totalPrice}>Total: ${calculateTotal()}</Text>
+          <View style={styles.bottomContainer}>
+            <View style={styles.summaryRow}>
+              <Text style={appStyles.bodyText}>
+                {selectedServices.length} test{selectedServices.length > 1 ? "s" : ""} selected
+              </Text>
+              <Text style={styles.totalPrice}>Total: ${calculateTotal()}</Text>
+            </View>
+            <AppButton title="Continue to Booking" onPress={handleContinue} />
           </View>
-          <AppButton title="Continue to Booking" onPress={handleContinue} />
-        </View>
-      )}
-    </SafeAreaView>
+        )}
+        </Animated.View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default LabServices;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
   },
-  header: {
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 12,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderGray,
   },
   backButton: {
-    marginRight: 12,
-  },
-  backText: {
-    fontSize: 24,
-    color: colors.primary,
-    fontFamily: Fonts.medium,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitleContainer: {
     flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 2,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
   },
   categoryContainer: {
     paddingVertical: 12,

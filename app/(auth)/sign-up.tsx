@@ -3,9 +3,13 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Animated,
+    Dimensions,
+    Platform,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -15,13 +19,14 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import * as Yup from "yup";
 
 import { DropDownIcon, Email, Person } from "@/assets/svg";
-import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import PhoneInput from "@/component/PhoneInput";
 import { useToast } from "@/component/Toast/ToastProvider";
-import { colors, Fonts } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
 
 // ----------------------
 // Yup Validation Schema
@@ -68,6 +73,25 @@ export default function SignupScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [countryCode, setCountryCode] = useState("+92");
   const [countryFlag, setCountryFlag] = useState("🇵🇰");
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // ----------------------
   // Formik Hook
@@ -129,27 +153,38 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView edges={['bottom']} style={{flex:1}}>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, "#00D68F", "#00B37A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
+          <View style={styles.headerIconCircle}>
+            <Ionicons name="person-add" size={32} color={colors.white} />
+          </View>
+          <Text style={styles.headerTitle}>Create Account</Text>
+          <Text style={styles.headerSubtitle}>Sign up to get started</Text>
+        </Animated.View>
+      </LinearGradient>
+      
+      <SafeAreaView edges={['bottom']} style={styles.contentContainer}>
     <KeyboardAwareScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       enableOnAndroid
       extraScrollHeight={120}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <LinearGradient
-          colors={[colors.primary, colors.secondary]}
-          style={styles.iconContainer}
-        >
-          <Ionicons name="medical" size={40} color={colors.white} />
-        </LinearGradient>
-
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
-      </View>
+      <Animated.View style={[styles.formCard, {
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }]
+      }]}>
 
       <FormInput
         label="First Name"
@@ -291,12 +326,30 @@ export default function SignupScreen() {
 
 
       {/* SUBMIT BUTTON */}
-      <AppButton
-        title={isSubmitting ? <ActivityIndicator color="#fff" /> : "Sign Up"}
-        onPress={handleSubmit}
+      <TouchableOpacity
+        style={[styles.submitButton, (!isValid || isSubmitting) && styles.submitButtonDisabled]}
         disabled={!isValid || isSubmitting}
-        style={styles.submitButton}
-      />
+        onPress={() => handleSubmit()}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={(!isValid || isSubmitting) 
+            ? ["#A8A8A8", "#888888"] 
+            : [colors.primary, "#00D68F"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.submitButtonGradient}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={styles.submitButtonText}>Sign Up</Text>
+              <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+            </>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* LOGIN LINK */}
       <View style={styles.loginContainer}>
@@ -305,42 +358,73 @@ export default function SignupScreen() {
           <Text style={styles.loginLink}>Sign In</Text>
         </TouchableOpacity>
       </View>
+      </Animated.View>
     </KeyboardAwareScrollView>
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
   },
-  contentContainer: {
-    padding: 20,
-    // paddingBottom: 20,
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 40,
+    paddingBottom: 35,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  headerContainer: {
+  headerContent: {
     alignItems: "center",
-    marginBottom: 30,
   },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  headerIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  title: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 26,
     fontFamily: Fonts.bold,
-    color: colors.black,
-    marginBottom: 8,
+    color: colors.white,
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 16,
+  headerSubtitle: {
+    fontSize: 14,
     fontFamily: Fonts.regular,
-    color: colors.gray,
+    color: "rgba(255, 255, 255, 0.85)",
+    marginTop: 4,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: sizes.paddingHorizontal,
+    paddingTop: 10,
+    paddingBottom: 30,
+  },
+  formCard: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 24,
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
   },
   datePickerContainer: {
     marginTop: 15,
@@ -382,22 +466,46 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   submitButton: {
-    marginTop: 25,
+    marginTop: 28,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonDisabled: {
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  submitButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  submitButtonText: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
   },
   loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 20,
-    marginBottom: 40,
+    marginTop: 24,
+    marginBottom: 10,
   },
   loginText: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Fonts.regular,
     color: colors.gray,
   },
   loginLink: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+    fontFamily: Fonts.bold,
     color: colors.primary,
   },
 });

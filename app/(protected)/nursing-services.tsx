@@ -6,18 +6,25 @@ import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { NurseInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Animated,
+    Dimensions,
+    Platform,
     RefreshControl,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
 
 type ServiceType = "All" | "Elderly Care" | "Child Care" | "Patient Care" | "Post-Surgery";
 
@@ -42,6 +49,25 @@ const NursingServices = () => {
   const [nurses, setNurses] = useState<NurseCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const filterOptions: Array<{ label: ServiceType; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
@@ -156,26 +182,67 @@ const NursingServices = () => {
 
   if (loading) {
     return (
-      <SafeAreaView edges={["bottom"]} style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading nurses...</Text>
-      </SafeAreaView>
+      <View style={styles.mainContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+        <LinearGradient
+          colors={[colors.primary, "#00D68F"]}
+          style={styles.loadingGradient}
+        >
+          <ActivityIndicator size="large" color={colors.white} />
+          <Text style={styles.loadingText}>Loading nurses...</Text>
+        </LinearGradient>
+      </View>
     );
   }
 
   return (
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, "#00D68F"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
+          <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
+            <View style={styles.headerTitleRow}>
+              <TouchableOpacity 
+                onPress={() => router.back()}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.white} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Nursing Services</Text>
+              <View style={{ width: 40 }} />
+            </View>
+            <Text style={styles.headerSubtitle}>Find professional nurses for your care needs</Text>
+          </Animated.View>
+        </SafeAreaView>
+      </LinearGradient>
+      
     <SafeAreaView edges={["bottom"]} style={styles.container}>
       {/* Search Bar */}
-      <FormInput
-        LeftIcon={SearchIcon}
-        placeholder="Search nurses by name or specialization..."
-        containerStyle={styles.searchInput}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
+      <Animated.View style={[styles.searchWrapper, {
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }]
+      }]}>
+        <FormInput
+          LeftIcon={SearchIcon}
+          placeholder="Search nurses by name or specialization..."
+          containerStyle={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </Animated.View>
       
       {/* Header Stats */}
-      <View style={styles.headerStats}>
+      <Animated.View style={[styles.headerStats, {
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }]
+      }]}>
         <StatCard
           icon="people"
           value={stats.total}
@@ -194,7 +261,7 @@ const NursingServices = () => {
           label="Avg Rating"
           color="#FF9800"
         />
-      </View>
+      </Animated.View>
 
       {/* Filter Chips */}
       <ScrollView
@@ -263,30 +330,85 @@ const NursingServices = () => {
         <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>
+    </View>
   );
 };
 
 export default NursingServices;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
-    paddingHorizontal: sizes.paddingHorizontal,
+    backgroundColor: colors.primary,
   },
-  loadingContainer: {
+  loadingGradient: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  headerGradient: {
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerSafeArea: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  headerContent: {
+    paddingHorizontal: sizes.paddingHorizontal,
+    paddingTop: 10,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: "rgba(255, 255, 255, 0.85)",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+  searchWrapper: {
+    marginTop: 20,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
     fontFamily: Fonts.medium,
-    color: colors.gray,
+    color: colors.white,
   },
   searchInput: {
-    marginTop: 16,
     marginBottom: 16,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   headerStats: {
     flexDirection: "row",
@@ -295,24 +417,26 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     paddingBottom: 35,
-    // backgroundColor:"red",
   },
   resultsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 12,
-    backgroundColor: colors.white,
   },
   resultsText: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
-    color: colors.black,
+    color: colors.text,
   },
   sortButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   sortText: {
     fontSize: 13,
@@ -331,7 +455,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontFamily: Fonts.bold,
-    color: colors.black,
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },

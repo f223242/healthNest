@@ -6,10 +6,11 @@ import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { PatientInfo, useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -34,6 +35,23 @@ const EditProfile = () => {
   const [selectedBloodGroup, setSelectedBloodGroup] = useState(
     (user?.additionalInfo as PatientInfo)?.bloodGroup || ""
   );
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const patientInfo = user?.additionalInfo as PatientInfo | undefined;
 
@@ -97,57 +115,78 @@ const EditProfile = () => {
     formik;
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={[colors.primary, '#00C853']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Profile Image */}
-        <View style={styles.imageContainer}>
-          <ProfileImagePicker
-            value={profileImage}
-            onImageSelect={setProfileImage}
-            size={120}
-          />
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Edit Profile</Text>
+          <View style={{ width: 44 }} />
         </View>
+      </LinearGradient>
 
-        {/* Form Inputs */}
-        <View style={{ gap: 16, marginTop: 32 }}>
-          <FormInput
-            value={values.fullName}
-            onChangeText={handleChange("fullName")}
-            onBlur={handleBlur("fullName")}
-            placeholder="Full Name"
-            editable={false}
-            LeftIcon={() => <Ionicons name="person-outline" size={20} color={colors.gray} />}
-            error={
-              touched.fullName && errors.fullName ? errors.fullName : undefined
-            }
-          />
+      {/* Content Area */}
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+        >
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            {/* Profile Image */}
+            <View style={styles.imageContainer}>
+              <ProfileImagePicker
+                value={profileImage}
+                onImageSelect={setProfileImage}
+                size={120}
+              />
+            </View>
 
-          <FormInput
-            value={values.email}
-            onChangeText={handleChange("email")}
-            onBlur={handleBlur("email")}
-            placeholder="Email"
-            keyboardType="email-address"
-            editable={false}
-            LeftIcon={() => <Ionicons name="mail-outline" size={20} color={colors.gray} />}
-            error={touched.email && errors.email ? errors.email : undefined}
-          />
+            {/* Form Inputs */}
+            <View style={{ gap: 16, marginTop: 32 }}>
+              <FormInput
+                value={values.fullName}
+                onChangeText={handleChange("fullName")}
+                onBlur={handleBlur("fullName")}
+                placeholder="Full Name"
+                editable={false}
+                LeftIcon={() => <Ionicons name="person-outline" size={20} color={colors.gray} />}
+                error={
+                  touched.fullName && errors.fullName ? errors.fullName : undefined
+                }
+              />
 
-          <FormInput
-            value={values.phone}
-            onChangeText={handleChange("phone")}
-            onBlur={handleBlur("phone")}
-            placeholder="Phone Number"
-            keyboardType="phone-pad"
-            editable={false}
-            LeftIcon={() => <Ionicons name="call-outline" size={20} color={colors.gray} />}
-            error={touched.phone && errors.phone ? errors.phone : undefined}
-          />
+              <FormInput
+                value={values.email}
+                onChangeText={handleChange("email")}
+                onBlur={handleBlur("email")}
+                placeholder="Email"
+                keyboardType="email-address"
+                editable={false}
+                LeftIcon={() => <Ionicons name="mail-outline" size={20} color={colors.gray} />}
+                error={touched.email && errors.email ? errors.email : undefined}
+              />
+
+              <FormInput
+                value={values.phone}
+                onChangeText={handleChange("phone")}
+                onBlur={handleBlur("phone")}
+                placeholder="Phone Number"
+                keyboardType="phone-pad"
+                editable={false}
+                LeftIcon={() => <Ionicons name="call-outline" size={20} color={colors.gray} />}
+                error={touched.phone && errors.phone ? errors.phone : undefined}
+              />
 
           {/* Location Picker */}
           <LocationPicker
@@ -205,23 +244,62 @@ const EditProfile = () => {
             <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
           )}
         </AppButton>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default EditProfile;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primary,
   },
+
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: sizes.paddingHorizontal,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+  },
+
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 24,
+    paddingBottom: 40,
   },
+
   imageContainer: {
     alignItems: "center",
     marginTop: 16,

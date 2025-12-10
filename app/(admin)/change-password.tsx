@@ -2,14 +2,14 @@ import { LockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -36,6 +36,25 @@ const ChangePassword = () => {
   const toast = useToast();
   const { changePassword } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const formik = useFormik({
     initialValues: {
@@ -64,33 +83,46 @@ const ChangePassword = () => {
     formik;
 
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
+      
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={["#1E293B", "#475569"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        <View>
-          {/* Icon with gradient background */}
-          <View style={styles.iconContainer}>
-            <LinearGradient
-              colors={[colors.primary, "#00D68F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCircle}
-            >
-              <Ionicons name="key-outline" size={56} color={colors.white} />
-            </LinearGradient>
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Change Password</Text>
+          <View style={styles.headerIcon}>
+            <Ionicons name="key" size={22} color="rgba(255,255,255,0.9)" />
           </View>
+        </View>
+        <Text style={styles.headerSubtitle}>Your new password must be different from previously used passwords</Text>
+      </LinearGradient>
 
-          <Text style={[appStyles.h3, { marginTop: 24, textAlign: "center" }]}>
-            Change Password
-          </Text>
-          <Text style={styles.subheadingStyle}>
-            Your new password must be different from previously used passwords
-          </Text>
-
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
+        <Animated.View 
+          style={{ 
+            flex: 1, 
+            opacity: fadeAnim, 
+            transform: [{ translateY: slideAnim }] 
+          }}
+        >
+          <KeyboardAwareScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid={true}
+          >
+        <View>
           {/* Form Inputs */}
           <View style={styles.formContainer}>
             <FormInput
@@ -183,59 +215,86 @@ const ChangePassword = () => {
         </View>
 
         {/* Change Password Button */}
-        <AppButton
-          title={isLoading ? "Changing Password..." : "Change Password"}
-          onPress={handleSubmit}
-          disabled={!isValid || isLoading}
-          containerStyle={{marginTop:20}}
-        />
-        {isLoading && (
-          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
-        )}
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+            <AppButton
+              title={isLoading ? "Changing Password..." : "Change Password"}
+              onPress={handleSubmit}
+              disabled={!isValid || isLoading}
+              containerStyle={{marginTop:20}}
+            />
+            {isLoading && (
+              <ActivityIndicator size="small" color="#1E293B" style={{ marginTop: 16 }} />
+            )}
+          </KeyboardAwareScrollView>
+        </Animated.View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 export default ChangePassword;
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#1E293B",
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.white,
+    textAlign: "center",
+    marginRight: 40,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+    marginTop: 4,
+    paddingHorizontal: 20,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: sizes.paddingHorizontal,
     paddingVertical: 24,
     justifyContent: "space-between",
-  },
-  iconContainer: {
-    alignSelf: "center",
-    marginTop: 20,
-  },
-  gradientCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  subheadingStyle: {
-    textAlign: "center",
-    fontFamily: Fonts.regular,
-    fontSize: 15,
-    color: colors.gray,
-    marginTop: 12,
-    paddingHorizontal: 20,
   },
   formContainer: {
     marginTop: 32,

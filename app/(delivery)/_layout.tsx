@@ -1,4 +1,3 @@
-import { colors, Fonts } from '@/constant/theme';
 import { Stack } from 'expo-router';
 import React from 'react';
 
@@ -6,28 +5,16 @@ const DeliveryLayout = () => {
   return (
     <Stack
       screenOptions={{
-        headerTitleAlign: 'center',
-        headerShown: true,
-        headerShadowVisible: false,
-        headerTitleStyle: {
-          fontSize: 18,
-          fontFamily: Fonts.bold,
-        },
-        headerStyle: {
-          backgroundColor: colors.white,
-        },
+        headerShown: false,
         animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="delivery-chat-detail"
-        options={{ headerTitle: 'Chat', headerShadowVisible: true }}
-      />
-      <Stack.Screen name="edit-profile" options={{ headerTitle: 'Edit Profile' }} />
-      <Stack.Screen name="delete-account" options={{ headerTitle: 'Delete Account' }} />
-      <Stack.Screen name="help" options={{ headerTitle: 'Help & Support' }} />
-      <Stack.Screen name="about" options={{ headerTitle: 'About App' }} />
+      <Stack.Screen name="delivery-chat-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+      <Stack.Screen name="delete-account" options={{ headerShown: false }} />
+      <Stack.Screen name="help" options={{ headerShown: false }} />
+      <Stack.Screen name="about" options={{ headerShown: false }} />
     </Stack>
   );
 };
