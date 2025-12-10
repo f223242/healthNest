@@ -1,4 +1,4 @@
-import { Lock } from "@/assets/svg";
+import { Email } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
 import ResetPasswordModal from "@/component/ModalComponent/ResetPasswordModal";
 import { useToast } from "@/component/Toast/ToastProvider";
@@ -18,20 +18,11 @@ import { object } from "yup";
 
 const { width } = Dimensions.get("window");
 
-let reset_password_schema = object({
-  password: Yup.string()
-    .required("Password is required")
-    .min(8, "Password must be at least 8 characters")
-    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
-    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .matches(/[0-9]/, "Password must contain at least one number")
-    .matches(
-      /[^a-zA-Z0-9]/,
-      "Password must contain at least one special character"
-    ),
-  confirmPassword: Yup.string()
-    .required("Confirm Password is required")
-    .oneOf([Yup.ref("password")], "Passwords must match"),
+// Email schema for password reset
+let email_schema = object({
+  email: Yup.string()
+    .required("Email is required")
+    .email("Please enter a valid email address"),
 });
 
 const ResetPassword = () => {
@@ -141,26 +132,23 @@ const ResetPassword = () => {
 
   const formik = useFormik({
     initialValues: {
-      password: "",
-      confirmPassword: "",
+      email: "",
     },
-    validationSchema: reset_password_schema,
+    validationSchema: email_schema,
     validateOnMount: true,
     validateOnChange: true,
     validateOnBlur: true,
     onSubmit: async (values) => {
       try {
         setIsSubmitting(true);
-        await updatePassword(values.password);
+        await updatePassword(values.email);
         setModalVisible(true);
       } catch (error: any) {
         toast.show({
           type: error.type || "error",
           text1: error.text1 || "Error",
-          text2: error.text2 || "Failed to update password",
+          text2: error.text2 || "Failed to send reset email",
         });
-        // Stay on current screen - don't navigate or show modal
-        return;
       } finally {
         setIsSubmitting(false);
       }
@@ -311,7 +299,7 @@ const ResetPassword = () => {
             <Ionicons name="key-outline" size={36} color={colors.white} />
           </View>
           <Text style={styles.headerTitle}>Reset Password</Text>
-          <Text style={styles.headerSubtitle}>Create a new password</Text>
+          <Text style={styles.headerSubtitle}>Enter your email to continue</Text>
         </Animated.View>
       </LinearGradient>
 
@@ -326,85 +314,27 @@ const ResetPassword = () => {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }]}>
+            <View style={styles.successBadge}>
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+              <Text style={styles.successBadgeText}>OTP Verified Successfully!</Text>
+            </View>
+
             <Text style={styles.passwordInfoText}>
-              Create a strong password to secure your account
+              Enter your email address and we'll send you a link to reset your password.
             </Text>
 
             <View style={styles.formContainer}>
               <FormInput
-                LeftIcon={Lock}
-                placeholder="New Password"
+                LeftIcon={Email}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
                 containerStyle={{ marginTop: 12 }}
-                isPassword
-                onBlur={handleBlur("password")}
-                onChangeText={handleChange("password")}
-                value={values.password}
-                error={touched.password && errors.password ? errors.password : undefined}
+                onBlur={handleBlur("email")}
+                onChangeText={handleChange("email")}
+                value={values.email}
+                error={touched.email && errors.email ? errors.email : undefined}
               />
-
-              <FormInput
-                LeftIcon={Lock}
-                placeholder="Confirm Password"
-                containerStyle={{ marginTop: 12 }}
-                isPassword
-                onBlur={handleBlur("confirmPassword")}
-                onChangeText={handleChange("confirmPassword")}
-                value={values.confirmPassword}
-                error={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : undefined}
-              />
-
-              {/* Password Requirements */}
-              <View style={styles.requirementsContainer}>
-                <Text style={styles.requirementsTitle}>Password must contain:</Text>
-                <View style={styles.requirementItem}>
-                  <Ionicons
-                    name={values.password.length >= 8 ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={values.password.length >= 8 ? colors.primary : colors.gray}
-                  />
-                  <Text style={styles.requirementText}>At least 8 characters</Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <Ionicons
-                    name={/[a-z]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={/[a-z]/.test(values.password) ? colors.primary : colors.gray}
-                  />
-                  <Text style={styles.requirementText}>One lowercase letter</Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <Ionicons
-                    name={/[A-Z]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={/[A-Z]/.test(values.password) ? colors.primary : colors.gray}
-                  />
-                  <Text style={styles.requirementText}>One uppercase letter</Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <Ionicons
-                    name={/[0-9]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={/[0-9]/.test(values.password) ? colors.primary : colors.gray}
-                  />
-                  <Text style={styles.requirementText}>One number</Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <Ionicons
-                    name={/[^a-zA-Z0-9]/.test(values.password) ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={/[^a-zA-Z0-9]/.test(values.password) ? colors.primary : colors.gray}
-                  />
-                  <Text style={styles.requirementText}>One special character</Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <Ionicons
-                    name={values.password && values.confirmPassword && values.password === values.confirmPassword ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={values.password && values.confirmPassword && values.password === values.confirmPassword ? colors.primary : colors.gray}
-                  />
-                  <Text style={styles.requirementText}>Passwords match</Text>
-                </View>
-              </View>
             </View>
           </Animated.View>
 
@@ -427,10 +357,10 @@ const ResetPassword = () => {
                   <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
                 )}
                 <Text style={styles.submitButtonText}>
-                  {isSubmitting ? "Updating..." : "Reset Password"}
+                  {isSubmitting ? "Sending..." : "Send Reset Link"}
                 </Text>
                 {!isSubmitting && (
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                  <Ionicons name="mail" size={20} color="#fff" style={{ marginLeft: 8 }} />
                 )}
               </LinearGradient>
             </TouchableOpacity>
@@ -530,6 +460,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 16,
+  },
+  successBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.lightGreen,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  successBadgeText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
   },
   otpWrapper: {
     alignSelf: "center",

@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: "#F8F9FA",
-    marginTop: -20,
+    marginTop: -10,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -318,13 +318,13 @@ const styles = StyleSheet.create({
   },
   rememberMeText: {
     fontFamily: Fonts.medium,
-    fontSize: 14,
+    fontSize: 12,
     color: colors.text,
   },
   forgotPasswordText: {
     color: colors.primary,
     fontFamily: Fonts.semiBold,
-    fontSize: 14,
+    fontSize: 12,
   },
   loginButton: {
     marginTop: 24,
