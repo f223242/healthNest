@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const About = () => {
   const router = useRouter();
-  
+
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -42,7 +42,7 @@ const About = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={["#1E293B", "#475569"]}
@@ -65,11 +65,11 @@ const About = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -90,57 +90,57 @@ const About = () => {
               </View>
             </LinearGradient>
 
-        {/* About Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About HealthNest Admin</Text>
-          <View style={styles.descriptionCard}>
-            <Text style={styles.descriptionText}>
-              HealthNest Admin is a powerful control panel designed for administrators to manage the entire healthcare platform efficiently.
-            </Text>
-            <Text style={styles.descriptionText}>
-              With comprehensive tools for user management, analytics, and system configuration, admins can ensure smooth platform operations.
-            </Text>
-          </View>
-        </View>
-
-        {/* Features */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Admin Features</Text>
-          <View style={styles.featuresGrid}>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureCard}>
-                <View style={styles.featureIconContainer}>
-                  <Ionicons name={feature.icon as any} size={24} color="#1E293B" />
-                </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
+            {/* About Description */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>About HealthNest Admin</Text>
+              <View style={styles.descriptionCard}>
+                <Text style={styles.descriptionText}>
+                  HealthNest Admin is a powerful control panel designed for administrators to manage the entire healthcare platform efficiently.
+                </Text>
+                <Text style={styles.descriptionText}>
+                  With comprehensive tools for user management, analytics, and system configuration, admins can ensure smooth platform operations.
+                </Text>
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
 
-        {/* Social Links */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Connect With Us</Text>
-          <View style={styles.socialContainer}>
-            {[
-              { icon: "logo-facebook", color: "#1877F2", url: "https://facebook.com" },
-              { icon: "logo-twitter", color: "#1DA1F2", url: "https://twitter.com" },
-              { icon: "logo-instagram", color: "#E4405F", url: "https://instagram.com" },
-              { icon: "logo-linkedin", color: "#0A66C2", url: "https://linkedin.com" },
-            ].map((social, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.socialButton, { backgroundColor: social.color + "15" }]}
-                onPress={() => openLink(social.url)}
-              >
-                <Ionicons name={social.icon as any} size={24} color={social.color} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+            {/* Features */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Admin Features</Text>
+              <View style={styles.featuresGrid}>
+                {features.map((feature, index) => (
+                  <View key={index} style={styles.featureCard}>
+                    <View style={styles.featureIconContainer}>
+                      <Ionicons name={feature.icon as any} size={24} color="#1E293B" />
+                    </View>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureDescription}>{feature.description}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
-        {/* Footer */}
+            {/* Social Links */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Connect With Us</Text>
+              <View style={styles.socialContainer}>
+                {[
+                  { icon: "logo-facebook", color: "#1877F2", url: "https://facebook.com" },
+                  { icon: "logo-twitter", color: "#1DA1F2", url: "https://twitter.com" },
+                  { icon: "logo-instagram", color: "#E4405F", url: "https://instagram.com" },
+                  { icon: "logo-linkedin", color: "#0A66C2", url: "https://linkedin.com" },
+                ].map((social, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.socialButton, { backgroundColor: social.color + "15" }]}
+                    onPress={() => openLink(social.url)}
+                  >
+                    <Ionicons name={social.icon as any} size={24} color={social.color} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Made with ❤️ in Pakistan</Text>
               <Text style={styles.copyrightText}>© 2025 HealthNest. All rights reserved.</Text>
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary + "15",
+    backgroundColor: '#1E293B' + "15",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,

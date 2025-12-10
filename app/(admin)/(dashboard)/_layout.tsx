@@ -9,7 +9,7 @@ export default function DashboardLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: '#1E293B',
         tabBarInactiveTintColor: colors.gray,
         tabBarLabelStyle: {
           fontSize: 12,
