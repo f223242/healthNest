@@ -1,4 +1,5 @@
 import { Email, Lock } from "@/assets/svg";
+import AuthHeader from "@/component/AuthHeader";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { firebaseMessages } from "@/constant/messages";
@@ -9,7 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, Image, Platform, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, Dimensions, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { object, string } from "yup";
@@ -100,27 +101,15 @@ const index = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Gradient Header Background */}
-      <LinearGradient
-        colors={[colors.primary, "#00D68F", "#00B37A"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <Animated.View style={[styles.logoContainer, {
-          opacity: fadeAnim,
-          transform: [{ scale: logoScale }]
-        }]}>
-          <View style={styles.logoCircle}>
-            <Image
-              source={require("@/assets/png/logo.png")}
-              style={styles.logoImage}
-            />
-          </View>
-          <Text style={styles.brandName}>HealthNest</Text>
-          <Text style={styles.brandTagline}>Your Health, Our Priority</Text>
-        </Animated.View>
-      </LinearGradient>
+      {/* Auth Header with Logo */}
+      <AuthHeader
+        showLogo
+        logoSource={require("@/assets/png/logo.png")}
+        brandName="HealthNest"
+        brandTagline="Your Health, Our Priority"
+        fadeAnim={fadeAnim}
+        scaleAnim={logoScale}
+      />
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
         <KeyboardAwareScrollView
@@ -270,44 +259,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.primary,
-  },
-  headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 40,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    zIndex: 10,
-    elevation: 8,
-  },
-  logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  logoImage: {
-    width: 55,
-    height: 55,
-    tintColor: colors.white,
-  },
-  brandName: {
-    fontSize: 28,
-    fontFamily: Fonts.bold,
-    color: colors.white,
-    letterSpacing: 1,
-  },
-  brandTagline: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: "rgba(255, 255, 255, 0.85)",
-    marginTop: 4,
   },
   contentContainer: {
     flex: 1,
