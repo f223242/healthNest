@@ -36,6 +36,7 @@ interface NurseCardProps {
     onPress: () => void;
     isPrimary?: boolean;
   }>;
+  chatBadgeCount?: number;
 }
 
 const NurseCard: React.FC<NurseCardProps> = ({
@@ -56,6 +57,7 @@ const NurseCard: React.FC<NurseCardProps> = ({
   location,
   price,
   actions,
+  chatBadgeCount = 0,
 }) => {
   const getAvailabilityColor = () => {
     switch (availability) {
@@ -157,7 +159,7 @@ const NurseCard: React.FC<NurseCardProps> = ({
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="cash" size={16} color={colors.primary} />
-              <Text style={styles.infoText}>{hourlyRate}/hr</Text>
+              <Text style={styles.infoText}>Rs. {hourlyRate}/hr</Text>
             </View>
           </View>
         ) : null}
@@ -299,6 +301,13 @@ const NurseCard: React.FC<NurseCardProps> = ({
                 >
                   <Ionicons name="chatbubbles" size={18} color={colors.white} />
                   <Text style={styles.chatButtonText}>Chat</Text>
+                  {chatBadgeCount > 0 && (
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeText}>
+                        {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
+                      </Text>
+                    </View>
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
             )}
@@ -575,5 +584,24 @@ const styles = StyleSheet.create({
   },
   primaryActionText: {
     color: colors.white,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: colors.white,
+  },
+  badgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontFamily: Fonts.bold,
   },
 });

@@ -210,7 +210,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                     {appointment.hourlyRate && (
                         <View style={styles.priceContainer}>
                             <Ionicons name="cash" size={16} color={colors.success} />
-                            <Text style={styles.priceText}>{appointment.hourlyRate}/hour</Text>
+                            <Text style={styles.priceText}>Rs. {appointment.hourlyRate}/hour</Text>
                         </View>
                     )}
                 </View>

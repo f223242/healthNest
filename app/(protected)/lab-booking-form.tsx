@@ -1,7 +1,7 @@
 import { CalendarIcon, ClockIcon } from "@/assets/svg";
 import AppButton from "@/component/AppButton";
-import ConfirmationModal from "@/component/ConfirmationModal";
 import FormInput from "@/component/FormInput";
+import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
 
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
@@ -11,13 +11,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -149,7 +149,7 @@ const LabBookingForm = () => {
 
   // Check if form is valid for submission
   const isFormValid = () => {
-    const baseFieldsFilled = 
+    const baseFieldsFilled =
       formik.values.fullName.length >= 2 &&
       formik.values.email.includes("@") &&
       formik.values.phone.length >= 10 &&
@@ -182,7 +182,7 @@ const LabBookingForm = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00C853"]}
@@ -208,11 +208,11 @@ const LabBookingForm = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
           }}
         >
           <ScrollView
@@ -220,266 +220,267 @@ const LabBookingForm = () => {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-              {/* Selected Services Summary */}
-              <View style={styles.section}>
-                <Text style={appStyles.sectionTitle}>Selected Tests</Text>
-                <View style={styles.servicesBox}>
-                  {services.map((service: any, index: number) => (
-                    <View key={index} style={styles.serviceItem}>
-                      <Text style={styles.serviceName}>• {service.name}</Text>
-                      <Text style={styles.servicePrice}>{service.price}</Text>
-                    </View>
-                  ))}
-                  <View style={styles.divider} />
-                  {selectedTestType === "Home" && (
-                    <View style={styles.serviceItem}>
-                      <Text style={styles.serviceName}>Home Collection Fee</Text>
-                      <Text style={styles.servicePrice}>$15</Text>
-                    </View>
-                  )}
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Total Amount:</Text>
-                    <Text style={styles.totalAmount}>
-                      ${totalAmount}
-                    </Text>
+            {/* Selected Services Summary */}
+            <View style={styles.section}>
+              <Text style={appStyles.sectionTitle}>Selected Tests</Text>
+              <View style={styles.servicesBox}>
+                {services.map((service: any, index: number) => (
+                  <View key={index} style={styles.serviceItem}>
+                    <Text style={styles.serviceName}>• {service.name}</Text>
+                    <Text style={styles.servicePrice}>{service.price}</Text>
                   </View>
+                ))}
+                <View style={styles.divider} />
+                {selectedTestType === "Home" && (
+                  <View style={styles.serviceItem}>
+                    <Text style={styles.serviceName}>Home Collection Fee</Text>
+                    <Text style={styles.servicePrice}>$15</Text>
+                  </View>
+                )}
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total Amount:</Text>
+                  <Text style={styles.totalAmount}>
+                    ${totalAmount}
+                  </Text>
                 </View>
               </View>
+            </View>
 
-              {/* Test Type Selection */}
-              <View style={styles.section}>
-                <Text style={appStyles.sectionTitle}>Test Location</Text>
-                <View style={styles.testTypeContainer}>
-                  <TouchableOpacity
-                    onPress={() => setSelectedTestType("Lab")}
+            {/* Test Type Selection */}
+            <View style={styles.section}>
+              <Text style={appStyles.sectionTitle}>Test Location</Text>
+              <View style={styles.testTypeContainer}>
+                <TouchableOpacity
+                  onPress={() => setSelectedTestType("Lab")}
+                  style={[
+                    styles.testTypeButton,
+                    selectedTestType === "Lab" && styles.testTypeButtonActive,
+                  ]}
+                >
+                  <Text style={styles.testTypeIcon}>🏥</Text>
+                  <Text
                     style={[
-                      styles.testTypeButton,
-                      selectedTestType === "Lab" && styles.testTypeButtonActive,
+                      styles.testTypeText,
+                      selectedTestType === "Lab" && styles.testTypeTextActive,
                     ]}
                   >
-                    <Text style={styles.testTypeIcon}>🏥</Text>
-                    <Text
-                      style={[
-                        styles.testTypeText,
-                        selectedTestType === "Lab" && styles.testTypeTextActive,
-                      ]}
-                    >
-                      Visit Lab
-                    </Text>
-                    <Text style={styles.testTypeDesc}>Go to lab center</Text>
-                  </TouchableOpacity>
+                    Visit Lab
+                  </Text>
+                  <Text style={styles.testTypeDesc}>Go to lab center</Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={() => setSelectedTestType("Home")}
+                <TouchableOpacity
+                  onPress={() => setSelectedTestType("Home")}
+                  style={[
+                    styles.testTypeButton,
+                    selectedTestType === "Home" && styles.testTypeButtonActive,
+                  ]}
+                >
+                  <Text style={styles.testTypeIcon}>🏠</Text>
+                  <Text
                     style={[
-                      styles.testTypeButton,
-                      selectedTestType === "Home" && styles.testTypeButtonActive,
+                      styles.testTypeText,
+                      selectedTestType === "Home" && styles.testTypeTextActive,
                     ]}
                   >
-                    <Text style={styles.testTypeIcon}>🏠</Text>
-                    <Text
-                      style={[
-                        styles.testTypeText,
-                        selectedTestType === "Home" && styles.testTypeTextActive,
-                      ]}
-                    >
-                      Home Collection
-                    </Text>
-                    <Text style={styles.testTypeDesc}>We come to you (+$15)</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Personal Information */}
-              <View style={{...styles.section,gap:8}}>
-                <Text style={appStyles.sectionTitle}>Personal Information</Text>
-                <FormInput
-                  placeholder="Full Name"
-                  value={formik.values.fullName}
-                  onChangeText={formik.handleChange("fullName")}
-                  onBlur={formik.handleBlur("fullName")}
-                  error={formik.touched.fullName ? formik.errors.fullName : undefined}
-                />
-                <FormInput
-                  placeholder="Email Address"
-                  value={formik.values.email}
-                  onChangeText={formik.handleChange("email")}
-                  onBlur={formik.handleBlur("email")}
-                  error={formik.touched.email ? formik.errors.email : undefined}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                <FormInput
-                  placeholder="Phone Number"
-                  value={formik.values.phone}
-                  onChangeText={formik.handleChange("phone")}
-                  onBlur={formik.handleBlur("phone")}
-                  error={formik.touched.phone ? formik.errors.phone : undefined}
-                  keyboardType="phone-pad"
-                  maxLength={11}
-                />
-                <FormInput
-                  placeholder="Age"
-                  value={formik.values.age}
-                  onChangeText={formik.handleChange("age")}
-                  onBlur={formik.handleBlur("age")}
-                  error={formik.touched.age ? formik.errors.age : undefined}
-                  keyboardType="number-pad"
-                  maxLength={3}
-                />
-              </View>
-
-              {/* Referring Doctor */}
-              <View style={{...styles.section, gap:8}}>
-                <Text style={appStyles.sectionTitle}>Referring Doctor (Optional)</Text>
-                <FormInput
-                  placeholder="Enter doctor's name who referred you"
-                  value={formik.values.referringDoctor}
-                  onChangeText={formik.handleChange("referringDoctor")}
-                  onBlur={formik.handleBlur("referringDoctor")}
-                  error={formik.touched.referringDoctor ? formik.errors.referringDoctor : undefined}
-                />
-              </View>
-
-              {/* Address Information */}
-              {selectedTestType === "Home" && (
-                <View style={styles.section}>
-                  <Text style={appStyles.sectionTitle}>Home Address</Text>
-                  <FormInput
-                    placeholder="Street Address"
-                    value={formik.values.address}
-                    onChangeText={formik.handleChange("address")}
-                    onBlur={formik.handleBlur("address")}
-                    error={formik.touched.address ? formik.errors.address : undefined}
-                    multiline
-                  />
-                  <View style={styles.row}>
-                    <FormInput
-                      placeholder="City"
-                      value={formik.values.city}
-                      onChangeText={formik.handleChange("city")}
-                      onBlur={formik.handleBlur("city")}
-                      error={formik.touched.city ? formik.errors.city : undefined}
-                      containerStyle={styles.halfInput}
-                    />
-                    <FormInput
-                      placeholder="Zip Code"
-                      value={formik.values.zipCode}
-                      onChangeText={formik.handleChange("zipCode")}
-                      onBlur={formik.handleBlur("zipCode")}
-                      error={formik.touched.zipCode ? formik.errors.zipCode : undefined}
-                      keyboardType="number-pad"
-                      containerStyle={styles.halfInput}
-                      maxLength={6}
-                    />
-                  </View>
-                </View>
-              )}
-
-              {/* Appointment Schedule */}
-              <View style={[styles.section, {gap: 8}]}>
-                <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
-                <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
-                  <FormInput
-                    placeholder="Preferred Date (MM/DD/YYYY)"
-                    value={formik.values.preferredDate}
-                    editable={false}
-                    pointerEvents="none"
-                    error={formik.touched.preferredDate ? formik.errors.preferredDate : undefined}
-                    RightIcon={CalendarIcon}
-                  />
+                    Home Collection
+                  </Text>
+                  <Text style={styles.testTypeDesc}>We come to you (+$15)</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
-                  <FormInput
-                    placeholder="Preferred Time (HH:MM AM/PM)"
-                    value={formik.values.preferredTime}
-                    editable={false}
-                    pointerEvents="none"
-                    error={formik.touched.preferredTime ? formik.errors.preferredTime : undefined}
-                    RightIcon={ClockIcon}
-                  />
-                </TouchableOpacity>
-
-            
               </View>
+            </View>
 
-              {/* Additional Notes */}
-              <View style={styles.section}>
-                <Text style={appStyles.sectionTitle}>Additional Notes (Optional)</Text>
-                <FormInput
-                  placeholder="Any special instructions or medical conditions..."
-                  value={formik.values.notes}
-                  onChangeText={formik.handleChange("notes")}
-                  onBlur={formik.handleBlur("notes")}
-                  multiline
-                  numberOfLines={20}
-                  containerStyle={styles.notesInput}
-                />
-              </View>
-
-              {/* Important Information */}
-              <View style={styles.infoBox}>
-                <Text style={styles.infoTitle}>⚠️ Important Information</Text>
-                <Text style={styles.infoText}>
-                  • Fasting may be required for certain tests (8-12 hours)
-                </Text>
-                <Text style={styles.infoText}>
-                  • Bring a valid ID and insurance card if applicable
-                </Text>
-                <Text style={styles.infoText}>
-                  • Arrive 10 minutes before your scheduled time
-                </Text>
-                <Text style={styles.infoText}>
-                  • Results will be available within the specified duration
-                </Text>
-              </View>
-            </ScrollView>
-
-            {/* Bottom Button */}
-            <View style={styles.bottomContainer}>
-              <AppButton
-                title="Confirm Booking"
-                onPress={formik.handleSubmit}
-                disabled={!isFormValid()}
+            {/* Personal Information */}
+            <View style={{ ...styles.section, gap: 8 }}>
+              <Text style={appStyles.sectionTitle}>Personal Information</Text>
+              <FormInput
+                placeholder="Full Name"
+                value={formik.values.fullName}
+                onChangeText={formik.handleChange("fullName")}
+                onBlur={formik.handleBlur("fullName")}
+                error={formik.touched.fullName ? formik.errors.fullName : undefined}
+              />
+              <FormInput
+                placeholder="Email Address"
+                value={formik.values.email}
+                onChangeText={formik.handleChange("email")}
+                onBlur={formik.handleBlur("email")}
+                error={formik.touched.email ? formik.errors.email : undefined}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <FormInput
+                placeholder="Phone Number"
+                value={formik.values.phone}
+                onChangeText={formik.handleChange("phone")}
+                onBlur={formik.handleBlur("phone")}
+                error={formik.touched.phone ? formik.errors.phone : undefined}
+                keyboardType="phone-pad"
+                maxLength={11}
+              />
+              <FormInput
+                placeholder="Age"
+                value={formik.values.age}
+                onChangeText={formik.handleChange("age")}
+                onBlur={formik.handleBlur("age")}
+                error={formik.touched.age ? formik.errors.age : undefined}
+                keyboardType="number-pad"
+                maxLength={3}
               />
             </View>
 
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="date"
-              onConfirm={(date) => handleDateConfirm(date, formik.setFieldValue)}
-              onCancel={() => setDatePickerVisible(false)}
-              minimumDate={new Date()}
-              date={selectedDate || new Date()}
-            />
+            {/* Referring Doctor */}
+            <View style={{ ...styles.section, gap: 8 }}>
+              <Text style={appStyles.sectionTitle}>Referring Doctor (Optional)</Text>
+              <FormInput
+                placeholder="Enter doctor's name who referred you"
+                value={formik.values.referringDoctor}
+                onChangeText={formik.handleChange("referringDoctor")}
+                onBlur={formik.handleBlur("referringDoctor")}
+                error={formik.touched.referringDoctor ? formik.errors.referringDoctor : undefined}
+              />
+            </View>
 
-            <DateTimePickerModal
-              isVisible={isTimePickerVisible}
-              mode="time"
-              onConfirm={(time) => handleTimeConfirm(time, formik.setFieldValue)}
-              onCancel={() => setTimePickerVisible(false)}
-              date={selectedTime || new Date()}
-            />
+            {/* Address Information */}
+            {selectedTestType === "Home" && (
+              <View style={styles.section}>
+                <Text style={appStyles.sectionTitle}>Home Address</Text>
+                <FormInput
+                  placeholder="Street Address"
+                  value={formik.values.address}
+                  onChangeText={formik.handleChange("address")}
+                  onBlur={formik.handleBlur("address")}
+                  error={formik.touched.address ? formik.errors.address : undefined}
+                  multiline
+                />
+                <View style={styles.row}>
+                  <FormInput
+                    placeholder="City"
+                    value={formik.values.city}
+                    onChangeText={formik.handleChange("city")}
+                    onBlur={formik.handleBlur("city")}
+                    error={formik.touched.city ? formik.errors.city : undefined}
+                    containerStyle={styles.halfInput}
+                  />
+                  <FormInput
+                    placeholder="Zip Code"
+                    value={formik.values.zipCode}
+                    onChangeText={formik.handleChange("zipCode")}
+                    onBlur={formik.handleBlur("zipCode")}
+                    error={formik.touched.zipCode ? formik.errors.zipCode : undefined}
+                    keyboardType="number-pad"
+                    containerStyle={styles.halfInput}
+                    maxLength={6}
+                  />
+                </View>
+              </View>
+            )}
 
-            {/* Payment Method Modal */}
-            <PaymentMethodModal
-              visible={showPaymentModal}
-              onClose={() => setShowPaymentModal(false)}
-              onConfirm={handlePaymentConfirm}
-              totalAmount={`$${totalAmount}`}
-            />
+            {/* Appointment Schedule */}
+            <View style={[styles.section, { gap: 8 }]}>
+              <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
+              <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
+                <FormInput
+                  placeholder="Preferred Date (MM/DD/YYYY)"
+                  value={formik.values.preferredDate}
+                  editable={false}
+                  pointerEvents="none"
+                  error={formik.touched.preferredDate ? formik.errors.preferredDate : undefined}
+                  RightIcon={CalendarIcon}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
+                <FormInput
+                  placeholder="Preferred Time (HH:MM AM/PM)"
+                  value={formik.values.preferredTime}
+                  editable={false}
+                  pointerEvents="none"
+                  error={formik.touched.preferredTime ? formik.errors.preferredTime : undefined}
+                  RightIcon={ClockIcon}
+                />
+              </TouchableOpacity>
 
-            {/* Success Confirmation Modal */}
-            <ConfirmationModal
-              visible={showSuccessModal}
-              onClose={handleSuccessClose}
-              onConfirm={handleSuccessClose}
-              title="Booking Confirmed!"
-              message={`Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`}
-              confirmText="Done"
-              showCancelButton={false}
-              variant="success"
+
+            </View>
+
+            {/* Additional Notes */}
+            <View style={styles.section}>
+              <Text style={appStyles.sectionTitle}>Additional Notes (Optional)</Text>
+              <FormInput
+                placeholder="Any special instructions or medical conditions..."
+                value={formik.values.notes}
+                onChangeText={formik.handleChange("notes")}
+                onBlur={formik.handleBlur("notes")}
+                multiline
+                numberOfLines={20}
+                containerStyle={styles.notesInput}
+              />
+            </View>
+
+            {/* Important Information */}
+            <View style={styles.infoBox}>
+              <Text style={styles.infoTitle}>⚠️ Important Information</Text>
+              <Text style={styles.infoText}>
+                • Fasting may be required for certain tests (8-12 hours)
+              </Text>
+              <Text style={styles.infoText}>
+                • Bring a valid ID and insurance card if applicable
+              </Text>
+              <Text style={styles.infoText}>
+                • Arrive 10 minutes before your scheduled time
+              </Text>
+              <Text style={styles.infoText}>
+                • Results will be available within the specified duration
+              </Text>
+            </View>
+          </ScrollView>
+
+          {/* Bottom Button */}
+          <View style={styles.bottomContainer}>
+            <AppButton
+              title="Confirm Booking"
+              onPress={formik.handleSubmit}
+              disabled={!isFormValid()}
             />
+          </View>
+
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            onConfirm={(date) => handleDateConfirm(date, formik.setFieldValue)}
+            onCancel={() => setDatePickerVisible(false)}
+            minimumDate={new Date()}
+            date={selectedDate || new Date()}
+          />
+
+          <DateTimePickerModal
+            isVisible={isTimePickerVisible}
+            mode="time"
+            onConfirm={(time) => handleTimeConfirm(time, formik.setFieldValue)}
+            onCancel={() => setTimePickerVisible(false)}
+            date={selectedTime || new Date()}
+          />
+
+          {/* Payment Method Modal */}
+          <PaymentMethodModal
+            visible={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            onConfirm={handlePaymentConfirm}
+            totalAmount={`$${totalAmount}`}
+          />
+
+          {/* Success Confirmation Modal */}
+          <ConfirmationModal
+            visible={showSuccessModal}
+            onClose={handleSuccessClose}
+            onConfirm={handleSuccessClose}
+            onCancel={handleSuccessClose}
+            title="Booking Confirmed!"
+            message={`Your lab test booking at ${labName} has been confirmed. We'll send you a confirmation email shortly.`}
+            confirmText="Done"
+            showCancelButton={false}
+            type="success"
+          />
         </Animated.View>
       </SafeAreaView>
     </View>

@@ -2,7 +2,10 @@ import { SearchIcon } from "@/assets/svg";
 import AppointmentCard from "@/component/AppointmentCard";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
+import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
+import NotificationIconWithBadge from "@/component/NotificationIconWithBadge";
 import StatCard from "@/component/StatCard";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import AppointmentService, { Appointment } from "@/services/AppointmentService";
@@ -12,13 +15,12 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -30,6 +32,14 @@ const AppointmentScreen = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => { },
+    type: "success" as any
+  });
+  const toast = useToast();
   const router = useRouter();
   const { user } = useAuthContext();
 
@@ -74,26 +84,23 @@ const AppointmentScreen = () => {
     });
 
   const handleCancelAppointment = async (appointment: Appointment) => {
-    Alert.alert(
-      "Cancel Appointment",
-      `Are you sure you want to cancel this appointment with ${appointment.nurseName}?`,
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Yes, Cancel",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await AppointmentService.cancelAppointment(appointment.id, appointment);
-              Alert.alert("Cancelled", "Appointment has been cancelled");
-            } catch (error) {
-              console.error("Error cancelling appointment:", error);
-              Alert.alert("Error", "Failed to cancel appointment");
-            }
-          },
-        },
-      ]
-    );
+    setConfirmModal({
+      visible: true,
+      title: "Cancel Appointment",
+      message: `Are you sure you want to cancel this appointment with ${appointment.nurseName}?`,
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await AppointmentService.cancelAppointment(appointment.id, appointment);
+          setConfirmModal(prev => ({ ...prev, visible: false }));
+          toast.success("Appointment cancelled");
+        } catch (error) {
+          console.error("Error cancelling appointment:", error);
+          setConfirmModal(prev => ({ ...prev, visible: false }));
+          toast.error("Failed to cancel appointment");
+        }
+      }
+    });
   };
 
   const onRefresh = () => {
@@ -127,9 +134,7 @@ const AppointmentScreen = () => {
         <SafeAreaView edges={["top"]}>
           <View style={styles.headerRow}>
             <Text style={styles.headerTitle}>My Appointments</Text>
-            <TouchableOpacity onPress={() => router.push("/(protected)/notifications")}>
-              <Ionicons name="notifications-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
+            <NotificationIconWithBadge />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -229,6 +234,17 @@ const AppointmentScreen = () => {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      <ConfirmationModal
+        visible={confirmModal.visible}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, visible: false }))}
+        type={confirmModal.type}
+        confirmText="Yes, Cancel"
+        cancelText="No"
+      />
     </SafeAreaView>
   );
 };

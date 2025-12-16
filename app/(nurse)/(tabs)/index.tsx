@@ -1,3 +1,4 @@
+import NotificationIconWithBadge from "@/component/NotificationIconWithBadge";
 import PremiumActionCard from '@/component/PremiumActionCard';
 import SectionHeader from '@/component/SectionHeader';
 import WelcomeHeader from '@/component/WelcomeHeader';
@@ -44,9 +45,7 @@ const NurseDashboard = () => {
           subtitle={nurseInfo?.specialization}
           avatar={nurseInfo?.profileImage}
           rightAction={
-            <TouchableOpacity onPress={() => router.push("/(protected)/notifications")}>
-              <Ionicons name="notifications-outline" size={22} color={colors.white} />
-            </TouchableOpacity>
+            <NotificationIconWithBadge />
           }
           whiteText={true}
         />

@@ -1,24 +1,32 @@
 import AppButton from "@/component/AppButton";
+import BookAppointmentModal from "@/component/BookAppointmentModal";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import AppointmentService from "@/services/AppointmentService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const NurseProfile = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuthContext();
+  const toast = useToast();
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -51,7 +59,11 @@ const NurseProfile = () => {
     availability: params.availability as string,
     serviceType: JSON.parse(params.serviceType as string),
     hourlyRate: params.hourlyRate as string,
+    city: params.city as string,
+    certifications: params.certifications as string,
   };
+
+  const certificationsList = nurse.certifications ? nurse.certifications.split(",") : ["Certified Nurse"];
 
   const getAvailabilityColor = () => {
     switch (nurse.availability) {
@@ -66,26 +78,97 @@ const NurseProfile = () => {
     }
   };
 
-  const handleChatPress = () => {
-    router.push({
-      pathname: "/(protected)/medicine-chat",
-      params: {
-        personName: nurse.name,
-        personAvatar: nurse.image,
-        useTora: "false",
-      },
-    });
+  const handleChatPress = async () => {
+    if (!user) return;
+
+    try {
+      const hasAccepted = await AppointmentService.checkAcceptedAppointment(user.uid, nurse.id);
+
+      if (hasAccepted) {
+        router.push({
+          pathname: "/(protected)/nurse-chat-detail",
+          params: {
+            nurseId: nurse.id,
+            nurseName: nurse.name,
+            nurseImage: nurse.image || "",
+          },
+        });
+      } else {
+        toast.show({
+          type: "error",
+          text1: "Chat Unavailable",
+          text2: "You can only chat with this nurse after your appointment is accepted.",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking chat permission:", error);
+      toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to verify chat permission",
+      });
+    }
   };
 
   const handleBookNow = () => {
-    // TODO: Implement booking functionality
-    console.log("Book nurse:", nurse.name);
+    if (!user) {
+      toast.show({ type: "error", text1: "Login Required", text2: "Please login to book an appointment" });
+      return;
+    }
+    setShowBookingModal(true);
+  };
+
+  const handleConfirmBooking = async (appointmentData: {
+    date: string;
+    time: string;
+    serviceType: string;
+    notes: string;
+    address: string;
+    duration: string;
+  }) => {
+    try {
+      setIsBooking(true);
+      const isAvailable = await AppointmentService.checkNurseAvailability(nurse.id, appointmentData.date, appointmentData.time);
+
+      if (!isAvailable) {
+        toast.show({ type: "error", text1: "Time Slot Unavailable", text2: "Nurse is already booked for this time." });
+        setIsBooking(false);
+        return;
+      }
+
+      await AppointmentService.createAppointment({
+        userId: user!.uid,
+        nurseId: nurse.id,
+        userName: `${user!.firstname} ${user!.lastname}`,
+        nurseName: nurse.name,
+        userImage: (user!.additionalInfo as any)?.profileImage || "",
+        nurseImage: nurse.image || "",
+        nurseSpecialization: nurse.specialization,
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
+        status: "pending",
+        serviceType: appointmentData.serviceType,
+        notes: appointmentData.notes || "",
+        address: appointmentData.address,
+        duration: appointmentData.duration,
+        hourlyRate: nurse.hourlyRate,
+      });
+
+      setShowBookingModal(false);
+      toast.success("Appointment Requested Successfully");
+      setTimeout(() => router.push("/(protected)/(tabs)/appointment"), 1500);
+    } catch (error) {
+      toast.error("Failed to book appointment");
+      console.error(error);
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       <SafeAreaView edges={["bottom"]} style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header with Image */}
@@ -102,7 +185,7 @@ const NurseProfile = () => {
             >
               <Ionicons name="arrow-back" size={24} color={colors.white} />
             </TouchableOpacity>
-            
+
             <View style={styles.imageWrapper}>
               <Image source={{ uri: nurse.image }} style={styles.profileImage} />
               <View
@@ -114,6 +197,7 @@ const NurseProfile = () => {
             </View>
             <Text style={styles.headerName}>{nurse.name}</Text>
             <Text style={styles.headerSpecialization}>{nurse.specialization}</Text>
+            {nurse.city ? <Text style={styles.headerLocation}><Ionicons name="location" size={14} color="rgba(255,255,255,0.8)" /> {nurse.city}</Text> : null}
 
             {/* Rating */}
             <View style={styles.headerRating}>
@@ -123,255 +207,223 @@ const NurseProfile = () => {
             </View>
           </LinearGradient>
 
-          <Animated.View 
-            style={{ 
-              opacity: fadeAnim, 
-              transform: [{ translateY: slideAnim }] 
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
             }}
           >
 
-        {/* Quick Stats */}
-        <View style={styles.quickStats}>
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons name="briefcase" size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.statLabel}>Experience</Text>
-            <Text style={styles.statValue}>{nurse.experience}</Text>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons name="cash" size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.statLabel}>Hourly Rate</Text>
-            <Text style={styles.statValue}>{nurse.hourlyRate}</Text>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons
-                name={
-                  nurse.availability === "Available"
-                    ? "checkmark-circle"
-                    : "time"
-                }
-                size={24}
-                color={getAvailabilityColor()}
-              />
-            </View>
-            <Text style={styles.statLabel}>Status</Text>
-            <Text
-              style={[styles.statValue, { color: getAvailabilityColor() }]}
-            >
-              {nurse.availability}
-            </Text>
-          </View>
-        </View>
-
-        {/* Service Types */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Specialized In</Text>
-          <View style={styles.serviceTypesGrid}>
-            {nurse.serviceType.map((type: string, index: number) => (
-              <View key={index} style={styles.serviceTypeCard}>
-                <Ionicons
-                  name={
-                    type === "Elderly Care"
-                      ? "accessibility"
-                      : type === "Child Care"
-                      ? "happy"
-                      : type === "Post-Surgery"
-                      ? "bandage"
-                      : "medical"
-                  }
-                  size={24}
-                  color={colors.primary}
-                />
-                <Text style={styles.serviceTypeText}>{type}</Text>
+            {/* Quick Stats */}
+            <View style={styles.quickStats}>
+              <View style={styles.statItem}>
+                <View style={styles.statIcon}>
+                  <Ionicons name="briefcase" size={24} color={colors.primary} />
+                </View>
+                <Text style={styles.statLabel}>Experience</Text>
+                <Text style={styles.statValue}>{nurse.experience}</Text>
               </View>
-            ))}
-          </View>
-        </View>
 
-        {/* About */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.aboutText}>
-            {nurse.name} is a highly experienced {nurse.specialization.toLowerCase()} with{" "}
-            {nurse.experience} of professional practice. Dedicated to providing
-            exceptional care and support to patients and their families.
-            Specialized in multiple care areas including{" "}
-            {nurse.serviceType.join(", ")}.
-          </Text>
-        </View>
+              <View style={styles.statDivider} />
 
-        {/* Qualifications */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Qualifications</Text>
-          <View style={styles.qualificationItem}>
-            <View style={styles.qualificationIcon}>
-              <Ionicons name="school" size={20} color={colors.primary} />
-            </View>
-            <View style={styles.qualificationInfo}>
-              <Text style={styles.qualificationTitle}>
-                Bachelor of Science in Nursing (BSN)
-              </Text>
-              <Text style={styles.qualificationDetail}>
-                State Medical University • 2012-2016
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.qualificationItem}>
-            <View style={styles.qualificationIcon}>
-              <Ionicons name="ribbon" size={20} color={colors.primary} />
-            </View>
-            <View style={styles.qualificationInfo}>
-              <Text style={styles.qualificationTitle}>
-                Registered Nurse (RN) License
-              </Text>
-              <Text style={styles.qualificationDetail}>
-                State Board of Nursing • License #RN-12345
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.qualificationItem}>
-            <View style={styles.qualificationIcon}>
-              <Ionicons name="medal" size={20} color={colors.primary} />
-            </View>
-            <View style={styles.qualificationInfo}>
-              <Text style={styles.qualificationTitle}>
-                CPR & First Aid Certified
-              </Text>
-              <Text style={styles.qualificationDetail}>
-                American Heart Association • Valid until 2026
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Skills */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Skills & Expertise</Text>
-          <View style={styles.skillsContainer}>
-            {[
-              "Patient Care",
-              "Medication Administration",
-              "Vital Signs Monitoring",
-              "Wound Care",
-              "IV Therapy",
-              "Emergency Response",
-              "Patient Education",
-              "Care Planning",
-            ].map((skill, index) => (
-              <View key={index} style={styles.skillBadge}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={14}
-                  color={colors.primary}
-                />
-                <Text style={styles.skillText}>{skill}</Text>
+              <View style={styles.statItem}>
+                <View style={styles.statIcon}>
+                  <Ionicons name="cash" size={24} color={colors.primary} />
+                </View>
+                <Text style={styles.statLabel}>Hourly Rate</Text>
+                <Text style={styles.statValue}>{nurse.hourlyRate}</Text>
               </View>
-            ))}
-          </View>
-        </View>
 
-        {/* Reviews Summary */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Reviews</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.statDivider} />
 
-          {/* Rating Breakdown */}
-          <View style={styles.ratingBreakdown}>
-            <View style={styles.overallRating}>
-              <Text style={styles.overallRatingNumber}>{nurse.rating}</Text>
-              <View style={styles.starsContainer}>
-                {[1, 2, 3, 4, 5].map((star) => (
+              <View style={styles.statItem}>
+                <View style={styles.statIcon}>
                   <Ionicons
-                    key={star}
-                    name={star <= Math.floor(nurse.rating) ? "star" : "star-outline"}
-                    size={16}
-                    color="#FFB800"
+                    name={
+                      nurse.availability === "Available"
+                        ? "checkmark-circle"
+                        : "time"
+                    }
+                    size={24}
+                    color={getAvailabilityColor()}
                   />
+                </View>
+                <Text style={styles.statLabel}>Status</Text>
+                <Text
+                  style={[styles.statValue, { color: getAvailabilityColor() }]}
+                >
+                  {nurse.availability}
+                </Text>
+              </View>
+            </View>
+
+            {/* Service Types */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Specialized In</Text>
+              <View style={styles.serviceTypesGrid}>
+                {nurse.serviceType.map((type: string, index: number) => (
+                  <View key={index} style={styles.serviceTypeCard}>
+                    <Ionicons
+                      name={
+                        type === "Elderly Care"
+                          ? "accessibility"
+                          : type === "Child Care"
+                            ? "happy"
+                            : type === "Post-Surgery"
+                              ? "bandage"
+                              : "medical"
+                      }
+                      size={24}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.serviceTypeText}>{type}</Text>
+                  </View>
                 ))}
               </View>
-              <Text style={styles.reviewCountText}>
-                Based on {nurse.reviewCount} reviews
+            </View>
+
+            {/* About */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.aboutText}>
+                {nurse.name} is a highly experienced {nurse.specialization.toLowerCase()} with{" "}
+                {nurse.experience} of professional practice. Dedicated to providing
+                exceptional care and support to patients and their families.
+                Specialized in multiple care areas including{" "}
+                {nurse.serviceType.join(", ")}.
               </Text>
             </View>
 
-            <View style={styles.ratingBars}>
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <View key={rating} style={styles.ratingBarRow}>
-                  <Text style={styles.ratingBarLabel}>{rating}★</Text>
-                  <View style={styles.ratingBarBg}>
-                    <View
-                      style={[
-                        styles.ratingBarFill,
-                        {
-                          width: `${
-                            rating === 5
-                              ? 85
-                              : rating === 4
-                              ? 10
-                              : rating === 3
-                              ? 3
-                              : 1
-                          }%`,
-                        },
-                      ]}
-                    />
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Certifications & Licenses</Text>
+              {certificationsList.map((cert, index) => (
+                <View key={index} style={styles.qualificationItem}>
+                  <View style={styles.qualificationIcon}>
+                    <Ionicons name="ribbon" size={20} color={colors.primary} />
                   </View>
-                  <Text style={styles.ratingBarCount}>
-                    {rating === 5
-                      ? Math.floor(nurse.reviewCount * 0.85)
-                      : rating === 4
-                      ? Math.floor(nurse.reviewCount * 0.1)
-                      : rating === 3
-                      ? Math.floor(nurse.reviewCount * 0.03)
-                      : 1}
-                  </Text>
+                  <View style={styles.qualificationInfo}>
+                    <Text style={styles.qualificationTitle}>{cert.trim()}</Text>
+                    <Text style={styles.qualificationDetail}>Verified Credential</Text>
+                  </View>
                 </View>
               ))}
             </View>
-          </View>
 
-          {/* Sample Review */}
-          <View style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <Image
-                source={{
-                  uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-                }}
-                style={styles.reviewerImage}
-              />
-              <View style={styles.reviewerInfo}>
-                <Text style={styles.reviewerName}>John Smith</Text>
-                <View style={styles.reviewStars}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons key={star} name="star" size={12} color="#FFB800" />
+            {/* Skills */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Skills & Expertise</Text>
+              <View style={styles.skillsContainer}>
+                {[
+                  "Patient Care",
+                  "Medication Administration",
+                  "Vital Signs Monitoring",
+                  "Wound Care",
+                  "IV Therapy",
+                  "Emergency Response",
+                  "Patient Education",
+                  "Care Planning",
+                ].map((skill, index) => (
+                  <View key={index} style={styles.skillBadge}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={14}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.skillText}>{skill}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Reviews Summary */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Reviews</Text>
+                <TouchableOpacity>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Rating Breakdown */}
+              <View style={styles.ratingBreakdown}>
+                <View style={styles.overallRating}>
+                  <Text style={styles.overallRatingNumber}>{nurse.rating}</Text>
+                  <View style={styles.starsContainer}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons
+                        key={star}
+                        name={star <= Math.floor(nurse.rating) ? "star" : "star-outline"}
+                        size={16}
+                        color="#FFB800"
+                      />
+                    ))}
+                  </View>
+                  <Text style={styles.reviewCountText}>
+                    Based on {nurse.reviewCount} reviews
+                  </Text>
+                </View>
+
+                <View style={styles.ratingBars}>
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <View key={rating} style={styles.ratingBarRow}>
+                      <Text style={styles.ratingBarLabel}>{rating}★</Text>
+                      <View style={styles.ratingBarBg}>
+                        <View
+                          style={[
+                            styles.ratingBarFill,
+                            {
+                              width: `${rating === 5
+                                ? 85
+                                : rating === 4
+                                  ? 10
+                                  : rating === 3
+                                    ? 3
+                                    : 1
+                                }%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.ratingBarCount}>
+                        {rating === 5
+                          ? Math.floor(nurse.reviewCount * 0.85)
+                          : rating === 4
+                            ? Math.floor(nurse.reviewCount * 0.1)
+                            : rating === 3
+                              ? Math.floor(nurse.reviewCount * 0.03)
+                              : 1}
+                      </Text>
+                    </View>
                   ))}
                 </View>
               </View>
-              <Text style={styles.reviewDate}>2 weeks ago</Text>
+
+              {/* Sample Review */}
+              <View style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <Image
+                    source={{
+                      uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
+                    }}
+                    style={styles.reviewerImage}
+                  />
+                  <View style={styles.reviewerInfo}>
+                    <Text style={styles.reviewerName}>John Smith</Text>
+                    <View style={styles.reviewStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons key={star} name="star" size={12} color="#FFB800" />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.reviewDate}>2 weeks ago</Text>
+                </View>
+                <Text style={styles.reviewText}>
+                  Excellent care and very professional. {nurse.name} was very
+                  attentive to my mother's needs and provided exceptional support
+                  during her recovery. Highly recommended!
+                </Text>
+              </View>
             </View>
-            <Text style={styles.reviewText}>
-              Excellent care and very professional. {nurse.name} was very
-              attentive to my mother's needs and provided exceptional support
-              during her recovery. Highly recommended!
-            </Text>
-          </View>
-        </View>
 
             <View style={{ height: 100 }} />
           </Animated.View>
@@ -394,7 +446,16 @@ const NurseProfile = () => {
           />
         </View>
       </SafeAreaView>
-    </View>
+
+      <BookAppointmentModal
+        visible={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        onBook={handleConfirmBooking}
+        nurseName={nurse.name}
+        nurseSpecialization={nurse.specialization}
+        hourlyRate={nurse.hourlyRate}
+      />
+    </View >
   );
 };
 
@@ -461,6 +522,13 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 12,
   },
+  headerLocation: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginTop: 4,
+    marginBottom: 8,
+  },
   headerRating: {
     flexDirection: "row",
     alignItems: "center",
@@ -485,7 +553,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: colors.white,
     marginHorizontal: sizes.paddingHorizontal,
-    marginTop:  20,
+    marginTop: 20,
     borderRadius: 16,
     padding: 16,
     elevation: 4,
