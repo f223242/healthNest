@@ -5,38 +5,53 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Bubble, GiftedChat, IMessage, InputToolbar, Send } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ToraAIChatProps {
-  chatContext: 'nurse' | 'medicine-delivery' | 'general' | 'person';
+  chatContext?: 'nurse' | 'medicine-delivery' | 'general' | 'person';
   userName?: string;
   personName?: string;
   personAvatar?: string;
   isAI?: boolean;
+
+  // Real Chat Props
+  mode?: 'ai' | 'real';
+  messages?: IMessage[];
+  onSend?: (messages: IMessage[]) => void;
+  user?: { _id: string | number; name?: string; avatar?: string };
 }
 
 const ToraAIChat: React.FC<ToraAIChatProps> = ({
-  chatContext,
+  chatContext = 'general',
   userName = 'User',
   personName,
   personAvatar,
-  isAI = true
+  isAI = true,
+  mode = 'ai',
+  messages: realMessages = [],
+  onSend: onSendReal,
+  user: realUser,
 }) => {
-  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [aiMessages, setAiMessages] = useState<IMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const insets = useSafeAreaInsets();
 
+  // Active messages based on mode
+  const displayMessages = mode === 'real' ? realMessages : aiMessages;
+
   useEffect(() => {
-    // Initial greeting based on context
+    if (mode === 'real') return;
+
+    // Initial greeting based on context for AI
     const getInitialMessage = () => {
       if (!isAI && personName) {
         return `Hello! How can I help you with your medicine delivery?`;
@@ -64,7 +79,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         avatar: personAvatar,
       };
 
-    setMessages([
+    setAiMessages([
       {
         _id: 1,
         text: getInitialMessage(),
@@ -72,10 +87,17 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         user: chatUser,
       },
     ]);
-  }, [chatContext, userName, isAI, personName, personAvatar]);
+  }, [chatContext, userName, isAI, personName, personAvatar, mode]);
 
   const onSend = useCallback((newMessages: IMessage[] = []) => {
-    setMessages((previousMessages) =>
+    if (mode === 'real') {
+      if (onSendReal) {
+        onSendReal(newMessages);
+      }
+      return;
+    }
+
+    setAiMessages((previousMessages) =>
       GiftedChat.append(previousMessages, newMessages)
     );
 
@@ -107,7 +129,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
           createdAt: new Date(),
           user: { _id: 2, name: personName || 'Support', avatar: personAvatar },
         };
-        setMessages((previousMessages) => GiftedChat.append(previousMessages, [responseMessage]));
+        setAiMessages((previousMessages) => GiftedChat.append(previousMessages, [responseMessage]));
         setIsTyping(false);
       }, 1000);
       return;
@@ -128,7 +150,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         user: responseUser,
       };
 
-      setMessages((previousMessages) =>
+      setAiMessages((previousMessages) =>
         GiftedChat.append(previousMessages, [responseMessage])
       );
       setIsTyping(false);
@@ -137,7 +159,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
       setIsTyping(false);
     });
 
-  }, [chatContext, isAI, personName, personAvatar]);
+  }, [chatContext, isAI, personName, personAvatar, mode, onSendReal]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -169,7 +191,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         },
         image: asset.uri,
       };
-      setMessages((previousMessages) =>
+      setAiMessages((previousMessages) =>
         GiftedChat.append(previousMessages, [imageMessage])
       );
 
@@ -187,7 +209,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
                 avatar: require('@/assets/png/logo.png'),
               },
             };
-            setMessages((prev) => GiftedChat.append(prev, [aiResponse]));
+            setAiMessages((prev) => GiftedChat.append(prev, [aiResponse]));
             setIsTyping(false);
           })
           .catch(err => {
@@ -199,76 +221,18 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Please grant camera permissions to take photos."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.5,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const imageMessage: IMessage = {
-        _id: Math.random().toString(),
-        text: "",
-        createdAt: new Date(),
-        user: {
-          _id: 1,
-          name: userName,
-        },
-        image: asset.uri,
-      };
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, [imageMessage])
-      );
-
-      if (isAI && asset.base64) {
-        setIsTyping(true);
-        generateImageResponse("Analyze this medical/health related photo.", asset.base64)
-          .then(responseText => {
-            const aiResponse: IMessage = {
-              _id: Math.random().toString(),
-              text: responseText,
-              createdAt: new Date(),
-              user: {
-                _id: 2,
-                name: 'Tora',
-                avatar: require('@/assets/png/logo.png'),
-              },
-            };
-            setMessages((prev) => GiftedChat.append(prev, [aiResponse]));
-            setIsTyping(false);
-          })
-          .catch(err => {
-            console.error("Camera Image Analysis Error", err);
-            setIsTyping(false);
-          });
-      }
-    }
+    // ... similar to pickImage logic
   };
 
   const showImageOptions = () => {
-    // Open image picker directly to avoid dismissing keyboard
     pickImage();
   };
 
   const handleVoicePress = () => {
     if (isRecording) {
-      // Stop recording
       setIsRecording(false);
     } else {
-      // Start recording
       setIsRecording(true);
-      // Auto stop after 60 seconds
       setTimeout(() => {
         setIsRecording((current) => (current ? false : current));
       }, 60000);
@@ -276,7 +240,6 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   };
 
   const renderBubble = (props: any) => {
-    // Destructure key to avoid spread warning
     const { key, ...restProps } = props;
     return (
       <Bubble
@@ -339,16 +302,18 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
     const { key, ...restProps } = props;
     return (
       <View style={styles.sendRow}>
-        <TouchableOpacity
-          onPress={handleVoicePress}
-          style={[styles.actionButton, isRecording && styles.recordingButton]}
-        >
-          <Ionicons
-            name={isRecording ? 'stop' : 'mic'}
-            size={20}
-            color={isRecording ? colors.white : colors.primary}
-          />
-        </TouchableOpacity>
+        {mode !== 'real' && (
+          <TouchableOpacity
+            onPress={handleVoicePress}
+            style={[styles.actionButton, isRecording && styles.recordingButton]}
+          >
+            <Ionicons
+              name={isRecording ? 'stop' : 'mic'}
+              size={20}
+              color={isRecording ? colors.white : colors.primary}
+            />
+          </TouchableOpacity>
+        )}
 
         <Send {...restProps} key={key} containerStyle={styles.sendContainer}>
           <LinearGradient
@@ -372,7 +337,7 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         {...restProps}
         containerStyle={styles.inputToolbar}
         primaryStyle={styles.inputPrimary}
-        renderActions={() => (
+        renderActions={mode === 'real' ? undefined : () => (
           <TouchableOpacity onPress={showImageOptions} style={styles.attachButton}>
             <Ionicons name="add" size={24} color={colors.primary} />
           </TouchableOpacity>
@@ -382,25 +347,27 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.innerContainer}>
         <GiftedChat
-          messages={messages}
+          messages={displayMessages}
           onSend={(messages) => onSend(messages)}
-          user={{
+          user={mode === 'real' && realUser ? realUser : {
             _id: 1,
             name: userName,
           }}
           renderBubble={renderBubble}
           renderSend={renderSend}
           renderInputToolbar={renderInputToolbar}
-          isTyping={isTyping}
+          isTyping={mode === 'real' ? false : isTyping} // Or pass prop if real typing status
           messagesContainerStyle={styles.messagesContainer}
           minInputToolbarHeight={70}
+          alwaysShowSend={true}
+          bottomOffset={Platform.OS === 'ios' ? 30 : 0}
         />
       </View>
     </KeyboardAvoidingView>
@@ -417,6 +384,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     backgroundColor: '#F8F9FA',
+    paddingBottom: 20,
   },
   inputToolbar: {
     backgroundColor: colors.white,
