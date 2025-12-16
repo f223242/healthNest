@@ -17,6 +17,7 @@ export interface DeliveryPerson {
 
 interface DeliveryPersonCardProps extends DeliveryPerson {
   onPress: () => void;
+  isRecommended?: boolean;
 }
 
 const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
@@ -28,6 +29,7 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
   deliveryTime,
   distance,
   onPress,
+  isRecommended = false,
 }) => {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -37,6 +39,14 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
         end={{ x: 1, y: 1 }}
         style={styles.cardGradient}
       >
+        {/* Recommended Badge */}
+        {isRecommended && (
+          <View style={styles.recommendedBadge}>
+            <Ionicons name="star" size={14} color={colors.white} />
+            <Text style={styles.recommendedText}>Recommended</Text>
+          </View>
+        )}
+
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.imageContainer}>
@@ -105,15 +115,26 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
         </View>
 
         {/* Chat Button */}
-        <TouchableOpacity style={styles.chatButton} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.chatButton, !isAvailable && styles.chatButtonDisabled]}
+          onPress={isAvailable ? onPress : undefined}
+          activeOpacity={isAvailable ? 0.7 : 1}
+          disabled={!isAvailable}
+        >
           <LinearGradient
-            colors={[colors.primary, "#00D68F"]}
+            colors={isAvailable ? [colors.primary, "#00D68F"] : [colors.gray, colors.gray]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.chatButtonGradient}
           >
-            <Ionicons name="chatbubbles" size={18} color={colors.white} />
-            <Text style={styles.chatButtonText}>Start Chat</Text>
+            <Ionicons
+              name="chatbubbles"
+              size={18}
+              color={colors.white}
+            />
+            <Text style={styles.chatButtonText}>
+              {isAvailable ? "Start Chat" : "Currently Unavailable"}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
       </LinearGradient>
@@ -136,6 +157,22 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     padding: 16,
+  },
+  recommendedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignSelf: "flex-start",
+    gap: 4,
+  },
+  recommendedText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
   },
   header: {
     flexDirection: "row",
@@ -234,6 +271,9 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     overflow: "hidden",
+  },
+  chatButtonDisabled: {
+    opacity: 0.5,
   },
   chatButtonGradient: {
     flex: 1,

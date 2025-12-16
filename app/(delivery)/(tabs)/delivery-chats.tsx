@@ -1,8 +1,17 @@
 import ChatListComponent from '@/component/ChatListComponent';
-import { colors } from '@/constant/theme';
+import { colors, Fonts } from '@/constant/theme';
+import { useAuthContext } from '@/hooks/useFirebaseAuth';
+import ChatService, { Conversation } from '@/services/ChatService';
 import { router } from 'expo-router';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CustomerChat {
@@ -17,56 +26,61 @@ interface CustomerChat {
 }
 
 const DeliveryChats = () => {
-  // Sample customer data for delivery person
-  const customers: CustomerChat[] = [
-    {
-      id: '1',
-      name: 'Ali Hassan',
-      avatar: 'https://i.pravatar.cc/150?img=33',
-      lastMessage: 'Where is my order?',
-      time: '3:15 PM',
-      unread: 1,
-      online: true,
-      type: 'person',
-    },
-    {
-      id: '2',
-      name: 'Fatima Khan',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-      lastMessage: 'Thank you for delivery',
-      time: '2:45 PM',
-      online: true,
-      type: 'person',
-    },
-    {
-      id: '3',
-      name: 'Imran Ahmed',
-      avatar: 'https://i.pravatar.cc/150?img=52',
-      lastMessage: 'Please call when you arrive',
-      time: '12:30 PM',
-      online: false,
-      type: 'person',
-    },
-    {
-      id: '4',
-      name: 'Sara Malik',
-      avatar: 'https://i.pravatar.cc/150?img=23',
-      lastMessage: 'Can you deliver today?',
-      time: 'Yesterday',
-      unread: 2,
-      online: false,
-      type: 'person',
-    },
-    {
-      id: '5',
-      name: 'Hamza Shah',
-      avatar: 'https://i.pravatar.cc/150?img=68',
-      lastMessage: 'Order received, thanks!',
-      time: 'Yesterday',
-      online: false,
-      type: 'person',
-    },
-  ];
+  const { user } = useAuthContext();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    setLoading(true);
+    
+    // Listen to all conversations for this delivery person
+    // Pass isDeliveryPerson=true to filter by deliveryPersonId
+    const unsubscribe = ChatService.listenToConversations(
+      user.uid,
+      (convs) => {
+        setConversations(convs);
+        setLoading(false);
+      },
+      true // isDeliveryPerson parameter
+    );
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user?.uid]);
+
+  // Calculate total unread count
+  useEffect(() => {
+    const total = conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+    setTotalUnread(total);
+  }, [conversations]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const customers: CustomerChat[] = conversations.map((conv) => ({
+    id: conv.patientId,
+    name: conv.patientName,
+    avatar: conv.patientAvatar,
+    lastMessage: conv.lastMessage || 'No messages yet',
+    time: conv.lastMessageTime 
+      ? new Date(conv.lastMessageTime.toDate()).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Just now',
+    unread: conv.unreadCount || 0,
+    online: true,
+    type: 'person' as const,
+  }));
 
   const handleChatPress = (customer: CustomerChat) => {
     router.push({
@@ -75,34 +89,57 @@ const DeliveryChats = () => {
         customerId: customer.id,
         customerName: customer.name,
         customerAvatar: customer.avatar || '',
-        useTora: 'false',
       },
     });
   };
 
-  const handleAIChatPress = () => {
-    router.push({
-      pathname: '/(delivery)/delivery-chat-detail',
-      params: {
-        customerId: 'tora',
-        customerName: 'Tora AI',
-        useTora: 'true',
-      },
-    });
-  };
+  if (loading) {
+    return (
+      <SafeAreaView edges={['bottom']} style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading conversations...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
-      <View style={styles.listCard}>
-        <ChatListComponent
-          users={customers}
-          onChatPress={handleChatPress}
-          title="Customers"
-          showAIOption={true}
-          onAIChatPress={handleAIChatPress}
-          aiTitle="Chat with Tora AI Assistant"
-        />
+      {/* Header with unread badge */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Messages</Text>
+        {totalUnread > 0 && (
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{totalUnread}</Text>
+          </View>
+        )}
       </View>
+
+      <ScrollView
+        scrollEnabled={conversations.length > 0}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.listCard}>
+          {conversations.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No conversations yet</Text>
+              <Text style={styles.emptySubText}>
+                Messages from patients will appear here
+              </Text>
+            </View>
+          ) : (
+            <ChatListComponent
+              users={customers}
+              onChatPress={handleChatPress}
+              title="Customers"
+              showAIOption={false}
+            />
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -113,6 +150,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.white,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.black,
+  },
+  headerBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBadgeText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
   },
   listCard: {
     flex: 1,
@@ -127,5 +191,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 6,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  emptyContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+  },
+  emptySubText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
   },
 });
