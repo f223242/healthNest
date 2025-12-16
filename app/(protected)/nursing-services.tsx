@@ -1,26 +1,27 @@
 import { SearchIcon } from "@/assets/svg";
+import BookAppointmentModal from "@/component/BookAppointmentModal";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
 import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { NurseInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
+import AppointmentService from "@/services/AppointmentService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator, Alert, Animated,
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -43,12 +44,16 @@ interface NurseCardData {
 
 const NursingServices = () => {
   const router = useRouter();
-  const { getAllUsers } = useAuthContext();
+  const { getAllUsers, user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<ServiceType>("All");
   const [nurses, setNurses] = useState<NurseCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Appointment booking state
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedNurse, setSelectedNurse] = useState<NurseCardData | null>(null);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -86,7 +91,7 @@ const NursingServices = () => {
         .map((user: User) => {
           const info = user.additionalInfo as NurseInfo;
           const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Nurse";
-          
+
           // Map availability string to proper type
           let availability: "Available" | "Busy" | "Offline" = "Offline";
           if (info.availability) {
@@ -97,7 +102,7 @@ const NursingServices = () => {
               availability = "Busy";
             }
           }
-          
+
           return {
             id: user.uid,
             name: fullName,
@@ -110,7 +115,7 @@ const NursingServices = () => {
             certifications: info.certifications || "",
           };
         });
-      
+
       setNurses(nursesData);
     } catch (error) {
       console.error("Error fetching nurses:", error);
@@ -138,7 +143,7 @@ const NursingServices = () => {
         nurse.city.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesFilter =
-        selectedFilter === "All" || 
+        selectedFilter === "All" ||
         nurse.specialization.toLowerCase().includes(selectedFilter.toLowerCase());
 
       return matchesSearch && matchesFilter;
@@ -180,6 +185,103 @@ const NursingServices = () => {
     });
   };
 
+  const handleBookAppointment = (nurse: NurseCardData) => {
+    console.log("Book button pressed for nurse:", nurse.name);
+
+    if (!user) {
+      Alert.alert("Login Required", "Please login to book an appointment");
+      return;
+    }
+
+    if (nurse.availability !== "Available") {
+      Alert.alert(
+        "Nurse Unavailable",
+        `${nurse.name} is currently marked as ${nurse.availability}. Would you still like to request an appointment?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Request Anyway",
+            onPress: () => {
+              setSelectedNurse(nurse);
+              setShowBookingModal(true);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    console.log("Opening booking modal for:", nurse.name);
+    setSelectedNurse(nurse);
+    setShowBookingModal(true);
+  };
+
+  const handleConfirmBooking = async (appointmentData: {
+    date: string;
+    time: string;
+    serviceType: string;
+    notes: string;
+    address: string;
+    duration: string;
+  }) => {
+    if (!selectedNurse || !user) return;
+
+    try {
+      // Check nurse availability for the selected date/time
+      const isAvailable = await AppointmentService.checkNurseAvailability(
+        selectedNurse.id,
+        appointmentData.date,
+        appointmentData.time
+      );
+
+      if (!isAvailable) {
+        Alert.alert(
+          "Time Slot Unavailable",
+          "This nurse is already booked for the selected date and time. Please choose a different time."
+        );
+        return;
+      }
+
+      const userName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "User";
+
+      await AppointmentService.createAppointment({
+        userId: user.uid,
+        nurseId: selectedNurse.id,
+        userName,
+        nurseName: selectedNurse.name,
+        userImage: (user.additionalInfo as any)?.profileImage || "",
+        nurseImage: selectedNurse.image || "",
+        nurseSpecialization: selectedNurse.specialization,
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
+        status: "pending",
+        serviceType: appointmentData.serviceType,
+        notes: appointmentData.notes || "",
+        address: appointmentData.address,
+        duration: appointmentData.duration,
+        hourlyRate: selectedNurse.hourlyRate,
+      });
+
+      setShowBookingModal(false);
+      setSelectedNurse(null);
+
+      Alert.alert(
+        "Appointment Requested",
+        `Your appointment request has been sent to ${selectedNurse.name}. You will be notified once they respond.`,
+        [
+          {
+            text: "View Appointments",
+            onPress: () => router.push("/(protected)/(tabs)/appointment"),
+          },
+          { text: "OK" },
+        ]
+      );
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      Alert.alert("Error", "Failed to book appointment. Please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.mainContainer}>
@@ -198,7 +300,7 @@ const NursingServices = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00D68F"]}
@@ -209,7 +311,7 @@ const NursingServices = () => {
         <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
           <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
             <View style={styles.headerTitleRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => router.back()}
                 style={styles.backButton}
               >
@@ -222,114 +324,130 @@ const NursingServices = () => {
           </Animated.View>
         </SafeAreaView>
       </LinearGradient>
-      
-    <SafeAreaView edges={["bottom"]} style={styles.container}>
-      {/* Search Bar */}
-      <Animated.View style={[styles.searchWrapper, {
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }]
-      }]}>
-        <FormInput
-          LeftIcon={SearchIcon}
-          placeholder="Search nurses by name or specialization..."
-          containerStyle={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </Animated.View>
-      
-      {/* Header Stats */}
-      <Animated.View style={[styles.headerStats, {
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }]
-      }]}>
-        <StatCard
-          icon="people"
-          value={stats.total}
-          label="Total Nurses"
-          color={colors.primary}
-        />
-        <StatCard
-          icon="checkmark-circle"
-          value={stats.available}
-          label="Available Now"
-          color={colors.success}
-        />
-        <StatCard
-          icon="star"
-          value={stats.total > 0 ? "4.8" : "0"}
-          label="Avg Rating"
-          color="#FF9800"
-        />
-      </Animated.View>
 
-      {/* Filter Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContainer}
-      >
-        {filterOptions.map((filter) => (
-          <FilterChip
-            key={filter.label}
-            label={filter.label}
-            icon={filter.icon}
-            isActive={selectedFilter === filter.label}
-            onPress={() => setSelectedFilter(filter.label)}
-          
+      <SafeAreaView edges={["bottom"]} style={styles.container}>
+        {/* Search Bar */}
+        <Animated.View style={[styles.searchWrapper, {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }]}>
+          <FormInput
+            LeftIcon={SearchIcon}
+            placeholder="Search nurses by name or specialization..."
+            containerStyle={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-        ))}
-      </ScrollView>
+        </Animated.View>
 
-      {/* Results Count */}
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsText}>
-          {filteredNurses.length} {filteredNurses.length === 1 ? "Nurse" : "Nurses"} Found
-        </Text>
-        <TouchableOpacity style={styles.sortButton}>
-          <Ionicons name="funnel" size={16} color={colors.primary} />
-          <Text style={styles.sortText}>Sort</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Header Stats */}
+        <Animated.View style={[styles.headerStats, {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }]}>
+          <StatCard
+            icon="people"
+            value={stats.total}
+            label="Total Nurses"
+            color={colors.primary}
+          />
+          <StatCard
+            icon="checkmark-circle"
+            value={stats.available}
+            label="Available Now"
+            color={colors.success}
+          />
+          <StatCard
+            icon="star"
+            value={stats.total > 0 ? "4.8" : "0"}
+            label="Avg Rating"
+            color="#FF9800"
+          />
+        </Animated.View>
 
-      {/* Nurses List */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
-        }
-      >
-        {filteredNurses.length > 0 ? (
-          filteredNurses.map((nurse) => (
-            <NurseCard
-              key={nurse.id}
-              id={nurse.id}
-              name={nurse.name}
-              specialization={nurse.specialization}
-              image={nurse.image || ""}
-              experience={nurse.experience}
-              availability={nurse.availability}
-              hourlyRate={nurse.hourlyRate}
-              onPress={() => handleViewProfile(nurse)}
-              onChatPress={() => handleChatPress(nurse)}
+        {/* Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContainer}
+        >
+          {filterOptions.map((filter) => (
+            <FilterChip
+              key={filter.label}
+              label={filter.label}
+              icon={filter.icon}
+              isActive={selectedFilter === filter.label}
+              onPress={() => setSelectedFilter(filter.label)}
+
             />
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Ionicons name="people" size={64} color={colors.gray} />
-            <Text style={styles.emptyTitle}>No Nurses Found</Text>
-            <Text style={styles.emptyText}>
-              {nurses.length === 0 
-                ? "No nurses are registered yet" 
-                : "Try adjusting your search or filters"}
-            </Text>
-          </View>
-        )}
+          ))}
+        </ScrollView>
 
-        <View style={{ height: 20 }} />
-      </ScrollView>
-    </SafeAreaView>
+        {/* Results Count */}
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsText}>
+            {filteredNurses.length} {filteredNurses.length === 1 ? "Nurse" : "Nurses"} Found
+          </Text>
+          <TouchableOpacity style={styles.sortButton}>
+            <Ionicons name="funnel" size={16} color={colors.primary} />
+            <Text style={styles.sortText}>Sort</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Nurses List */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          }
+        >
+          {filteredNurses.length > 0 ? (
+            filteredNurses.map((nurse) => (
+              <NurseCard
+                key={nurse.id}
+                id={nurse.id}
+                name={nurse.name}
+                specialization={nurse.specialization}
+                image={nurse.image || ""}
+                experience={nurse.experience}
+                availability={nurse.availability}
+                hourlyRate={nurse.hourlyRate}
+                onPress={() => handleViewProfile(nurse)}
+                onChatPress={() => handleChatPress(nurse)}
+                onBookAppointment={() => handleBookAppointment(nurse)}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="people" size={64} color={colors.gray} />
+              <Text style={styles.emptyTitle}>No Nurses Found</Text>
+              <Text style={styles.emptyText}>
+                {nurses.length === 0
+                  ? "No nurses are registered yet"
+                  : "Try adjusting your search or filters"}
+              </Text>
+            </View>
+          )}
+
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      </SafeAreaView>
+
+      {/* Booking Modal */}
+      {selectedNurse && (
+        <BookAppointmentModal
+          visible={showBookingModal}
+          onClose={() => {
+            setShowBookingModal(false);
+            setSelectedNurse(null);
+          }}
+          onBook={handleConfirmBooking}
+          nurseName={selectedNurse.name}
+          nurseSpecialization={selectedNurse.specialization}
+          hourlyRate={selectedNurse.hourlyRate}
+        />
+      )}
     </View>
   );
 };

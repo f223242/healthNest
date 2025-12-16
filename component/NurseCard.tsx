@@ -17,6 +17,7 @@ interface NurseCardProps {
   hourlyRate?: string;
   onPress?: () => void;
   onChatPress?: () => void;
+  onBookAppointment?: () => void;
   // Optional appointment-specific props
   statusBadge?: {
     label: string;
@@ -49,6 +50,7 @@ const NurseCard: React.FC<NurseCardProps> = ({
   hourlyRate,
   onPress,
   onChatPress,
+  onBookAppointment,
   statusBadge,
   details,
   location,
@@ -253,31 +255,53 @@ const NurseCard: React.FC<NurseCardProps> = ({
         )}
 
         {/* Default Action Buttons (for nurse cards) */}
-        {!actions && (onPress || onChatPress) && (
+        {!actions && (onPress || onChatPress || onBookAppointment) && (
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.viewProfileButton}
-              onPress={onPress}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.viewProfileText}>View Profile</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.chatButton}
-              onPress={onChatPress}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={[colors.primary, "#00D68F"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.chatButtonGradient}
+            {onPress && (
+              <TouchableOpacity
+                style={styles.viewProfileButton}
+                onPress={onPress}
+                activeOpacity={0.7}
               >
-                <Ionicons name="chatbubbles" size={18} color={colors.white} />
-                <Text style={styles.chatButtonText}>Chat</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <Text style={styles.viewProfileText}>View Profile</Text>
+              </TouchableOpacity>
+            )}
+
+            {onBookAppointment && (
+              <TouchableOpacity
+                style={styles.bookButton}
+                onPress={onBookAppointment}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#FF9800", "#FF6F00"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.bookButtonGradient}
+                >
+                  <Ionicons name="calendar" size={18} color={colors.white} />
+                  <Text style={styles.bookButtonText}>Book</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {onChatPress && (
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={onChatPress}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[colors.primary, "#00D68F"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.chatButtonGradient}
+                >
+                  <Ionicons name="chatbubbles" size={18} color={colors.white} />
+                  <Text style={styles.chatButtonText}>Chat</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </LinearGradient>
@@ -450,6 +474,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
+  },
+  bookButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  bookButtonGradient: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  bookButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
   },
   chatButton: {
     flex: 1,
