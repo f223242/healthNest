@@ -1,7 +1,5 @@
 import DeliveryFilterButtons from "@/component/DeliveryFilterButtons";
-import DeliveryPersonCard, {
-  DeliveryPerson,
-} from "@/component/DeliveryPersonCard";
+import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import {
@@ -33,7 +31,6 @@ const RequestMedicine = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -53,8 +50,6 @@ const RequestMedicine = () => {
   }, []);
 
   // Fetch delivery persons from Firebase
-  // ...existing code...
-
   const fetchDeliveryPersons = useCallback(async () => {
     try {
       const users = await getAllUsers("Medicine Delivery");
@@ -63,20 +58,20 @@ const RequestMedicine = () => {
         .map((user: User, index: number) => {
           const info = user.additionalInfo as DeliveryInfo;
           const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Delivery Person";
-          
-          // CHANGED: Default to available (true) unless explicitly marked unavailable
-          const isAvailable = info.availability 
-            ? info.availability.toLowerCase() !== "unavailable" && 
-              info.availability.toLowerCase() !== "part-time"
-            : true; // DEFAULT: New delivery persons are AVAILABLE
-          
+
+          // Default available UNLESS explicitly marked as unavailable
+          const isAvailable =
+            !info.availability ||
+            (info.availability.toLowerCase() !== "unavailable" &&
+              info.availability.toLowerCase() !== "part-time");
+
           return {
             id: index + 1,
             name: fullName,
             avatar: info.profileImage || "https://via.placeholder.com/100",
             rating: 4.5 + Math.random() * 0.5,
             totalDeliveries: Math.floor(Math.random() * 200) + 50,
-            isAvailable, // ✅ Now defaults to true
+            isAvailable,
             deliveryTime: "20-30 min",
             distance: info.city || "N/A",
             vehicleType: info.vehicleType || "N/A",
@@ -84,7 +79,7 @@ const RequestMedicine = () => {
             uid: user.uid,
           };
         });
-      
+
       setDeliveryPersons(deliveryData);
     } catch (error) {
       console.error("Error fetching delivery persons:", error);
@@ -93,8 +88,6 @@ const RequestMedicine = () => {
       setRefreshing(false);
     }
   }, [getAllUsers]);
-
-// ...rest of code...
 
   useEffect(() => {
     fetchDeliveryPersons();
@@ -111,22 +104,22 @@ const RequestMedicine = () => {
     [deliveryPersons]
   );
 
-  // Filter logic - Updated to include "recommended"
+  // Filter based on active filter
   const filteredPersons = useMemo(() => {
+    console.log("Filter:", filter, "Count:", deliveryPersons.length);
     switch (filter) {
       case "available":
-        return deliveryPersons.filter((person) => person.isAvailable);
+        const available = deliveryPersons.filter((p) => p.isAvailable);
+        console.log("Available count:", available.length);
+        return available;
       case "recommended":
+        console.log("Recommended count:", recommendedList.length);
         return recommendedList;
       case "all":
       default:
         return deliveryPersons;
     }
-  }, [deliveryPersons, filter, recommendedList]);
-
-  const availableCount = useMemo(() => {
-    return deliveryPersons.filter((p) => p.isAvailable).length;
-  }, [deliveryPersons]);
+  }, [filter, deliveryPersons, recommendedList]);
 
   const handlePersonPress = (person: DeliveryPerson & { uid?: string }) => {
     router.push({
@@ -138,6 +131,7 @@ const RequestMedicine = () => {
       },
     });
   };
+
   if (loading) {
     return (
       <View style={[styles.mainContainer, styles.loadingContainer]}>
@@ -151,10 +145,9 @@ const RequestMedicine = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
-      {/* Premium Gradient Header */}
+
       <LinearGradient
-        colors={[colors.primary, '#00B976', '#00D68F']}
+        colors={[colors.primary, "#00B976", "#00D68F"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -168,60 +161,71 @@ const RequestMedicine = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Request Medicine</Text>
           <View style={styles.headerIcon}>
-            <Ionicons name="medical" size={22} color="rgba(255,255,255,0.9)" />
+            <Ionicons
+              name="medical"
+              size={22}
+              color="rgba(255,255,255,0.9)"
+            />
           </View>
         </View>
-        <Text style={styles.headerSubtitle}>Select a delivery person to chat and request medicine</Text>
+        <Text style={styles.headerSubtitle}>
+          Select a delivery person to chat and request medicine
+        </Text>
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* NEW: Use DeliveryFilterButtons Component */}
+          {/* Filter Buttons */}
           <DeliveryFilterButtons
             activeFilter={filter}
             onFilterChange={(newFilter) => setFilter(newFilter)}
           />
 
+          {/* Results Counter */}
           <Text style={[appStyles.bodyText, styles.subtitle]}>
-            Showing {filteredPersons.length} delivery person{filteredPersons.length !== 1 ? "s" : ""}
+            Showing {filteredPersons.length} delivery person
+            {filteredPersons.length !== 1 ? "s" : ""}
           </Text>
 
+          {/* Delivery List */}
           <FlatList
             data={filteredPersons}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
-              <DeliveryPersonCard 
-                {...item} 
-                isRecommended={isDeliveryPersonRecommended(item, recommendedList)}
-                onPress={() => handlePersonPress(item)} 
+              <DeliveryPersonCard
+                {...item}
+                isRecommended={isDeliveryPersonRecommended(
+                  item,
+                  recommendedList
+                )}
+                onPress={() => handlePersonPress(item)}
               />
             )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+              />
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={appStyles.h2}>
-                  {deliveryPersons.length === 0 
-                    ? "No delivery persons registered" 
+                  {deliveryPersons.length === 0
+                    ? "No delivery persons registered"
                     : filter === "available"
                     ? "No available delivery persons"
                     : filter === "recommended"
                     ? "No recommended delivery persons"
                     : "No delivery persons found"}
-                </Text>
-                <Text style={[appStyles.bodyText, { marginTop: 8 }]}>
-                  {deliveryPersons.length === 0 
-                    ? "Check back later for available delivery persons"
-                    : "Please try again later"}
                 </Text>
               </View>
             }
@@ -313,5 +317,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
   },
-}
-);
+});
