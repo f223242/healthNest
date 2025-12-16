@@ -38,7 +38,7 @@ const NurseChats = () => {
           avatar: conv.patientAvatar,
           lastMessage: conv.lastMessage,
           time: conv.lastMessageTime ? conv.lastMessageTime.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-          unread: conv.unreadCount,
+          unread: (conv.lastMessageSenderId !== user.uid) ? conv.unreadCount : 0,
           online: false, // We don't have real-time online status yet
           type: 'person',
           patientId: conv.patientId // Store patientId for navigation

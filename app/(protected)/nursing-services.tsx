@@ -9,6 +9,7 @@ import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { NurseInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import AppointmentService from "@/services/AppointmentService";
+import ChatService, { Conversation } from "@/services/ChatService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -43,6 +44,9 @@ const NursingServices = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Chat badge map: nurseId -> unreadCount
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
   // Appointment booking state
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedNurse, setSelectedNurse] = useState<NurseCardData | null>(null);
@@ -59,6 +63,25 @@ const NursingServices = () => {
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  // Listen to conversations for badges
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsubscribe = ChatService.listenToConversations(user.uid, (convs: Conversation[]) => {
+      const counts: Record<string, number> = {};
+      convs.forEach(c => {
+        // If I am the patient, the other person is deliveryPersonId (Nurse)
+        // Check if unread count exists and I was NOT the last sender
+        if (c.deliveryPersonId && c.unreadCount > 0 && c.lastMessageSenderId !== user.uid) {
+          counts[c.deliveryPersonId] = c.unreadCount;
+        }
+      });
+      setUnreadCounts(counts);
+    }, false); // false = I am patient
+
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     Animated.parallel([
@@ -441,6 +464,7 @@ const NursingServices = () => {
                 hourlyRate={nurse.hourlyRate}
                 onPress={() => handleViewProfile(nurse)}
                 onChatPress={() => handleChatPress(nurse)}
+                chatBadgeCount={unreadCounts[nurse.id] || 0}
                 onBookAppointment={() => handleBookAppointment(nurse)}
               />
             ))
