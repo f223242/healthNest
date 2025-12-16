@@ -1,183 +1,133 @@
 import { SearchIcon } from "@/assets/svg";
+import AppointmentCard from "@/component/AppointmentCard";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
-import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import AppointmentService, { Appointment } from "@/services/AppointmentService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type AppointmentStatus = "All" | "Upcoming" | "Completed" | "Cancelled";
+type AppointmentFilter = "all" | "pending" | "accepted" | "completed";
 
-interface Appointment {
-  id: string;
-  type: "Lab Test" | "Nursing" | "Medicine Delivery" | "Consultation";
-  title: string;
-  provider: string;
-  date: string;
-  time: string;
-  status: "Approved" | "Pending" | "Completed" | "Cancelled";
-  image: string;
-  location?: string;
-  price?: string;
-}
-
-const appointmentsData: Appointment[] = [
-  {
-    id: "1",
-    type: "Lab Test",
-    title: "Complete Blood Count",
-    provider: "LabCorp",
-    date: "Nov 28, 2025",
-    time: "10:00 AM",
-    status: "Approved",
-    image: "https://img.freepik.com/free-photo/scientist-laboratory-analyzing-blood-sample_23-2148810467.jpg",
-    location: "123 Medical Center",
-    price: "$45",
-  },
-  {
-    id: "2",
-    type: "Nursing",
-    title: "Home Nursing Care",
-    provider: "Sarah Johnson",
-    date: "Nov 25, 2025",
-    time: "2:00 PM",
-    status: "Pending",
-    image: "https://img.freepik.com/free-photo/portrait-smiling-female-doctor_23-2148316706.jpg",
-    location: "Home Visit",
-    price: "$80",
-  },
-  {
-    id: "3",
-    type: "Lab Test",
-    title: "Lipid Profile",
-    provider: "Quest Diagnostics",
-    date: "Nov 20, 2025",
-    time: "9:30 AM",
-    status: "Completed",
-    image: "https://img.freepik.com/free-photo/medical-technology-lab-science_23-2148896574.jpg",
-    location: "456 Health Plaza",
-    price: "$60",
-  },
-  {
-    id: "4",
-    type: "Medicine Delivery",
-    title: "Prescription Medicines",
-    provider: "MedExpress",
-    date: "Nov 26, 2025",
-    time: "4:00 PM",
-    status: "Approved",
-    image: "https://img.freepik.com/free-photo/pharmacist-checking-medication_23-2149355201.jpg",
-    location: "Home Delivery",
-    price: "$120",
-  },
-  {
-    id: "5",
-    type: "Consultation",
-    title: "General Checkup",
-    provider: "Dr. Michael Chen",
-    date: "Nov 18, 2025",
-    time: "11:00 AM",
-    status: "Completed",
-    image: "https://img.freepik.com/free-photo/pleased-young-female-doctor-wearing-medical-robe-stethoscope-around-neck-standing-with-closed-posture_409827-254.jpg",
-    location: "Clinic Room 3",
-    price: "$100",
-  },
-  {
-    id: "6",
-    type: "Lab Test",
-    title: "Thyroid Function Test",
-    provider: "Mayo Clinic Labs",
-    date: "Nov 15, 2025",
-    time: "8:00 AM",
-    status: "Cancelled",
-    image: "https://img.freepik.com/free-photo/scientist-laboratory-analyzing-blood-sample_23-2148810467.jpg",
-    location: "789 Wellness Center",
-    price: "$55",
-  },
-];
-
-const Appointment = () => {
+const AppointmentScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<AppointmentStatus>("All");
+  const [selectedFilter, setSelectedFilter] = useState<AppointmentFilter>("all");
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { user } = useAuthContext();
 
-  const filterOptions: Array<{ label: AppointmentStatus; icon: keyof typeof Ionicons.glyphMap }> = [
-    { label: "All", icon: "grid" },
-    { label: "Upcoming", icon: "time" },
-    { label: "Completed", icon: "checkmark-circle" },
-    { label: "Cancelled", icon: "close-circle" },
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = AppointmentService.listenToUserAppointments(
+      user.uid,
+      (fetchedAppointments) => {
+        setAppointments(fetchedAppointments);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const filterOptions: Array<{ label: string; value: AppointmentFilter; icon: keyof typeof Ionicons.glyphMap }> = [
+    { label: "All", value: "all", icon: "grid" },
+    { label: "Pending", value: "pending", icon: "time" },
+    { label: "Accepted", value: "accepted", icon: "checkmark-circle" },
+    { label: "Completed", value: "completed", icon: "checkmark-done-circle" },
   ];
 
-  const filteredAppointments = appointmentsData
+  const filteredAppointments = appointments
     .filter((appointment) => {
       const matchesSearch =
-        appointment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        appointment.provider.toLowerCase().includes(searchQuery.toLowerCase());
+        appointment.nurseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appointment.serviceType.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesFilter =
-        selectedFilter === "All" ||
-        (selectedFilter === "Upcoming" && (appointment.status === "Approved" || appointment.status === "Pending")) ||
-        (selectedFilter === "Completed" && appointment.status === "Completed") ||
-        (selectedFilter === "Cancelled" && appointment.status === "Cancelled");
+        selectedFilter === "all" || appointment.status === selectedFilter;
 
       return matchesSearch && matchesFilter;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => {
+      // Sort by date, most recent first
+      const dateA = new Date(a.appointmentDate + " " + a.appointmentTime);
+      const dateB = new Date(b.appointmentDate + " " + b.appointmentTime);
+      return dateB.getTime() - dateA.getTime();
+    });
 
-  const getStatusColor = (status: Appointment["status"]) => {
-    switch (status) {
-      case "Approved":
-        return colors.success;
-      case "Pending":
-        return colors.warning;
-      case "Completed":
-        return colors.primary;
-      case "Cancelled":
-        return colors.danger;
-    }
+  const handleCancelAppointment = async (appointment: Appointment) => {
+    Alert.alert(
+      "Cancel Appointment",
+      `Are you sure you want to cancel this appointment with ${appointment.nurseName}?`,
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Yes, Cancel",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AppointmentService.cancelAppointment(appointment.id, appointment);
+              Alert.alert("Cancelled", "Appointment has been cancelled");
+            } catch (error) {
+              console.error("Error cancelling appointment:", error);
+              Alert.alert("Error", "Failed to cancel appointment");
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const getTypeIcon = (type: Appointment["type"]) => {
-    switch (type) {
-      case "Lab Test":
-        return "flask";
-      case "Nursing":
-        return "medical";
-      case "Medicine Delivery":
-        return "medkit";
-      case "Consultation":
-        return "person";
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
   };
 
-  const upcomingCount = appointmentsData.filter(a => a.status === "Approved" || a.status === "Pending").length;
-  const completedCount = appointmentsData.filter(a => a.status === "Completed").length;
-  const pendingCount = appointmentsData.filter(a => a.status === "Pending").length;
+  const stats = {
+    pending: appointments.filter((a) => a.status === "pending").length,
+    accepted: appointments.filter((a) => a.status === "accepted").length,
+    completed: appointments.filter((a) => a.status === "completed").length,
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading appointments...</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
+    <SafeAreaView edges={["bottom"]} style={styles.container}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={[colors.primary, '#00B976', '#00D68F'] as const}
+        colors={[colors.primary, "#00B976", "#00D68F"] as const}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
         <SafeAreaView edges={["top"]}>
           <View style={styles.headerRow}>
-            <Text style={styles.headerTitle}>Bookings</Text>
-            <TouchableOpacity onPress={() => router.push("/(protected)/notifications") }>
+            <Text style={styles.headerTitle}>My Appointments</Text>
+            <TouchableOpacity onPress={() => router.push("/(protected)/notifications")}>
               <Ionicons name="notifications-outline" size={20} color={colors.white} />
             </TouchableOpacity>
           </View>
@@ -196,49 +146,45 @@ const Appointment = () => {
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <StatCard
-          icon="calendar"
-          value={upcomingCount}
-          label="Upcoming"
-          color={colors.primary}
-        />
-        <StatCard
           icon="hourglass"
-          value={pendingCount}
+          value={stats.pending}
           label="Pending"
           color={colors.warning}
         />
         <StatCard
-          icon="checkmark-done"
-          value={completedCount}
-          label="Completed"
+          icon="checkmark-circle"
+          value={stats.accepted}
+          label="Accepted"
           color={colors.success}
+        />
+        <StatCard
+          icon="checkmark-done"
+          value={stats.completed}
+          label="Completed"
+          color={colors.primary}
         />
       </View>
 
       {/* Filter Chips */}
-      <View >      
-        <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-       
-      >
-        {filterOptions.map((filter) => (
-          <FilterChip
-            key={filter.label}
-            label={filter.label}
-            icon={filter.icon}
-            isActive={selectedFilter === filter.label}
-            onPress={() => setSelectedFilter(filter.label)}
-          />
-        ))}
-      </ScrollView>
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {filterOptions.map((filter) => (
+            <FilterChip
+              key={filter.value}
+              label={filter.label}
+              icon={filter.icon}
+              isActive={selectedFilter === filter.value}
+              onPress={() => setSelectedFilter(filter.value)}
+            />
+          ))}
+        </ScrollView>
       </View>
-
 
       {/* Results Count */}
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsText}>
-          {filteredAppointments.length} {filteredAppointments.length === 1 ? "Appointment" : "Appointments"}
+          {filteredAppointments.length}{" "}
+          {filteredAppointments.length === 1 ? "Appointment" : "Appointments"}
         </Text>
       </View>
 
@@ -246,58 +192,38 @@ const Appointment = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+          />
+        }
       >
         {filteredAppointments.length > 0 ? (
           filteredAppointments.map((appointment) => (
-            <NurseCard
+            <AppointmentCard
               key={appointment.id}
-              name={appointment.title}
-              specialization={appointment.provider}
-              image={appointment.image}
-              statusBadge={{
-                label: appointment.status,
-                color: getStatusColor(appointment.status),
-              }}
-              details={[
-                {
-                  icon: "calendar-outline",
-                  text: appointment.date,
-                  color: colors.primary,
-                },
-                {
-                  icon: "time-outline",
-                  text: appointment.time,
-                  color: colors.primary,
-                },
-              ]}
-              location={appointment.location}
-              price={appointment.price}
-              actions={[
-                ...(appointment.status === "Approved"
-                  ? [
-                      {
-                        label: "Contact",
-                        icon: "call" as const,
-                        onPress: () => console.log("Contact", appointment.id),
-                      },
-                    ]
-                  : []),
-                {
-                  label: "View Details",
-                  icon: "chevron-forward" as const,
-                  onPress: () => console.log("View Details", appointment.id),
-                  isPrimary: true,
-                },
-              ]}
+              appointment={appointment}
+              userType="user"
+              onCancel={() => handleCancelAppointment(appointment)}
             />
           ))
         ) : (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={64} color={colors.gray} />
-            <Text style={styles.emptyTitle}>No Appointments Found</Text>
+            <Text style={styles.emptyTitle}>No Appointments</Text>
             <Text style={styles.emptyText}>
-              Try adjusting your search or filters
+              {appointments.length === 0
+                ? "You haven't booked any appointments yet"
+                : "No appointments match your search"}
             </Text>
+            <TouchableOpacity
+              style={styles.browseButton}
+              onPress={() => router.push("/(protected)/nursing-services")}
+            >
+              <Text style={styles.browseButtonText}>Browse Nurses</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -307,13 +233,25 @@ const Appointment = () => {
   );
 };
 
-export default Appointment;
+export default AppointmentScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
     paddingHorizontal: sizes.paddingHorizontal,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.white,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
   },
   headerGradient: {
     paddingTop: 18,
@@ -325,9 +263,9 @@ const styles = StyleSheet.create({
     marginHorizontal: -sizes.paddingHorizontal,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingBottom: 6,
   },
   headerTitle: {
@@ -371,5 +309,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: colors.gray,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  browseButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  browseButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
   },
 });
