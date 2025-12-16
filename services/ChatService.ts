@@ -1,14 +1,14 @@
 import { db } from "@/config/firebase";
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    onSnapshot,
-    query,
-    setDoc,
-    Timestamp,
-    where
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  setDoc,
+  Timestamp,
+  where
 } from "firebase/firestore";
 
 export interface ChatMessage {
@@ -33,6 +33,7 @@ export interface Conversation {
   lastMessage: string;
   lastMessageTime: Timestamp;
   unreadCount: number;
+  lastMessageSenderId?: string;
   createdAt: Timestamp;
 }
 
@@ -97,13 +98,14 @@ class ChatService {
       // Update conversation last message and increment unread count for recipient
       const conversationRef = doc(db, "conversations", conversationId);
       const unreadIncrement = recipientId && recipientId !== senderId ? 1 : 0;
-      
+
       await setDoc(
         conversationRef,
         {
           lastMessage: message,
           lastMessageTime: Timestamp.now(),
           unreadCount: unreadIncrement > 0 ? Math.max(0, (await getDoc(conversationRef)).data()?.unreadCount || 0) + 1 : 0,
+          lastMessageSenderId: senderId,
         },
         { merge: true }
       );
@@ -133,7 +135,7 @@ class ChatService {
           where("conversationId", "==", conversationId),
           where("read", "==", false)
         );
-        
+
         const snapshot = await getDoc(conversationRef);
         // Messages will be marked as read when fetched
       }
@@ -181,7 +183,7 @@ class ChatService {
   ) {
     try {
       const filterField = isDeliveryPerson ? "deliveryPersonId" : "patientId";
-      
+
       const q = query(
         collection(db, "conversations"),
         where(filterField, "==", userId)

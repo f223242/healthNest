@@ -215,6 +215,23 @@ class AppointmentService {
         }
     }
 
+    // Check if user has an accepted appointment with nurse
+    async checkAcceptedAppointment(userId: string, nurseId: string): Promise<boolean> {
+        try {
+            const q = query(
+                collection(db, "appointments"),
+                where("userId", "==", userId),
+                where("nurseId", "==", nurseId),
+                where("status", "==", "accepted")
+            );
+            const snapshot = await getDocs(q);
+            return !snapshot.empty;
+        } catch (error) {
+            console.error("Error checking accepted appointment:", error);
+            return false;
+        }
+    }
+
     // Cancel appointment
     async cancelAppointment(appointmentId: string, appointment: Appointment): Promise<void> {
         try {
