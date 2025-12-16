@@ -1,160 +1,154 @@
-import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import NotificationService, { Notification } from "@/services/NotificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  LayoutAnimation,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View
 } from "react-native";
+import * as Animatable from 'react-native-animatable';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface NotificationSetting {
-  id: string;
-  category: string;
-  options: {
-    id: string;
-    title: string;
-    description: string;
-    enabled: boolean;
-  }[];
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
 }
 
-const Notifications = () => {
+const NotificationsScreen = () => {
   const router = useRouter();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const { user } = useAuthContext();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+    if (!user) return;
 
-  const [notificationSettings, setNotificationSettings] = useState<
-    NotificationSetting[]
-  >([
-    {
-      id: "appointments",
-      category: "Appointments",
-      options: [
-        {
-          id: "appointment_reminders",
-          title: "Appointment Reminders",
-          description: "Get notified about upcoming appointments",
-          enabled: true,
-        },
-        {
-          id: "appointment_confirmations",
-          title: "Appointment Confirmations",
-          description: "Receive confirmation when appointment is booked",
-          enabled: true,
-        },
-        {
-          id: "appointment_cancellations",
-          title: "Cancellation Alerts",
-          description: "Get notified if appointment is cancelled",
-          enabled: true,
-        },
-      ],
-    },
-    {
-      id: "medical",
-      category: "Medical Records",
-      options: [
-        {
-          id: "test_results",
-          title: "Test Results",
-          description: "Notifications when test results are available",
-          enabled: true,
-        },
-        {
-          id: "prescription_updates",
-          title: "Prescription Updates",
-          description: "Updates about your prescriptions",
-          enabled: true,
-        },
-      ],
-    },
-    {
-      id: "general",
-      category: "General",
-      options: [
-        {
-          id: "health_tips",
-          title: "Health Tips",
-          description: "Receive daily health tips and advice",
-          enabled: false,
-        },
-        {
-          id: "promotional",
-          title: "Promotional Offers",
-          description: "Special offers and discounts",
-          enabled: false,
-        },
-        {
-          id: "app_updates",
-          title: "App Updates",
-          description: "Notifications about new features and updates",
-          enabled: true,
-        },
-      ],
-    },
-  ]);
+    // Listen to notifications
+    const unsubscribe = NotificationService.listenToNotifications(
+      user.uid,
+      (data) => {
+        setNotifications(data);
+        setLoading(false);
+      }
+    );
 
-  const toggleNotification = (categoryId: string, optionId: string) => {
-    setNotificationSettings((prev) =>
-      prev.map((category) =>
-        category.id === categoryId
-          ? {
-              ...category,
-              options: category.options.map((option) =>
-                option.id === optionId
-                  ? { ...option, enabled: !option.enabled }
-                  : option
-              ),
-            }
-          : category
-      )
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await NotificationService.deleteNotification(id);
+    } catch (error) {
+      console.error("Failed to delete notification", error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!user) return;
+    try {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      await NotificationService.clearAllNotifications(user.uid);
+    } catch (error) {
+      console.error("Failed to clear notifications", error);
+    }
+  };
+
+  const handleItemPress = async (item: Notification) => {
+    if (!item.read) {
+      await NotificationService.markAsRead(item.id);
+    }
+    // Navigate based on type if needed
+    if (item.type === 'appointment') {
+      router.push("/(protected)/(tabs)/appointment");
+    } else if (item.type === 'message') {
+      // If we had conversation ID we could navigate
+      // router.push(...)
+    }
+  };
+
+  const renderRightActions = (progress: any, dragX: any, id: string) => {
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => handleDelete(id)}
+      >
+        <Ionicons name="trash-outline" size={24} color="white" />
+        <Text style={styles.deleteText}>Delete</Text>
+      </TouchableOpacity>
     );
   };
 
-  const toggleAllInCategory = (categoryId: string, enabled: boolean) => {
-    setNotificationSettings((prev) =>
-      prev.map((category) =>
-        category.id === categoryId
-          ? {
-              ...category,
-              options: category.options.map((option) => ({
-                ...option,
-                enabled,
-              })),
-            }
-          : category
-      )
+  const renderItem = ({ item, index }: { item: Notification; index: number }) => {
+    const isAppointment = item.type === 'appointment';
+    const iconName = isAppointment
+      ? "calendar"
+      : item.type === 'message'
+        ? "chatbubble"
+        : item.type === 'order'
+          ? "medkit"
+          : "notifications";
+
+    const iconColor = isAppointment
+      ? "#FF9800"
+      : item.type === 'message'
+        ? "#2196F3"
+        : item.type === 'order'
+          ? "#4CAF50"
+          : colors.primary;
+
+    return (
+      <Swipeable
+        renderRightActions={(p, d) => renderRightActions(p, d, item.id)}
+        rightThreshold={40}
+      >
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => handleItemPress(item)}
+        >
+          <Animatable.View
+            animation="fadeInUp"
+            delay={index * 50}
+            style={[
+              styles.notificationCard,
+              !item.read && styles.unreadCard
+            ]}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
+              <Ionicons name={iconName} size={24} color={iconColor} />
+            </View>
+            <View style={styles.textContainer}>
+              <View style={styles.headerRow}>
+                <Text style={[styles.title, !item.read && styles.unreadTitle]}>{item.title}</Text>
+                <Text style={styles.time}>
+                  {item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleDateString() : ''}
+                </Text>
+              </View>
+              <Text style={[styles.body, !item.read && styles.unreadBody]} numberOfLines={2}>{item.body}</Text>
+            </View>
+          </Animatable.View>
+        </TouchableOpacity>
+      </Swipeable>
     );
   };
 
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
-      {/* Premium Gradient Header */}
+
+      {/* Header */}
       <LinearGradient
         colors={[colors.primary, '#00C853']}
         start={{ x: 0, y: 0 }}
@@ -166,130 +160,61 @@ const Notifications = () => {
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
-          <View style={{ width: 44 }} />
+          {notifications.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearAll}
+            >
+              <Text style={styles.clearButtonText}>Clear All</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
-      {/* Content Area */}
+      {/* Content */}
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            {/* Notification Categories */}
-            {notificationSettings.map((category) => {
-              const allEnabled = category.options.every((opt) => opt.enabled);
-              const someEnabled = category.options.some((opt) => opt.enabled);
-
-              return (
-                <View key={category.id} style={styles.categoryContainer}>
-                  {/* Category Header */}
-                  <View style={styles.categoryHeader}>
-                    <Text style={appStyles.sectionTitle}>{category.category}</Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        toggleAllInCategory(category.id, !allEnabled)
-                      }
-                    >
-                      <Text style={appStyles.linkText}>
-                        {allEnabled ? "Disable All" : "Enable All"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Category Options */}
-                  <View style={{ gap: 12, marginTop: 12 }}>
-                    {category.options.map((option) => (
-                      <View key={option.id} style={styles.optionCard}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={appStyles.cardTitle}>{option.title}</Text>
-                          <Text style={appStyles.body2}>
-                            {option.description}
-                          </Text>
-                        </View>
-                        <Switch
-                          value={option.enabled}
-                          onValueChange={() =>
-                            toggleNotification(category.id, option.id)
-                          }
-                          trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
-                          thumbColor={option.enabled ? colors.primary : "#F3F4F6"}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              );
-            })}
-
-            {/* Notification Sound & Vibration */}
-            <View style={styles.additionalSettings}>
-              <Text style={appStyles.sectionTitle}>Additional Settings</Text>
-
-              <View style={styles.settingRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={appStyles.cardTitle}>Notification Sound</Text>
-                  <Text style={appStyles.body2}>
-                    Play sound for notifications
-                  </Text>
-                </View>
-                <Switch
-                  value={true}
-                  trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
-                  thumbColor={colors.primary}
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={appStyles.cardTitle}>Vibration</Text>
-                  <Text style={appStyles.body2}>
-                    Vibrate for notifications
-                  </Text>
-                </View>
-                <Switch
-                  value={true}
-                  trackColor={{ false: "#D1D5DB", true: colors.primary + "80" }}
-                  thumbColor={colors.primary}
-                />
-              </View>
-            </View>
-
-            {/* Info */}
-            <View style={styles.infoBox}>
-              <Text style={appStyles.bodyText}>
-                💡 You can manage system notification permissions from your device
-                settings.
-              </Text>
-            </View>
-          </Animated.View>
-        </ScrollView>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : notifications.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={64} color={colors.gray} />
+            <Text style={styles.emptyText}>No notifications</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={notifications}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </SafeAreaView>
+
+
     </View>
   );
 };
 
-export default Notifications;
+export default NotificationsScreen;
 
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: colors.primary,
   },
-
   headerGradient: {
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: sizes.paddingHorizontal,
   },
-
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-
   backButton: {
     width: 44,
     height: 44,
@@ -298,61 +223,118 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  clearButtonText: {
+    color: colors.white,
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+  },
   headerTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
     color: colors.white,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    zIndex: -1,
   },
-
   contentContainer: {
     flex: 1,
     backgroundColor: '#F8F9FA',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
-
-  scrollContainer: {
-    flexGrow: 1,
+  listContent: {
+    paddingBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.6,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
+  },
+  notificationCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    padding: 16,
     paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 24,
-    paddingBottom: 40,
-  },
-  categoryContainer: {
-    marginBottom: 24,
-  },
-  categoryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  optionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.lightGray,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.borderGray,
-  },
-
-  additionalSettings: {
-    marginTop: 8,
-    backgroundColor: colors.lightGray,
-    borderRadius: 12,
-    padding: 16,
-  },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderGray,
+    borderBottomColor: colors.lightGray,
   },
-  infoBox: {
-    marginTop: 24,
-    backgroundColor: colors.lightGreen,
-    borderRadius: 12,
-    padding: 16,
+  unreadCard: {
+    backgroundColor: '#F0F9FF',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+    color: colors.text,
+    flex: 1,
+  },
+  unreadTitle: {
+    fontFamily: Fonts.semiBold,
+    color: colors.black,
+  },
+  time: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginLeft: 8,
+  },
+  body: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    lineHeight: 18,
+  },
+  unreadBody: {
+    color: colors.text,
+  },
+  deleteAction: {
+    backgroundColor: colors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+  },
+  deleteText: {
+    color: 'white',
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    marginTop: 4,
   },
 });

@@ -1,10 +1,12 @@
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from 'expo-location';
 import React, { useState } from "react";
 import {
-    Alert,
+    ActivityIndicator,
     Dimensions,
     Modal,
     Platform,
@@ -13,7 +15,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -42,6 +44,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     nurseSpecialization,
     hourlyRate,
 }) => {
+    const toast = useToast();
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedTime, setSelectedTime] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -51,6 +54,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     const [address, setAddress] = useState("");
     const [duration, setDuration] = useState("2 hours");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isGettingLocation, setIsGettingLocation] = useState(false);
 
     const serviceTypes = [
         { label: "Elderly Care", icon: "accessibility" as const, color: "#9C27B0" },
@@ -90,19 +94,47 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         return time.toTimeString().split(" ")[0].substring(0, 5);
     };
 
+    const handleGetCurrentLocation = async () => {
+        setIsGettingLocation(true);
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                toast.show({ type: "error", text1: "Permission Denied", text2: "Location permission is required" });
+                return;
+            }
+
+            const location = await Location.getCurrentPositionAsync({});
+            const place = await Location.reverseGeocodeAsync({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+            });
+
+            if (place && place.length > 0) {
+                const p = place[0];
+                const formattedAddress = `${p.street || ''} ${p.name || ''}, ${p.city || ''}, ${p.region || ''}, ${p.country || ''}`.replace(/\s+/g, ' ').trim();
+                setAddress(formattedAddress);
+            }
+        } catch (error) {
+            console.error("Location error:", error);
+            toast.show({ type: "error", text1: "Error", text2: "Failed to get current location" });
+        } finally {
+            setIsGettingLocation(false);
+        }
+    };
+
     const handleBookAppointment = async () => {
         if (!serviceType) {
-            Alert.alert("Required Field", "Please select a service type");
+            toast.show({ type: "error", text1: "Required Field", text2: "Please select a service type" });
             return;
         }
 
         if (!address.trim()) {
-            Alert.alert("Required Field", "Please enter your service address");
+            toast.show({ type: "error", text1: "Required Field", text2: "Please enter your service address" });
             return;
         }
 
         if (address.trim().length < 10) {
-            Alert.alert("Invalid Address", "Please enter a complete address");
+            toast.show({ type: "error", text1: "Invalid Address", text2: "Please enter a complete address (min 10 chars)" });
             return;
         }
 
@@ -141,7 +173,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         else if (duration === "12 hours") hours = 12;
         else if (duration === "Full day") hours = 24;
 
-        return `$${(rate * hours).toFixed(0)}`;
+        return `Rs. ${(rate * hours).toFixed(0)}`;
     };
 
     return (
@@ -322,6 +354,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="location-outline" size={20} color={colors.primary} />
                                 <Text style={styles.sectionTitle}>Service Location *</Text>
+                                <TouchableOpacity onPress={handleGetCurrentLocation} disabled={isGettingLocation}>
+                                    {isGettingLocation ? (
+                                        <ActivityIndicator size="small" color={colors.primary} />
+                                    ) : (
+                                        <Text style={{ color: colors.primary, fontSize: 12, fontFamily: Fonts.semiBold }}>
+                                            <Ionicons name="locate" size={14} /> Use Current
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
                             </View>
 
                             <TextInput
@@ -360,7 +401,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         <View style={styles.priceSummary}>
                             <View style={styles.priceRow}>
                                 <Text style={styles.priceLabel}>Hourly Rate</Text>
-                                <Text style={styles.priceValue}>{hourlyRate || "N/A"}/hr</Text>
+                                <Text style={styles.priceValue}>Rs. {hourlyRate || "N/A"}/hr</Text>
                             </View>
                             <View style={styles.priceRow}>
                                 <Text style={styles.priceLabel}>Duration</Text>

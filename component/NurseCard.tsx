@@ -157,7 +157,7 @@ const NurseCard: React.FC<NurseCardProps> = ({
             </View>
             <View style={styles.infoItem}>
               <Ionicons name="cash" size={16} color={colors.primary} />
-              <Text style={styles.infoText}>{hourlyRate}/hr</Text>
+              <Text style={styles.infoText}>Rs. {hourlyRate}/hr</Text>
             </View>
           </View>
         ) : null}

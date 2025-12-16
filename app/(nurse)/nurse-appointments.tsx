@@ -1,4 +1,6 @@
 import AppointmentCard from "@/component/AppointmentCard";
+import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import AppointmentService, { Appointment } from "@/services/AppointmentService";
@@ -8,7 +10,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     RefreshControl,
     ScrollView,
     StatusBar,
@@ -26,6 +27,14 @@ const NurseAppointments = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
+    const [confirmModal, setConfirmModal] = useState({
+        visible: false,
+        title: "",
+        message: "",
+        onConfirm: () => { },
+        type: "success" as any
+    });
+    const toast = useToast();
 
     useEffect(() => {
         if (!user) return;
@@ -43,56 +52,51 @@ const NurseAppointments = () => {
     }, [user]);
 
     const handleAcceptAppointment = async (appointment: Appointment) => {
-        Alert.alert(
-            "Accept Appointment",
-            `Accept appointment with ${appointment.userName}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Accept",
-                    onPress: async () => {
-                        try {
-                            await AppointmentService.updateAppointmentStatus(
-                                appointment.id,
-                                "accepted",
-                                appointment
-                            );
-                            Alert.alert("Success", "Appointment accepted successfully");
-                        } catch (error) {
-                            console.error("Error accepting appointment:", error);
-                            Alert.alert("Error", "Failed to accept appointment");
-                        }
-                    },
-                },
-            ]
-        );
+        setConfirmModal({
+            visible: true,
+            title: "Accept Appointment",
+            message: `Accept appointment with ${appointment.userName}?`,
+            type: "success",
+            onConfirm: async () => {
+                try {
+                    await AppointmentService.updateAppointmentStatus(
+                        appointment.id,
+                        "accepted",
+                        appointment
+                    );
+                    setConfirmModal(prev => ({ ...prev, visible: false }));
+                    toast.success("Appointment accepted successfully");
+                } catch (error) {
+                    console.error("Error accepting appointment:", error);
+                    setConfirmModal(prev => ({ ...prev, visible: false }));
+                    toast.error("Failed to accept appointment");
+                }
+            }
+        });
     };
 
     const handleRejectAppointment = async (appointment: Appointment) => {
-        Alert.alert(
-            "Reject Appointment",
-            `Reject appointment with ${appointment.userName}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Reject",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await AppointmentService.updateAppointmentStatus(
-                                appointment.id,
-                                "rejected",
-                                appointment
-                            );
-                            Alert.alert("Rejected", "Appointment has been rejected");
-                        } catch (error) {
-                            console.error("Error rejecting appointment:", error);
-                            Alert.alert("Error", "Failed to reject appointment");
-                        }
-                    },
-                },
-            ]
-        );
+        setConfirmModal({
+            visible: true,
+            title: "Reject Appointment",
+            message: `Reject appointment with ${appointment.userName}?`,
+            type: "danger",
+            onConfirm: async () => {
+                try {
+                    await AppointmentService.updateAppointmentStatus(
+                        appointment.id,
+                        "rejected",
+                        appointment
+                    );
+                    setConfirmModal(prev => ({ ...prev, visible: false }));
+                    toast.success("Appointment rejected");
+                } catch (error) {
+                    console.error("Error rejecting appointment:", error);
+                    setConfirmModal(prev => ({ ...prev, visible: false }));
+                    toast.error("Failed to reject appointment");
+                }
+            }
+        });
     };
 
     const onRefresh = () => {
@@ -223,6 +227,17 @@ const NurseAppointments = () => {
 
                 <View style={{ height: 20 }} />
             </ScrollView>
+
+            <ConfirmationModal
+                visible={confirmModal.visible}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, visible: false }))}
+                type={confirmModal.type}
+                confirmText="Yes, Confirm"
+                cancelText="No"
+            />
         </View>
     );
 };

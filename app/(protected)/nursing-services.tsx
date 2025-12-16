@@ -2,8 +2,10 @@ import { SearchIcon } from "@/assets/svg";
 import BookAppointmentModal from "@/component/BookAppointmentModal";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
+import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import NurseCard from "@/component/NurseCard";
 import StatCard from "@/component/StatCard";
+import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { NurseInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import AppointmentService from "@/services/AppointmentService";
@@ -11,18 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator, Alert, Animated,
-  Dimensions,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
@@ -45,6 +36,7 @@ interface NurseCardData {
 const NursingServices = () => {
   const router = useRouter();
   const { getAllUsers, user } = useAuthContext();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<ServiceType>("All");
   const [nurses, setNurses] = useState<NurseCardData[]>([]);
@@ -54,6 +46,15 @@ const NursingServices = () => {
   // Appointment booking state
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedNurse, setSelectedNurse] = useState<NurseCardData | null>(null);
+  const [confirmModal, setConfirmModal] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => { },
+    type: "success" as any
+  });
+
+  const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, visible: false }));
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -110,7 +111,7 @@ const NursingServices = () => {
             image: info.profileImage || null,
             experience: info.experience || "N/A",
             availability,
-            hourlyRate: info.hourlyRate ? `$${info.hourlyRate}` : "N/A",
+            hourlyRate: info.hourlyRate ? info.hourlyRate : "N/A",
             city: info.city || "",
             certifications: info.certifications || "",
           };
@@ -157,15 +158,36 @@ const NursingServices = () => {
     return { total, available };
   }, [nurses]);
 
-  const handleChatPress = (nurse: NurseCardData) => {
-    router.push({
-      pathname: "/(protected)/nurse-chat-detail",
-      params: {
-        nurseId: nurse.id,
-        nurseName: nurse.name,
-        nurseImage: nurse.image || "",
-      },
-    });
+  const handleChatPress = async (nurse: NurseCardData) => {
+    if (!user) return;
+
+    try {
+      const hasAccepted = await AppointmentService.checkAcceptedAppointment(user.uid, nurse.id);
+
+      if (hasAccepted) {
+        router.push({
+          pathname: "/(protected)/nurse-chat-detail",
+          params: {
+            nurseId: nurse.id,
+            nurseName: nurse.name,
+            nurseImage: nurse.image || "",
+          },
+        });
+      } else {
+        toast.show({
+          type: "error",
+          text1: "Chat Unavailable",
+          text2: "You can only chat with this nurse after your appointment is accepted.",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking chat permission:", error);
+      toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to verify chat permission",
+      });
+    }
   };
 
   const handleViewProfile = (nurse: NurseCardData) => {
@@ -186,28 +208,27 @@ const NursingServices = () => {
   };
 
   const handleBookAppointment = (nurse: NurseCardData) => {
-    console.log("Book button pressed for nurse:", nurse.name);
-
     if (!user) {
-      Alert.alert("Login Required", "Please login to book an appointment");
+      toast.show({
+        type: "error",
+        text1: "Login Required",
+        text2: "Please login to book an appointment",
+      });
       return;
     }
 
     if (nurse.availability !== "Available") {
-      Alert.alert(
-        "Nurse Unavailable",
-        `${nurse.name} is currently marked as ${nurse.availability}. Would you still like to request an appointment?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Request Anyway",
-            onPress: () => {
-              setSelectedNurse(nurse);
-              setShowBookingModal(true);
-            },
-          },
-        ]
-      );
+      setConfirmModal({
+        visible: true,
+        title: "Nurse Unavailable",
+        message: `${nurse.name} is currently marked as ${nurse.availability}. Would you still like to request an appointment?`,
+        type: "warning",
+        onConfirm: () => {
+          setSelectedNurse(nurse);
+          setShowBookingModal(true);
+          closeConfirmModal();
+        },
+      });
       return;
     }
 
@@ -235,10 +256,11 @@ const NursingServices = () => {
       );
 
       if (!isAvailable) {
-        Alert.alert(
-          "Time Slot Unavailable",
-          "This nurse is already booked for the selected date and time. Please choose a different time."
-        );
+        toast.show({
+          type: "error",
+          text1: "Time Slot Unavailable",
+          text2: "This nurse is already booked for the selected time.",
+        });
         return;
       }
 
@@ -265,20 +287,24 @@ const NursingServices = () => {
       setShowBookingModal(false);
       setSelectedNurse(null);
 
-      Alert.alert(
-        "Appointment Requested",
-        `Your appointment request has been sent to ${selectedNurse.name}. You will be notified once they respond.`,
-        [
-          {
-            text: "View Appointments",
-            onPress: () => router.push("/(protected)/(tabs)/appointment"),
-          },
-          { text: "OK" },
-        ]
-      );
+      toast.show({
+        type: "success",
+        text1: "Appointment Requested",
+        text2: `Request sent to ${selectedNurse.name}`,
+      });
+
+      // Optional: navigate to appointments after a delay
+      setTimeout(() => {
+        router.push("/(protected)/(tabs)/appointment");
+      }, 1500);
+
     } catch (error) {
       console.error("Error booking appointment:", error);
-      Alert.alert("Error", "Failed to book appointment. Please try again.");
+      toast.show({
+        type: "error",
+        text1: "Booking Failed",
+        text2: "Could not book appointment. Please try again.",
+      });
     }
   };
 
@@ -448,6 +474,18 @@ const NursingServices = () => {
           hourlyRate={selectedNurse.hourlyRate}
         />
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmModal.visible}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirmModal}
+        type={confirmModal.type}
+        confirmText="Proceed"
+        cancelText="Cancel"
+      />
     </View>
   );
 };

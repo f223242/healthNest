@@ -1,5 +1,5 @@
 import { db } from "@/config/firebase";
-import { addDoc, collection, doc, onSnapshot, query, setDoc, Timestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, Timestamp, where } from "firebase/firestore";
 
 export interface Notification {
   id: string;
@@ -45,15 +45,17 @@ class NotificationService {
     try {
       const q = query(
         collection(db, "notifications"),
-        where("userId", "==", userId),
-        where("read", "==", false)
+        where("userId", "==", userId)
+        // Removed validation for read status to fetch all notifications
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const notifications: Notification[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Notification, "id">),
-        }));
+        const notifications: Notification[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Notification, "id">),
+          }))
+          .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis()); // Sort by newest first
         callback(notifications);
       });
 
@@ -74,6 +76,62 @@ class NotificationService {
       );
     } catch (error) {
       console.error("Error marking notification as read:", error);
+      throw error;
+    }
+  }
+
+  // Mark all as read
+  async markAllAsRead(userId: string): Promise<void> {
+    try {
+      const q = query(
+        collection(db, "notifications"),
+        where("userId", "==", userId),
+        where("read", "==", false)
+      );
+
+      const snapshot = await import("firebase/firestore").then(m => m.getDocs(q));
+
+      const batch = await import("firebase/firestore").then(m => m.writeBatch(db));
+
+      snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { read: true });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      throw error;
+    }
+  }
+
+  // Delete a notification
+  async deleteNotification(notificationId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, "notifications", notificationId));
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      throw error;
+    }
+  }
+
+  // Clear all notifications
+  async clearAllNotifications(userId: string): Promise<void> {
+    try {
+      const q = query(
+        collection(db, "notifications"),
+        where("userId", "==", userId)
+      );
+
+      const snapshot = await import("firebase/firestore").then(m => m.getDocs(q));
+      const batch = await import("firebase/firestore").then(m => m.writeBatch(db));
+
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error("Error clearing all notifications:", error);
       throw error;
     }
   }

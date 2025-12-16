@@ -1,5 +1,5 @@
 import AppButton from "@/component/AppButton";
-import ConfirmationModal from "@/component/ConfirmationModal";
+import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import QuickActionButton from "@/component/QuickActionButton";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
@@ -8,13 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -226,7 +226,7 @@ const TestDetailScreen = () => {
                       >
                         {status}
                       </Text>
-                        {index < statusFlow.length - 1 && (
+                      {index < statusFlow.length - 1 && (
                         <View
                           style={[
                             styles.statusLine,
@@ -384,10 +384,11 @@ const TestDetailScreen = () => {
         visible={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={confirmStatusUpdate}
+        onCancel={() => setShowConfirmModal(false)}
         title="Update Status"
         message={`Are you sure you want to update status to "${getNextStatus()}"?`}
         icon="swap-horizontal-outline"
-        variant="primary"
+        type="info"
         confirmText="Confirm"
         cancelText="Cancel"
       />
@@ -397,10 +398,11 @@ const TestDetailScreen = () => {
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         onConfirm={() => setShowSuccessModal(false)}
+        onCancel={() => setShowSuccessModal(false)}
         title="Success!"
         message={successMessage}
         icon="checkmark-circle-outline"
-        variant="success"
+        type="success"
         confirmText="OK"
         showCancelButton={false}
       />
