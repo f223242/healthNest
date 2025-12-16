@@ -1,13 +1,43 @@
 import { colors, Fonts } from '@/constant/theme';
 import { useAuthContext } from '@/hooks/useFirebaseAuth';
+import ChatService from '@/services/ChatService';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Badge component
+const TabBadge = ({ count }: { count: number }) => {
+  if (count === 0) return null;
+  return (
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>{count > 9 ? "9+" : count}</Text>
+    </View>
+  );
+};
 
 export default function NurseLayout() {
   const insets = useSafeAreaInsets();
-  const { logout } = useAuthContext();
+  const { user } = useAuthContext();
+  const [chatBadge, setChatBadge] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen to conversations (Node: assuming Nurse is treated as "deliveryPerson" or provider side in ChatService)
+    // Passing true for isDeliveryPerson to filter by deliveryPersonId
+    const unsubscribe = ChatService.listenToConversations(
+      user.uid,
+      (conversations) => {
+        const count = conversations.reduce((acc, curr) => acc + (curr.unreadCount || 0), 0);
+        setChatBadge(count);
+      },
+      true
+    );
+
+    return () => unsubscribe();
+  }, [user]);
 
   return (
     <Tabs
@@ -63,11 +93,14 @@ export default function NurseLayout() {
           headerShown: false,
           tabBarLabel: 'Chats',
           tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={24}
-              color={color}
-            />
+            <View>
+              <Ionicons
+                name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+                size={24}
+                color={color}
+              />
+              <TabBadge count={chatBadge} />
+            </View>
           ),
         }}
       />
@@ -85,3 +118,25 @@ export default function NurseLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -10,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  badgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+  },
+});

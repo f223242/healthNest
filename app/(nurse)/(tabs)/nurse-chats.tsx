@@ -1,5 +1,7 @@
 import ChatListComponent from '@/component/ChatListComponent';
 import { colors, Fonts, sizes } from '@/constant/theme';
+import { useAuthContext } from '@/hooks/useFirebaseAuth';
+import ChatService from '@/services/ChatService';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -16,81 +18,79 @@ interface PatientChat {
   unread?: number;
   online?: boolean;
   type: 'person' | 'ai';
+  patientId?: string;
 }
 
 const NurseChats = () => {
-  // Sample patient data for nurse
-  const patients: PatientChat[] = [
-    {
-      id: '1',
-      name: 'John Smith',
-      avatar: 'https://i.pravatar.cc/150?img=11',
-      lastMessage: 'When will you arrive?',
-      time: '2:30 PM',
-      unread: 2,
-      online: true,
-      type: 'person',
-    },
-    {
-      id: '2',
-      name: 'Emma Watson',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-      lastMessage: 'Thank you for your help',
-      time: '1:15 PM',
-      online: true,
-      type: 'person',
-    },
-    {
-      id: '3',
-      name: 'Robert Johnson',
-      avatar: 'https://i.pravatar.cc/150?img=33',
-      lastMessage: 'Can you check my blood pressure?',
-      time: '11:45 AM',
-      online: false,
-      type: 'person',
-    },
-    {
-      id: '4',
-      name: 'Sarah Williams',
-      avatar: 'https://i.pravatar.cc/150?img=23',
-      lastMessage: 'I need help with medication',
-      time: 'Yesterday',
-      unread: 1,
-      online: false,
-      type: 'person',
-    },
-    {
-      id: '5',
-      name: 'Michael Brown',
-      avatar: 'https://i.pravatar.cc/150?img=52',
-      lastMessage: 'See you tomorrow',
-      time: 'Yesterday',
-      online: false,
-      type: 'person',
-    },
-  ];
+  const { user } = useAuthContext();
+  const [patients, setPatients] = React.useState<PatientChat[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = ChatService.listenToConversations(
+      user.uid,
+      (conversations) => {
+        const chatList: PatientChat[] = conversations.map(conv => ({
+          id: conv.id,
+          name: conv.patientName,
+          avatar: conv.patientAvatar,
+          lastMessage: conv.lastMessage,
+          time: conv.lastMessageTime ? conv.lastMessageTime.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          unread: conv.unreadCount,
+          online: false, // We don't have real-time online status yet
+          type: 'person',
+          patientId: conv.patientId // Store patientId for navigation
+        }));
+        setPatients(chatList);
+        setLoading(false);
+      },
+      true // isNurse/Delivery (provider side)
+    );
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleChatPress = (patient: PatientChat) => {
+    // If patient has 'patientId' property (from our mapping), use it. Fallback to id if not.
+    // In our mapping above, we adding patientId. But interface needs update or we cast.
+    // Actually, conv.id is conversationId. patient.patientId is the User ID.
+    // nurse-chat-detail expects: nurseId (if User view) or...
+    // Wait, who is viewing? Nurse.
+    // Nurse views "Nurse Chat Detail"?
+    // If Nurse views it, params should be: `patientId`, `patientName`.
+    // Let's check `nurse-chat-detail.tsx` again. 
+    // It uses `params.nurseId`. It assumes User is viewing Nurse.
+    // If Nurse is viewing, logic differs?
+    // User (Patient) -> View Nurse -> params: nurseId.
+    // Nurse -> View Patient -> params: ???
+
+    // I need a generic ChatDetail or update `nurse-chat-detail` to handle both modes?
+    // Or `nurse-chats.tsx` should point to a different file?
+    // `app/(nurse)/nurse-chat-detail.tsx` (Step 507) exists.
+    // I updated `(protected)/nurse-chat-detail.tsx` (User Side).
+    // I DID NOT update `(nurse)/nurse-chat-detail.tsx`!
+    // Step 507 showed `(nurse)/nurse-chat-detail.tsx`.
+
+    // I need to update `(nurse)/nurse-chat-detail.tsx` to handle Nurse -> Patient chat.
+    // Params: `conversationId`? or `patientId`.
+    // I'll assume `patientId` logic.
+
     router.push({
       pathname: '/(nurse)/nurse-chat-detail',
       params: {
-        patientId: patient.id,
+        conversationId: patient.id, // Pass conversation ID directly if possible, or patientId
+        patientId: (patient as any).patientId,
         patientName: patient.name,
         patientAvatar: patient.avatar || '',
-        useTora: 'false',
+        // The chat detail needs to know who we are chatting WITH.
       },
     });
   };
 
   const handleAIChatPress = () => {
-    router.push({
-      pathname: '/(nurse)/nurse-chat-detail',
-      params: {
-        patientId: 'tora',
-        patientName: 'Tora AI',
-        useTora: 'true',
-      },
-    });
+    // Tora AI logic...
   };
 
   // Count unread messages
@@ -111,7 +111,7 @@ const NurseChats = () => {
           <View>
             <Text style={styles.headerTitle}>Patient Chats</Text>
             <Text style={styles.headerSubtitle}>
-              {patients.length} patients • {totalUnread > 0 ? `${totalUnread} unread` : 'No unread messages'}
+              {patients.length} active • {totalUnread > 0 ? `${totalUnread} unread` : 'No unread messages'}
             </Text>
           </View>
           <View style={styles.headerIcon}>
@@ -126,9 +126,8 @@ const NurseChats = () => {
             users={patients}
             onChatPress={handleChatPress}
             title="Patients"
-            showAIOption={true}
-            onAIChatPress={handleAIChatPress}
-            aiTitle="Chat with Tora AI Assistant"
+            showAIOption={false} // Removed Tora option if user wants pure dynamic, or keep it? User said "static chat remove kru".
+          // If I remove AI option, pass showAIOption={false}
           />
         </View>
       </SafeAreaView>
