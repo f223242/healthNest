@@ -1,8 +1,8 @@
 import { colors, Fonts } from '@/constant/theme';
 import { useAuthContext } from '@/hooks/useFirebaseAuth';
 import ChatService, { ChatMessage } from '@/services/ChatService';
-import NotificationService from '@/services/NotificationService';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -81,12 +81,15 @@ const NurseChatDetail = () => {
     };
   }, [user?.uid, nurseId, nurseName, nurseImage]);
 
-  // Mark conversation as read when this screen is focused
+  // Mark conversation as read when messages update (real-time read)
   useEffect(() => {
-    if (conversationId && user?.uid) {
-      ChatService.markConversationAsRead(conversationId);
+    if (conversationId && user?.uid && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.senderId !== user.uid) {
+        ChatService.markConversationAsRead(conversationId);
+      }
     }
-  }, [conversationId, user?.uid]);
+  }, [messages, conversationId, user?.uid]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !conversationId || !user?.uid) return;
@@ -106,14 +109,8 @@ const NurseChatDetail = () => {
         nurseId
       );
 
-      // Create notification for nurse
-      await NotificationService.createNotification(
-        nurseId,
-        'message',
-        `New message from ${user.firstname}`,
-        messageText,
-        { conversationId, patientId: user.uid }
-      );
+      // Notification for chat/bell removed as per request.
+      // Badge relies on unreadCount in Conversation document which is updated by sendMessage.
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -143,7 +140,12 @@ const NurseChatDetail = () => {
           </View>
         )}
         {isOwn && (
-          <View style={styles.messageBubbleRight}>
+          <LinearGradient
+            colors={[colors.primary, '#00D68F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.messageBubbleRight}
+          >
             <Text style={styles.messageBubbleTextRight}>{item.message}</Text>
             <Text style={styles.messageTimeRight}>
               {item.timestamp.toDate().toLocaleTimeString([], {
@@ -151,7 +153,7 @@ const NurseChatDetail = () => {
                 minute: '2-digit',
               })}
             </Text>
-          </View>
+          </LinearGradient>
         )}
       </View>
     );
@@ -288,72 +290,92 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   messageBubbleLeft: {
-    maxWidth: '80%',
-    backgroundColor: '#F0F0F0',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderTopLeftRadius: 2,
+    maxWidth: '75%',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   messageBubbleRight: {
-    maxWidth: '80%',
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderTopRightRadius: 2,
+    maxWidth: '75%',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   messageBubbleText: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Fonts.regular,
-    color: colors.black,
+    color: colors.text,
+    lineHeight: 20,
   },
   messageBubbleTextRight: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Fonts.regular,
     color: colors.white,
+    lineHeight: 20,
   },
   messageTime: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: Fonts.regular,
     color: colors.gray,
     marginTop: 4,
+    alignSelf: 'flex-end',
   },
   messageTimeRight: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: Fonts.regular,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
+    alignSelf: 'flex-end',
   },
   inputContainer: {
     backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.lightGray,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    borderTopWidth: 0,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
   inputWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   input: {
     flex: 1,
-    backgroundColor: colors.lightGray,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    fontSize: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 15,
     fontFamily: Fonts.regular,
     color: colors.black,
     maxHeight: 100,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
   },
 });
