@@ -10,10 +10,11 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { Bubble, GiftedChat, IMessage, InputToolbar, Send } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 
 interface ToraAIChatProps {
   chatContext?: 'nurse' | 'medicine-delivery' | 'general' | 'person';
@@ -349,27 +350,24 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 30}
     >
-      <View style={styles.innerContainer}>
-        <GiftedChat
-          messages={displayMessages}
-          onSend={(messages) => onSend(messages)}
-          user={mode === 'real' && realUser ? realUser : {
-            _id: 1,
-            name: userName,
-          }}
-          renderBubble={renderBubble}
-          renderSend={renderSend}
-          renderInputToolbar={renderInputToolbar}
-          isTyping={mode === 'real' ? false : isTyping} // Or pass prop if real typing status
-          messagesContainerStyle={styles.messagesContainer}
-          minInputToolbarHeight={70}
-          alwaysShowSend={true}
-          bottomOffset={Platform.OS === 'ios' ? 30 : 0}
-        />
-      </View>
+      <GiftedChat
+        messages={displayMessages}
+        onSend={(messages) => onSend(messages)}
+        user={mode === 'real' && realUser ? realUser : {
+          _id: 1,
+          name: userName,
+        }}
+        renderBubble={renderBubble}
+        renderSend={renderSend}
+        renderInputToolbar={renderInputToolbar}
+        isTyping={mode === 'real' ? false : isTyping} // Or pass prop if real typing status
+        messagesContainerStyle={styles.messagesContainer}
+        minInputToolbarHeight={70}
+        textInputProps={{ style: { color: '#000' } }}
+      />
     </KeyboardAvoidingView>
   );
 };
