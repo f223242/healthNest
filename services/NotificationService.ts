@@ -4,7 +4,7 @@ import { addDoc, collection, doc, onSnapshot, query, setDoc, Timestamp, where } 
 export interface Notification {
   id: string;
   userId: string;
-  type: "message" | "order" | "status";
+  type: "message" | "order" | "status" | "appointment";
   title: string;
   body: string;
   data: any;
@@ -16,7 +16,7 @@ class NotificationService {
   // Create notification
   async createNotification(
     userId: string,
-    type: "message" | "order" | "status",
+    type: "message" | "order" | "status" | "appointment",
     title: string,
     body: string,
     data: any

@@ -150,6 +150,17 @@ const PENDING_USER_KEY = "@healthnest_pending_user";
 const OTP_KEY = "@healthnest_otp";
 const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
+// Safe JSON parse helper to avoid uncaught exceptions from malformed strings
+const safeJSONParse = (s: string | null) => {
+  if (!s) return null;
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    console.warn("safeJSONParse: failed to parse string:", s, e);
+    return null;
+  }
+};
+
 // Normalize display role names to internal stored values
 const normalizeRole = (r?: string) => {
   if (!r) return undefined;
@@ -182,6 +193,7 @@ export const AuthProvider = ({ children }: any) => {
   // ---------------------------------------------------
   // GET USER PROFILE
   // ---------------------------------------------------
+
   const getUserProfile = async () => {
     try {
       if (!auth.currentUser) return null;
@@ -559,11 +571,15 @@ export const AuthProvider = ({ children }: any) => {
             }
             const pendingStr = await AsyncStorage.getItem(PENDING_USER_KEY);
             if (pendingStr) {
-              const pending = JSON.parse(pendingStr);
-              const userCredential = await signInWithEmailAndPassword(auth, pending.email, pending.password);
-              await sendEmailVerification(userCredential.user);
-              await signOut(auth);
-              return;
+              const pending = safeJSONParse(pendingStr);
+              if (pending && pending.email && pending.password) {
+                const userCredential = await signInWithEmailAndPassword(auth, pending.email, pending.password);
+                await sendEmailVerification(userCredential.user);
+                await signOut(auth);
+                return;
+              } else {
+                console.warn("resendVerificationEmail: pending data invalid", pendingStr);
+              }
             }
           } catch (e) {
             console.warn("resendVerificationEmail error:", e);
@@ -575,7 +591,8 @@ export const AuthProvider = ({ children }: any) => {
           try {
             const pendingUserStr = await AsyncStorage.getItem(PENDING_USER_KEY);
             if (!pendingUserStr) return false;
-            const pendingUser = JSON.parse(pendingUserStr);
+            const pendingUser = safeJSONParse(pendingUserStr);
+            if (!pendingUser) return false;
 
             // Temporarily sign in to check verification; set skip flag so listener ignores this transient sign-in
             skipAuthHandlingRef.current = true;
@@ -683,7 +700,8 @@ export const AuthProvider = ({ children }: any) => {
         resendPasswordResetOTP: async (): Promise<string> => {
           const pendingStr = await AsyncStorage.getItem(PENDING_USER_KEY);
           if (!pendingStr) { throw new Error("No pending reset"); }
-          const pending = JSON.parse(pendingStr);
+          const pending = safeJSONParse(pendingStr);
+          if (!pending) { throw new Error("Invalid pending reset data"); }
           const otp = Math.floor(100000 + Math.random() * 900000).toString();
           await AsyncStorage.setItem(OTP_KEY, otp);
           console.log("Resent OTP:", otp);
