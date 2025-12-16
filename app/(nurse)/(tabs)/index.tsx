@@ -8,12 +8,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -102,6 +102,16 @@ const NurseDashboard = () => {
             onPress={() => router.push('/(nurse)/(tabs)/nurse-chats')}
             animation="fadeInUp"
             delay={350}
+          />
+
+          <PremiumActionCard
+            title="My Appointments"
+            subtitle="Manage appointment requests"
+            icon="calendar"
+            color="#FF9800"
+            onPress={() => router.push('/(nurse)/nurse-appointments')}
+            animation="fadeInUp"
+            delay={375}
           />
 
           <PremiumActionCard
