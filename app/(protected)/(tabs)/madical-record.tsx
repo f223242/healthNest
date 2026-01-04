@@ -4,11 +4,15 @@ import FormInput from "@/component/FormInput";
 import MedicalRecordCard from "@/component/MedicalRecordCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import MedicalRecordService, { MedicalRecord as MedicalRecordType, RecordType as RecordTypeEnum } from "@/services/MedicalRecordService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -17,132 +21,109 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type RecordType = "All" | "Lab Reports" | "Prescriptions";
-type RecordStatus = "New" | "Viewed";
+type FilterType = "All" | "Lab Reports" | "Prescriptions" | "Diagnoses";
 
-interface MedicalRecord {
-  id: string;
-  type: "Lab Report" | "Prescription";
-  title: string;
-  provider: string;
-  providerImage: string;
-  date: string;
-  status: RecordStatus;
-  doctor?: string;
-  reportId: string;
-  testCount?: number;
-  downloadUrl?: string;
-}
-
-const medicalRecordsData: MedicalRecord[] = [
-  {
-    id: "1",
-    type: "Lab Report",
-    title: "Complete Blood Count (CBC)",
-    provider: "LabCorp",
-    providerImage: "https://img.freepik.com/free-photo/scientist-laboratory-analyzing-blood-sample_23-2148810467.jpg",
-    date: "Nov 28, 2025",
-    status: "New",
-    doctor: "Dr. Amir Khan",
-    reportId: "RPT-2024-001",
-    testCount: 12,
-  },
-  {
-    id: "2",
-    type: "Lab Report",
-    title: "Lipid Profile",
-    provider: "Quest Diagnostics",
-    providerImage: "https://img.freepik.com/free-photo/medical-technology-lab-science_23-2148896574.jpg",
-    date: "Nov 25, 2025",
-    status: "Viewed",
-    doctor: "Dr. Sara Malik",
-    reportId: "RPT-2024-002",
-    testCount: 8,
-  },
-  {
-    id: "3",
-    type: "Lab Report",
-    title: "Thyroid Function Test",
-    provider: "Mayo Clinic Labs",
-    providerImage: "https://img.freepik.com/free-photo/scientist-laboratory-analyzing-blood-sample_23-2148810467.jpg",
-    date: "Nov 20, 2025",
-    status: "Viewed",
-    doctor: "Dr. Kamran Ahmed",
-    reportId: "RPT-2024-003",
-    testCount: 5,
-  },
-  {
-    id: "4",
-    type: "Lab Report",
-    title: "HbA1c Test",
-    provider: "LabCorp",
-    providerImage: "https://img.freepik.com/free-photo/medical-technology-lab-science_23-2148896574.jpg",
-    date: "Nov 15, 2025",
-    status: "Viewed",
-    doctor: "Dr. Usman Ali",
-    reportId: "RPT-2024-004",
-    testCount: 3,
-  },
-  {
-    id: "5",
-    type: "Lab Report",
-    title: "Liver Function Test (LFT)",
-    provider: "Quest Diagnostics",
-    providerImage: "https://img.freepik.com/free-photo/scientist-laboratory-analyzing-blood-sample_23-2148810467.jpg",
-    date: "Nov 12, 2025",
-    status: "Viewed",
-    doctor: "Dr. Fatima Noor",
-    reportId: "RPT-2024-005",
-    testCount: 10,
-  },
-
-];
-
-const MedicalRecord = () => {
+const MedicalRecordScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<RecordType>("All");
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>("All");
+  const [records, setRecords] = useState<MedicalRecordType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { user } = useAuthContext();
 
-  const filterOptions: Array<{ label: RecordType; icon: keyof typeof Ionicons.glyphMap }> = [
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = MedicalRecordService.listenToUserRecords(
+      user.uid,
+      (fetchedRecords) => {
+        console.log('[Records] fetched ->', fetchedRecords.length);
+        setRecords(fetchedRecords);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+  };
+
+  const filterOptions: Array<{ label: FilterType; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
     { label: "Lab Reports", icon: "flask" },
-
+    { label: "Prescriptions", icon: "document-text" },
+    { label: "Diagnoses", icon: "medkit" },
   ];
 
-  const filteredRecords = medicalRecordsData
+  const mapFilterToType = (filter: FilterType): RecordTypeEnum | null => {
+    switch (filter) {
+      case "Lab Reports": return "lab_report";
+      case "Prescriptions": return "prescription";
+      case "Diagnoses": return "diagnosis";
+      default: return null;
+    }
+  };
+
+  const getRecordTypeLabel = (type: RecordTypeEnum): string => {
+    switch (type) {
+      case "lab_report": return "Lab Report";
+      case "prescription": return "Prescription";
+      case "diagnosis": return "Diagnosis";
+      case "imaging": return "Imaging";
+      default: return "Other";
+    }
+  };
+
+  const filteredRecords = records
     .filter((record) => {
       const matchesSearch =
         record.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.reportId.toLowerCase().includes(searchQuery.toLowerCase());
+        record.providerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (record.doctorName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
-      const matchesFilter =
-        selectedFilter === "All" ||
-        (selectedFilter === "Lab Reports" && record.type === "Lab Report") ;
+      const filterType = mapFilterToType(selectedFilter);
+      const matchesFilter = filterType === null || record.type === filterType;
 
       return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
 
   // Stats calculations
-  const totalReports = medicalRecordsData.filter(r => r.type === "Lab Report").length;
-  const newReports = medicalRecordsData.filter(r => r.status === "New").length;
- 
+  const totalReports = records.filter(r => r.type === "lab_report").length;
+  const newReports = records.filter(r => r.status === "new").length;
 
-  const handleViewReport = (record: MedicalRecord) => {
-    // Navigate to report detail screen
+  const handleViewReport = async (record: MedicalRecordType) => {
+    if (record.status === "new") {
+      try {
+        await MedicalRecordService.markAsViewed(record.id);
+      } catch (error) {
+        console.error("Error marking as viewed:", error);
+      }
+    }
     console.log("View report:", record.id);
   };
 
-  const handleDownloadReport = (record: MedicalRecord) => {
-    // Download the report
-    console.log("Download report:", record.id);
+  const handleDownloadReport = (record: MedicalRecordType) => {
+    if (record.fileUrl) {
+      console.log("Download report:", record.fileUrl);
+    }
   };
 
-  const handleShareReport = (record: MedicalRecord) => {
-    // Share the report
+  const handleShareReport = (record: MedicalRecordType) => {
     console.log("Share report:", record.id);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading medical records...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.container}>
@@ -218,21 +199,23 @@ const MedicalRecord = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       >
         {filteredRecords.length > 0 ? (
           filteredRecords.map((record) => (
             <MedicalRecordCard
               key={record.id}
               id={record.id}
-              type={record.type}
+              type={getRecordTypeLabel(record.type)}
               title={record.title}
-              provider={record.provider}
-              providerImage={record.providerImage}
+              provider={record.providerName}
+              providerImage={record.providerImage || ""}
               date={record.date}
-              status={record.status}
-              doctor={record.doctor}
-              reportId={record.reportId}
-              testCount={record.testCount}
+              status={record.status === "new" ? "New" : "Viewed"}
+              doctor={record.doctorName}
+              reportId={record.id.substring(0, 12)}
               onPress={() => handleViewReport(record)}
               onView={() => handleViewReport(record)}
               onDownload={() => handleDownloadReport(record)}
@@ -255,13 +238,25 @@ const MedicalRecord = () => {
   );
 };
 
-export default MedicalRecord;
+export default MedicalRecordScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
     paddingHorizontal: sizes.paddingHorizontal,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginTop: 12,
   },
   headerGradient: {
     paddingTop: 18,

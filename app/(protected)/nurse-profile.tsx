@@ -1,5 +1,6 @@
 import AppButton from "@/component/AppButton";
 import BookAppointmentModal from "@/component/BookAppointmentModal";
+import ProviderReviews from "@/component/ProviderReviews";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
@@ -9,14 +10,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Image,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Image,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -336,94 +337,11 @@ const NurseProfile = () => {
             </View>
 
             {/* Reviews Summary */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Reviews</Text>
-                <TouchableOpacity>
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Rating Breakdown */}
-              <View style={styles.ratingBreakdown}>
-                <View style={styles.overallRating}>
-                  <Text style={styles.overallRatingNumber}>{nurse.rating}</Text>
-                  <View style={styles.starsContainer}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Ionicons
-                        key={star}
-                        name={star <= Math.floor(nurse.rating) ? "star" : "star-outline"}
-                        size={16}
-                        color="#FFB800"
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.reviewCountText}>
-                    Based on {nurse.reviewCount} reviews
-                  </Text>
-                </View>
-
-                <View style={styles.ratingBars}>
-                  {[5, 4, 3, 2, 1].map((rating) => (
-                    <View key={rating} style={styles.ratingBarRow}>
-                      <Text style={styles.ratingBarLabel}>{rating}★</Text>
-                      <View style={styles.ratingBarBg}>
-                        <View
-                          style={[
-                            styles.ratingBarFill,
-                            {
-                              width: `${rating === 5
-                                ? 85
-                                : rating === 4
-                                  ? 10
-                                  : rating === 3
-                                    ? 3
-                                    : 1
-                                }%`,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.ratingBarCount}>
-                        {rating === 5
-                          ? Math.floor(nurse.reviewCount * 0.85)
-                          : rating === 4
-                            ? Math.floor(nurse.reviewCount * 0.1)
-                            : rating === 3
-                              ? Math.floor(nurse.reviewCount * 0.03)
-                              : 1}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* Sample Review */}
-              <View style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <Image
-                    source={{
-                      uri: "https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg",
-                    }}
-                    style={styles.reviewerImage}
-                  />
-                  <View style={styles.reviewerInfo}>
-                    <Text style={styles.reviewerName}>John Smith</Text>
-                    <View style={styles.reviewStars}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Ionicons key={star} name="star" size={12} color="#FFB800" />
-                      ))}
-                    </View>
-                  </View>
-                  <Text style={styles.reviewDate}>2 weeks ago</Text>
-                </View>
-                <Text style={styles.reviewText}>
-                  Excellent care and very professional. {nurse.name} was very
-                  attentive to my mother's needs and provided exceptional support
-                  during her recovery. Highly recommended!
-                </Text>
-              </View>
-            </View>
+            <ProviderReviews
+              providerId={nurse.id}
+              providerType="nurse"
+              providerName={nurse.name}
+            />
 
             <View style={{ height: 100 }} />
           </Animated.View>

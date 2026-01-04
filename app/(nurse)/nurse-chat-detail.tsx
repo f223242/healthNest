@@ -1,18 +1,18 @@
 import ToraAIChat from '@/component/ToraAIChat';
 import { colors, Fonts } from '@/constant/theme';
 import { useAuthContext } from '@/hooks/useFirebaseAuth';
-import ChatService from '@/services/ChatService';
+import NurseChatService from '@/services/NurseChatService';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { IMessage } from 'react-native-gifted-chat';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,7 +26,7 @@ const NurseChatDetail = () => {
   const conversationIdParam = params.conversationId as string;
   const patientId = params.patientId as string;
   const patientName = params.patientName as string;
-  const patientAvatar = params.patientAvatar as string;
+  const patientAvatar = (params.patientAvatar as string) || '';
 
   const [conversationId, setConversationId] = useState<string>(conversationIdParam || '');
   const [messages, setMessages] = useState<IMessage[]>([]);
@@ -46,22 +46,24 @@ const NurseChatDetail = () => {
         }
 
         let currentConvId = conversationId;
+        const nurseProfileImage = (user.additionalInfo as any)?.profileImage || '';
 
+        // If no conversation ID, create one
         if (!currentConvId && patientId) {
-          currentConvId = await ChatService.getOrCreateConversation(
+          currentConvId = await NurseChatService.getOrCreateConversation(
             patientId,
             patientName || 'Patient',
-            patientAvatar || 'https://via.placeholder.com/100',
+            patientAvatar,
             user.uid,
             user.firstname || 'Nurse',
-            'https://via.placeholder.com/100' // or user.profileImage
+            nurseProfileImage
           );
           setConversationId(currentConvId);
         }
 
         if (currentConvId) {
           // Listen to messages
-          unsubscribe = ChatService.listenToMessages(currentConvId, (msgs) => {
+          unsubscribe = NurseChatService.listenToMessages(currentConvId, (msgs) => {
             const giftedMessages: IMessage[] = msgs.map((doc) => ({
               _id: doc.id,
               text: doc.message,
@@ -76,6 +78,8 @@ const NurseChatDetail = () => {
             setMessages(giftedMessages);
             setLoading(false);
           });
+        } else {
+          setLoading(false);
         }
       } catch (err) {
         console.error('Error initializing conversation:', err);
@@ -91,14 +95,14 @@ const NurseChatDetail = () => {
         unsubscribe();
       }
     };
-  }, [user?.uid, patientId, conversationId]);
+  }, [user?.uid, patientId, conversationId, patientName, patientAvatar]);
 
-  // Mark read real-time
+  // Mark conversation as read when nurse views it
   useEffect(() => {
     if (conversationId && user?.uid && messages.length > 0) {
       const lastMsg = messages[0];
       if (lastMsg.user._id !== user.uid) {
-        ChatService.markConversationAsRead(conversationId);
+        NurseChatService.markConversationAsRead(conversationId, 'nurse');
       }
     }
   }, [messages, conversationId, user?.uid]);
@@ -106,20 +110,21 @@ const NurseChatDetail = () => {
   const onSend = useCallback(async (newMessages: IMessage[] = []) => {
     if (!conversationId || !user?.uid) return;
     const msg = newMessages[0];
+    const nurseProfileImage = (user.additionalInfo as any)?.profileImage || '';
 
     try {
-      await ChatService.sendMessage(
+      await NurseChatService.sendMessage(
         conversationId,
         user.uid,
         user.firstname || 'Nurse',
-        'https://via.placeholder.com/100',
+        nurseProfileImage,
         msg.text,
         patientId
       );
     } catch (error) {
       console.error('Error sending message:', error);
     }
-  }, [conversationId, user?.uid, patientId]);
+  }, [conversationId, user?.uid, patientId, user?.firstname, user?.additionalInfo]);
 
   if (loading) {
     return (
