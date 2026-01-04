@@ -1,18 +1,18 @@
 import ToraAIChat from '@/component/ToraAIChat';
 import { colors, Fonts } from '@/constant/theme';
 import { useAuthContext } from '@/hooks/useFirebaseAuth';
-import ChatService from '@/services/ChatService';
+import NurseChatService from '@/services/NurseChatService';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { IMessage } from 'react-native-gifted-chat';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,15 +24,21 @@ const NurseChatDetail = () => {
 
   const nurseId = params.nurseId as string;
   const nurseName = params.nurseName as string;
-  const nurseImage = params.nurseImage as string;
+  const nurseAvatar = (params.nurseAvatar as string) || '';
+  const useTora = params.useTora === 'true';
 
   const [conversationId, setConversationId] = useState<string>('');
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize conversation
+  // Initialize conversation (skip for Tora AI)
   useEffect(() => {
+    if (useTora) {
+      setLoading(false);
+      return;
+    }
+
     let unsubscribe: (() => void) | undefined;
 
     const initializeConversation = async () => {
@@ -43,19 +49,22 @@ const NurseChatDetail = () => {
           return;
         }
 
-        const convId = await ChatService.getOrCreateConversation(
+        // Get profile image from additionalInfo
+        const userProfileImage = (user.additionalInfo as any)?.profileImage || '';
+
+        const convId = await NurseChatService.getOrCreateConversation(
           user.uid,
           user.firstname || 'Patient',
-          'https://via.placeholder.com/100',
+          userProfileImage,
           nurseId,
           nurseName,
-          nurseImage
+          nurseAvatar
         );
 
         setConversationId(convId);
 
         // Listen to messages
-        unsubscribe = ChatService.listenToMessages(convId, (msgs) => {
+        unsubscribe = NurseChatService.listenToMessages(convId, (msgs) => {
           const giftedMessages: IMessage[] = msgs.map((doc) => ({
             _id: doc.id,
             text: doc.message,
@@ -84,14 +93,14 @@ const NurseChatDetail = () => {
         unsubscribe();
       }
     };
-  }, [user?.uid, nurseId, nurseName, nurseImage]);
+  }, [user?.uid, nurseId, nurseName, nurseAvatar, useTora]);
 
   // Mark conversation as read
   useEffect(() => {
     if (conversationId && user?.uid && messages.length > 0) {
       const lastMsg = messages[0];
       if (lastMsg.user._id !== user.uid) {
-        ChatService.markConversationAsRead(conversationId);
+        NurseChatService.markConversationAsRead(conversationId, 'patient');
       }
     }
   }, [messages, conversationId, user?.uid]);
@@ -99,20 +108,21 @@ const NurseChatDetail = () => {
   const onSend = useCallback(async (newMessages: IMessage[] = []) => {
     if (!conversationId || !user?.uid) return;
     const msg = newMessages[0];
+    const userProfileImage = (user.additionalInfo as any)?.profileImage || '';
 
     try {
-      await ChatService.sendMessage(
+      await NurseChatService.sendMessage(
         conversationId,
         user.uid,
         user.firstname || 'Patient',
-        'https://via.placeholder.com/100',
+        userProfileImage,
         msg.text,
         nurseId
       );
     } catch (error) {
       console.error('Error sending message:', error);
     }
-  }, [conversationId, user?.uid, nurseId]);
+  }, [conversationId, user?.uid, nurseId, user?.firstname, user?.additionalInfo]);
 
   if (loading) {
     return (
@@ -120,6 +130,32 @@ const NurseChatDetail = () => {
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
+    );
+  }
+
+  // For Tora AI chat
+  if (useTora) {
+    return (
+      <SafeAreaView edges={['bottom']} style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerName}>Tora AI</Text>
+            <Text style={styles.headerStatus}>Health Assistant</Text>
+          </View>
+          <View style={{ width: 24 }} />
+        </View>
+        <ToraAIChat
+          mode="ai"
+          user={{
+            _id: user?.uid || '',
+            name: user?.firstname || 'Patient',
+          }}
+        />
+      </SafeAreaView>
     );
   }
 

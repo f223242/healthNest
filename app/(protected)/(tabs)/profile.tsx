@@ -205,13 +205,42 @@ const Profile = () => {
             </View>
           </Animated.View>
 
+          {/* Verification & Payments Section */}
+          <Animated.View style={[styles.section, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }]}>
+            <Text style={styles.sectionTitle}>Verification & Payments</Text>
+            <View style={styles.sectionContent}>
+              <ProfileOptions
+                leftIcon={<Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />}
+                title="Identity Verification"
+                description="Verify your identity for enhanced features"
+                onPress={() => router.push("/(protected)/verification")}
+              />
+              <ProfileOptions
+                leftIcon={<Ionicons name="card-outline" size={22} color={colors.primary} />}
+                title="Buy Now Pay Later"
+                description="Apply for BNPL financing"
+                onPress={() => router.push("/(protected)/bnpl-application")}
+                showBorder={false}
+              />
+            </View>
+          </Animated.View>
+
           {/* Support Section */}
           <Animated.View style={[styles.section, {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
           }]}>
-            <Text style={styles.sectionTitle}>Support</Text>
+            <Text style={styles.sectionTitle}>Feedback & Support</Text>
             <View style={styles.sectionContent}>
+              <ProfileOptions
+                leftIcon={<Ionicons name="star-outline" size={22} color={colors.primary} />}
+                title="Rate & Feedback"
+                description="Share your experience"
+                onPress={() => router.push("/(protected)/feedback")}
+              />
               <ProfileOptions
                 leftIcon={<Ionicons name="chatbox-ellipses-outline" size={22} color={colors.primary} />}
                 title="Complain to Admin"

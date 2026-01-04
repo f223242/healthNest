@@ -5,7 +5,8 @@ import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RecordActionButton from "./RecordActionButton";
 
-type RecordType = "Lab Report" | "Prescription";
+// Accepts both display labels and backend types
+type RecordType = "Lab Report" | "Prescription" | "Diagnosis" | "Imaging" | "Other" | string;
 type RecordStatus = "New" | "Viewed";
 
 interface MedicalRecordCardProps {
@@ -46,6 +47,11 @@ const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
         return "flask";
       case "Prescription":
         return "document-text";
+      case "Diagnosis":
+        return "medical";
+      case "Imaging":
+        return "scan";
+      case "Other":
       default:
         return "document";
     }
@@ -57,6 +63,11 @@ const MedicalRecordCard: React.FC<MedicalRecordCardProps> = ({
         return colors.primary;
       case "Prescription":
         return "#FF9800";
+      case "Diagnosis":
+        return "#4CAF50";
+      case "Imaging":
+        return "#9C27B0";
+      case "Other":
       default:
         return colors.gray;
     }

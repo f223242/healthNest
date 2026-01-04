@@ -2,11 +2,14 @@ import AppButton from "@/component/AppButton";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import FeedbackComplaintService, { ComplaintCategory, ComplaintPriority } from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+    ActivityIndicator,
     Animated,
     ScrollView,
     StatusBar,
@@ -21,9 +24,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const ComplainToAdmin = () => {
   const router = useRouter();
   const toast = useToast();
+  const { user } = useAuthContext();
   const [subject, setSubject] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<ComplaintCategory | "">("");
+  const [priority, setPriority] = useState<ComplaintPriority>("medium");
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -42,15 +48,23 @@ const ComplainToAdmin = () => {
     ]).start();
   }, []);
 
-  const categories = [
-    { id: 1, label: "Service Quality", icon: "star-outline" },
-    { id: 2, label: "Technical Issue", icon: "bug-outline" },
-    { id: 3, label: "Billing Problem", icon: "card-outline" },
-    { id: 4, label: "Provider Behavior", icon: "people-outline" },
-    { id: 5, label: "Other", icon: "ellipsis-horizontal-outline" },
+  const categories: { id: number; label: string; value: ComplaintCategory; icon: string }[] = [
+    { id: 1, label: "Service Quality", value: "service_quality", icon: "star-outline" },
+    { id: 2, label: "Technical Issue", value: "technical", icon: "bug-outline" },
+    { id: 3, label: "Billing Problem", value: "billing", icon: "card-outline" },
+    { id: 4, label: "Provider Behavior", value: "provider_behavior", icon: "people-outline" },
+    { id: 5, label: "Delivery Issue", value: "delivery", icon: "car-outline" },
+    { id: 6, label: "Other", value: "other", icon: "ellipsis-horizontal-outline" },
   ];
 
-  const handleSubmit = () => {
+  const priorities: { label: string; value: ComplaintPriority; color: string }[] = [
+    { label: "Low", value: "low", color: "#4CAF50" },
+    { label: "Medium", value: "medium", color: "#FF9800" },
+    { label: "High", value: "high", color: "#F44336" },
+    { label: "Urgent", value: "urgent", color: "#9C27B0" },
+  ];
+
+  const handleSubmit = async () => {
     if (!subject.trim()) {
       toast.error("Please enter a subject");
       return;
@@ -63,10 +77,31 @@ const ComplainToAdmin = () => {
       toast.error("Please describe your complaint");
       return;
     }
+    if (!user) {
+      toast.error("You must be logged in to submit a complaint");
+      return;
+    }
 
-    // Handle complaint submission
-    toast.success("Your complaint has been submitted. Our admin team will review it shortly.");
-    setTimeout(() => router.back(), 2000);
+    setIsSubmitting(true);
+    try {
+      await FeedbackComplaintService.submitComplaint(
+        user.uid,
+        user.firstname ? `${user.firstname} ${user.lastname || ""}`.trim() : "User",
+        user.email || "",
+        subject.trim(),
+        category,
+        priority,
+        message.trim()
+      );
+
+      toast.success("Your complaint has been submitted. Our admin team will review it shortly.");
+      setTimeout(() => router.back(), 2000);
+    } catch (error) {
+      console.error("Error submitting complaint:", error);
+      toast.error("Failed to submit complaint. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -125,25 +160,52 @@ const ComplainToAdmin = () => {
                 key={cat.id}
                 style={[
                   styles.categoryChip,
-                  category === cat.label && styles.categoryChipActive,
+                  category === cat.value && styles.categoryChipActive,
                 ]}
-                onPress={() => setCategory(cat.label)}
+                onPress={() => setCategory(cat.value)}
                 activeOpacity={0.7}
               >
                 <Ionicons
                   name={cat.icon as any}
                   size={18}
                   color={
-                    category === cat.label ? colors.white : colors.primary
+                    category === cat.value ? colors.white : colors.primary
                   }
                 />
                 <Text
                   style={[
                     styles.categoryText,
-                    category === cat.label && styles.categoryTextActive,
+                    category === cat.value && styles.categoryTextActive,
                   ]}
                 >
                   {cat.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Priority Selection */}
+        <View style={styles.section}>
+          <Text style={appStyles.sectionTitle}>Priority Level</Text>
+          <View style={styles.prioritiesContainer}>
+            {priorities.map((p) => (
+              <TouchableOpacity
+                key={p.value}
+                style={[
+                  styles.priorityChip,
+                  priority === p.value && { backgroundColor: p.color, borderColor: p.color },
+                ]}
+                onPress={() => setPriority(p.value)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.priorityText,
+                    priority === p.value && styles.priorityTextActive,
+                  ]}
+                >
+                  {p.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -199,10 +261,14 @@ const ComplainToAdmin = () => {
 
         {/* Submit Button */}
         <AppButton
-          title="Submit Complaint"
+          title={isSubmitting ? "Submitting..." : "Submit Complaint"}
           onPress={handleSubmit}
           containerStyle={styles.submitButton}
+          disabled={isSubmitting}
         />
+        {isSubmitting && (
+          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
+        )}
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
@@ -306,6 +372,29 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   categoryTextActive: {
+    color: colors.white,
+  },
+  prioritiesContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  priorityChip: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.borderGray,
+    backgroundColor: colors.white,
+  },
+  priorityText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: colors.gray,
+  },
+  priorityTextActive: {
     color: colors.white,
   },
   textAreaContainer: {

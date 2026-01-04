@@ -8,13 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -230,6 +230,26 @@ const AdminDashboard = () => {
             onPress={() => router.push("/(admin)/(dashboard)/complaints" as any)}
             animation="fadeInUp"
             delay={500}
+          />
+
+          <PremiumActionCard
+            title="User Verifications"
+            subtitle="Review and approve identity verifications"
+            icon="shield-checkmark"
+            color="#4CAF50"
+            onPress={() => router.push("/(admin)/(dashboard)/verifications" as any)}
+            animation="fadeInUp"
+            delay={550}
+          />
+
+          <PremiumActionCard
+            title="BNPL Applications"
+            subtitle="Manage Buy Now Pay Later requests"
+            icon="card"
+            color="#9C27B0"
+            onPress={() => router.push("/(admin)/(dashboard)/bnpl" as any)}
+            animation="fadeInUp"
+            delay={600}
           />
         </View>
 

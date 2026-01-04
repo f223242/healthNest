@@ -105,5 +105,132 @@ service cloud.firestore {
       // Don't allow delete (appointments should be cancelled instead)
       allow delete: if false;
     }
+
+    // Lab Test Requests collection
+    match /labTestRequests/{requestId} {
+      // Allow read if user is the patient or the lab
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users (patients booking tests)
+      allow create: if request.auth != null;
+      
+      // Allow update for authenticated users who are involved
+      allow update: if request.auth != null;
+      
+      // Don't allow delete (requests should be cancelled instead)
+      allow delete: if false;
+    }
+
+    // Medical Records collection
+    match /medicalRecords/{recordId} {
+      // Allow read if user is the owner of the record
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated providers (labs, nurses, doctors)
+      allow create: if request.auth != null;
+      
+      // Allow update for record owner or provider
+      allow update: if request.auth != null;
+      
+      // Allow delete for record owner only
+      allow delete: if request.auth != null;
+    }
+
+    // Nurse Chats collection (reusing conversations pattern)
+    match /nurseConversations/{conversationId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Nurse Chat Messages
+    match /nurseMessages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Payments collection
+    match /payments/{paymentId} {
+      // Allow read if user is the owner of the payment
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow update (for status changes)
+      allow update: if request.auth != null;
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+
+    // BNPL Applications collection
+    match /bnplApplications/{applicationId} {
+      // Allow read if user is the applicant or admin
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow update (for admin approval/rejection)
+      allow update: if request.auth != null;
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+
+    // BNPL Installments collection
+    match /bnplInstallments/{installmentId} {
+      // Allow read/write for authenticated users
+      allow read, write: if request.auth != null;
+    }
+
+    // Verification Requests collection
+    match /verificationRequests/{requestId} {
+      // Allow read if user is the owner or admin
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow update (for admin approval/rejection)
+      allow update: if request.auth != null;
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+
+    // Feedbacks collection
+    match /feedbacks/{feedbackId} {
+      // Allow read for authenticated users (public feedback visible to all)
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow update (for provider response)
+      allow update: if request.auth != null;
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+
+    // Complaints collection
+    match /complaints/{complaintId} {
+      // Allow read if user is the owner or admin
+      allow read: if request.auth != null;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow update (for admin status changes)
+      allow update: if request.auth != null;
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+
+    // Scheduled Reminders collection
+    match /scheduledReminders/{reminderId} {
+      // Allow read/write for authenticated users
+      allow read, write: if request.auth != null;
+    }
   }
 }

@@ -1,0 +1,271 @@
+import { db } from "@/config/firebase";
+import {
+    addDoc,
+    collection,
+    doc,
+    getDocs,
+    onSnapshot,
+    query,
+    Timestamp,
+    updateDoc,
+    where,
+} from "firebase/firestore";
+import NotificationService from "./NotificationService";
+
+export type TestRequestStatus =
+  | "pending"
+  | "confirmed"
+  | "sample_collected"
+  | "processing"
+  | "report_ready"
+  | "completed"
+  | "cancelled";
+
+export type CollectionType = "home_sampling" | "lab_visit";
+export type Priority = "normal" | "urgent" | "critical";
+
+export interface LabTestRequest {
+  id: string;
+  // Patient info
+  userId: string;
+  userName: string;
+  userPhone: string;
+  userImage?: string;
+  // Lab info
+  labId: string;
+  labName: string;
+  labImage?: string;
+  // Test details
+  testType: string;
+  tests: string[]; // Array of selected tests
+  sampleType: string;
+  collectionType: CollectionType;
+  scheduledDate: string;
+  scheduledTime: string;
+  priority: Priority;
+  status: TestRequestStatus;
+  // Additional info
+  address?: string;
+  notes?: string;
+  doctorName?: string;
+  // Report
+  reportUrl?: string;
+  reportNotes?: string;
+  // Timestamps
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  completedAt?: Timestamp;
+}
+
+class LabTestService {
+  private collectionName = "labTestRequests";
+
+  // Create a new test request (Patient booking a test)
+  async createTestRequest(
+    data: Omit<LabTestRequest, "id" | "createdAt" | "updatedAt" | "status">
+  ): Promise<string> {
+    try {
+      const docRef = await addDoc(collection(db, this.collectionName), {
+        ...data,
+        status: "pending",
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notify the lab
+      await NotificationService.createNotification(
+        data.labId,
+        "order",
+        "New Test Request",
+        `${data.userName} has requested ${data.testType}`,
+        {
+          testRequestId: docRef.id,
+          userId: data.userId,
+          userName: data.userName,
+          testType: data.testType,
+          collectionType: data.collectionType,
+        }
+      );
+
+      return docRef.id;
+    } catch (error) {
+      console.error("Error creating test request:", error);
+      throw error;
+    }
+  }
+
+  // Update test request status (Lab updating status)
+  async updateTestRequestStatus(
+    requestId: string,
+    status: TestRequestStatus,
+    request: LabTestRequest,
+    additionalData?: Partial<LabTestRequest>
+  ): Promise<void> {
+    try {
+      const updateData: any = {
+        status,
+        updatedAt: Timestamp.now(),
+        ...additionalData,
+      };
+
+      if (status === "completed") {
+        updateData.completedAt = Timestamp.now();
+      }
+
+      await updateDoc(doc(db, this.collectionName, requestId), updateData);
+
+      // Send notification to patient based on status
+      let title = "";
+      let body = "";
+
+      switch (status) {
+        case "confirmed":
+          title = "Test Request Confirmed";
+          body = `${request.labName} has confirmed your ${request.testType} test for ${request.scheduledDate}`;
+          break;
+        case "sample_collected":
+          title = "Sample Collected";
+          body = `Your sample for ${request.testType} has been collected and sent for processing`;
+          break;
+        case "processing":
+          title = "Test In Progress";
+          body = `Your ${request.testType} test is being processed at ${request.labName}`;
+          break;
+        case "report_ready":
+          title = "Report Ready";
+          body = `Your ${request.testType} report is ready. Check your medical records.`;
+          break;
+        case "completed":
+          title = "Test Completed";
+          body = `Your ${request.testType} test has been completed. View your report in Medical Records.`;
+          break;
+        case "cancelled":
+          title = "Test Request Cancelled";
+          body = `Your ${request.testType} test request has been cancelled.`;
+          break;
+      }
+
+      if (title && body) {
+        await NotificationService.createNotification(
+          request.userId,
+          "order",
+          title,
+          body,
+          {
+            testRequestId: requestId,
+            labId: request.labId,
+            labName: request.labName,
+            status,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error updating test request status:", error);
+      throw error;
+    }
+  }
+
+  // Listen to patient's test requests
+  listenToUserTestRequests(
+    userId: string,
+    callback: (requests: LabTestRequest[]) => void
+  ) {
+    try {
+      const q = query(
+        collection(db, this.collectionName),
+        where("userId", "==", userId)
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const requests: LabTestRequest[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<LabTestRequest, "id">),
+          }))
+          .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        callback(requests);
+      });
+    } catch (error) {
+      console.error("Error listening to user test requests:", error);
+      throw error;
+    }
+  }
+
+  // Listen to lab's test requests
+  listenToLabTestRequests(
+    labId: string,
+    callback: (requests: LabTestRequest[]) => void
+  ) {
+    try {
+      const q = query(
+        collection(db, this.collectionName),
+        where("labId", "==", labId)
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const requests: LabTestRequest[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<LabTestRequest, "id">),
+          }))
+          .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        callback(requests);
+      });
+    } catch (error) {
+      console.error("Error listening to lab test requests:", error);
+      throw error;
+    }
+  }
+
+  // Get lab's test requests (one-time fetch)
+  async getLabTestRequests(labId: string): Promise<LabTestRequest[]> {
+    try {
+      const q = query(
+        collection(db, this.collectionName),
+        where("labId", "==", labId)
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<LabTestRequest, "id">),
+      }));
+    } catch (error) {
+      console.error("Error getting lab test requests:", error);
+      throw error;
+    }
+  }
+
+  // Upload report for a test request
+  async uploadReport(
+    requestId: string,
+    request: LabTestRequest,
+    reportUrl: string,
+    reportNotes?: string
+  ): Promise<void> {
+    try {
+      await this.updateTestRequestStatus(requestId, "report_ready", request, {
+        reportUrl,
+        reportNotes,
+      });
+    } catch (error) {
+      console.error("Error uploading report:", error);
+      throw error;
+    }
+  }
+
+  // Cancel test request
+  async cancelTestRequest(
+    requestId: string,
+    request: LabTestRequest
+  ): Promise<void> {
+    try {
+      await this.updateTestRequestStatus(requestId, "cancelled", request);
+    } catch (error) {
+      console.error("Error cancelling test request:", error);
+      throw error;
+    }
+  }
+}
+
+export default new LabTestService();

@@ -1,7 +1,10 @@
 import { colors, Fonts } from "@/constant/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     Image,
     Modal,
     ScrollView,
@@ -22,6 +25,17 @@ interface PaymentOption {
   icon: React.ReactNode;
   iconBgColor: string;
 }
+
+// Pay Later verification data
+export interface PayLaterVerificationData {
+  cnicNumber: string;
+  cnicFrontImage: string;
+  cnicBackImage: string;
+  selfieImage: string;
+  emergencyContact: string;
+  employerName: string;
+}
+
 
 interface PaymentMethodModalProps {
   visible: boolean;
@@ -52,8 +66,12 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   
   // Pay later verification
   const [cnicNumber, setCnicNumber] = useState("");
+  const [cnicFrontImage, setCnicFrontImage] = useState<string | null>(null);
+  const [cnicBackImage, setCnicBackImage] = useState<string | null>(null);
+  const [selfieImage, setSelfieImage] = useState<string | null>(null);
   const [emergencyContact, setEmergencyContact] = useState("");
   const [employerName, setEmployerName] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const paymentOptions: PaymentOption[] = [
     {
@@ -132,7 +150,14 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     } else if (selectedMethod === "bank") {
       onConfirm(selectedMethod);
     } else if (selectedMethod === "pay_later") {
-      onConfirm(selectedMethod, { cnicNumber, emergencyContact, employerName });
+      onConfirm(selectedMethod, { 
+        cnicNumber, 
+        cnicFrontImage,
+        cnicBackImage,
+        selfieImage,
+        emergencyContact, 
+        employerName 
+      } as PayLaterVerificationData);
     }
     resetModal();
   };
@@ -146,6 +171,9 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     setCardName("");
     setMobileNumber("");
     setCnicNumber("");
+    setCnicFrontImage(null);
+    setCnicBackImage(null);
+    setSelfieImage(null);
     setEmergencyContact("");
     setEmployerName("");
   };
@@ -192,8 +220,67 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const isMobileValid = mobileNumber.length >= 11;
 
   const isPayLaterValid = cnicNumber.replace(/-/g, "").length === 13 && 
+                          cnicFrontImage !== null &&
+                          cnicBackImage !== null &&
+                          selfieImage !== null &&
                           emergencyContact.length >= 11 && 
                           employerName.length >= 2;
+
+  // Image picker functions for Pay Later
+  const pickImage = async (type: "cnic_front" | "cnic_back" | "selfie") => {
+    try {
+      setIsUploadingImage(true);
+      
+      if (type === "selfie") {
+        // For selfie, use camera
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission Required", "Camera permission is required for selfie capture");
+          setIsUploadingImage(false);
+          return;
+        }
+        
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+        
+        if (!result.canceled && result.assets[0]) {
+          setSelfieImage(result.assets[0].uri);
+        }
+      } else {
+        // For CNIC, use gallery
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission Required", "Gallery permission is required to upload CNIC");
+          setIsUploadingImage(false);
+          return;
+        }
+        
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 10],
+          quality: 0.8,
+        });
+        
+        if (!result.canceled && result.assets[0]) {
+          if (type === "cnic_front") {
+            setCnicFrontImage(result.assets[0].uri);
+          } else {
+            setCnicBackImage(result.assets[0].uri);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to capture image. Please try again.");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const renderPaymentOptions = () => (
     <>
@@ -462,10 +549,11 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
       <View style={styles.payLaterBanner}>
         <Ionicons name="information-circle" size={20} color="#FF9800" />
         <Text style={styles.payLaterBannerText}>
-          Pay after your test is completed. Verification required.
+          Pay after your test is completed. Identity verification is required.
         </Text>
       </View>
 
+      {/* CNIC Number */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>CNIC Number *</Text>
         <TextInput
@@ -479,6 +567,65 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         />
       </View>
 
+      {/* CNIC Front Image */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>CNIC Front Photo *</Text>
+        <TouchableOpacity 
+          style={[styles.imageUploadBox, cnicFrontImage && styles.imageUploadBoxFilled]}
+          onPress={() => pickImage("cnic_front")}
+          disabled={isUploadingImage}
+        >
+          {cnicFrontImage ? (
+            <Image source={{ uri: cnicFrontImage }} style={styles.uploadedImage} />
+          ) : (
+            <>
+              <Ionicons name="camera-outline" size={32} color={colors.primary} />
+              <Text style={styles.imageUploadText}>Tap to upload CNIC front</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* CNIC Back Image */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>CNIC Back Photo *</Text>
+        <TouchableOpacity 
+          style={[styles.imageUploadBox, cnicBackImage && styles.imageUploadBoxFilled]}
+          onPress={() => pickImage("cnic_back")}
+          disabled={isUploadingImage}
+        >
+          {cnicBackImage ? (
+            <Image source={{ uri: cnicBackImage }} style={styles.uploadedImage} />
+          ) : (
+            <>
+              <Ionicons name="camera-outline" size={32} color={colors.primary} />
+              <Text style={styles.imageUploadText}>Tap to upload CNIC back</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Live Selfie */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Live Selfie *</Text>
+        <TouchableOpacity 
+          style={[styles.imageUploadBox, selfieImage && styles.imageUploadBoxFilled]}
+          onPress={() => pickImage("selfie")}
+          disabled={isUploadingImage}
+        >
+          {selfieImage ? (
+            <Image source={{ uri: selfieImage }} style={styles.uploadedImageSelfie} />
+          ) : (
+            <>
+              <Ionicons name="person-circle-outline" size={32} color={colors.primary} />
+              <Text style={styles.imageUploadText}>Tap to take live selfie</Text>
+              <Text style={styles.imageUploadSubtext}>Camera will open</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Emergency Contact */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Emergency Contact Number *</Text>
         <TextInput
@@ -492,6 +639,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         />
       </View>
 
+      {/* Employer Name */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Employer / Business Name *</Text>
         <TextInput
@@ -503,6 +651,14 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         />
       </View>
 
+      {/* Verification Notice */}
+      <View style={styles.verificationNotice}>
+        <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
+        <Text style={styles.verificationNoticeText}>
+          Your identity will be verified by our secure third-party verification partner. Admin approval is required after verification.
+        </Text>
+      </View>
+
       <View style={styles.termsBox}>
         <Ionicons name="checkbox" size={20} color={colors.primary} />
         <Text style={styles.termsText}>
@@ -510,10 +666,17 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         </Text>
       </View>
 
+      {isUploadingImage && (
+        <View style={styles.uploadingIndicator}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.uploadingText}>Processing...</Text>
+        </View>
+      )}
+
       <AppButton
-        title="Confirm Pay Later"
+        title="Submit for Verification"
         onPress={handleConfirm}
-        disabled={!isPayLaterValid}
+        disabled={!isPayLaterValid || isUploadingImage}
       />
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -850,5 +1013,72 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: colors.gray,
     lineHeight: 18,
+  },
+  // Image upload styles for Pay Later
+  imageUploadBox: {
+    height: 140,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary + "40",
+    borderStyle: "dashed",
+    backgroundColor: colors.primary + "08",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  imageUploadBoxFilled: {
+    borderStyle: "solid",
+    borderColor: colors.success,
+    padding: 0,
+  },
+  uploadedImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  uploadedImageSelfie: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  imageUploadText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+  },
+  imageUploadSubtext: {
+    marginTop: 4,
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  verificationNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: colors.primary + "10",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  verificationNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.primary,
+    lineHeight: 18,
+  },
+  uploadingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  uploadingText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
   },
 });
