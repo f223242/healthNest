@@ -1,8 +1,10 @@
 import ChatListComponent from '@/component/ChatListComponent';
 import { colors } from '@/constant/theme';
+import { useAuthContext } from '@/hooks/useFirebaseAuth';
+import NurseChatService, { NurseConversation } from '@/services/NurseChatService';
 import { router } from 'expo-router';
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface NurseChat {
@@ -17,62 +19,59 @@ interface NurseChat {
 }
 
 const NurseChats = () => {
-  // Sample nurse data
-  const nurses: NurseChat[] = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      lastMessage: 'I can visit tomorrow at 10 AM',
-      time: '2:30 PM',
-      unread: 2,
-      online: true,
-      type: 'person',
-    },
-    {
-      id: '2',
-      name: 'Emily Davis',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      lastMessage: 'Your vitals look good',
-      time: '1:15 PM',
-      online: true,
-      type: 'person',
-    },
-    {
-      id: '3',
-      name: 'Michael Brown',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      lastMessage: 'Please take the medication on time',
-      time: '11:45 AM',
-      online: false,
-      type: 'person',
-    },
-    {
-      id: '4',
-      name: 'Jessica Wilson',
-      avatar: 'https://i.pravatar.cc/150?img=9',
-      lastMessage: 'I will bring the equipment',
-      time: 'Yesterday',
-      unread: 1,
-      online: false,
-      type: 'person',
-    },
-    {
-      id: '5',
-      name: 'David Martinez',
-      avatar: 'https://i.pravatar.cc/150?img=13',
-      lastMessage: 'See you next week',
-      time: 'Yesterday',
-      online: false,
-      type: 'person',
-    },
-  ];
+  const { user } = useAuthContext();
+  const [conversations, setConversations] = useState<NurseChat[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Listen to patient's nurse conversations
+  useEffect(() => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = NurseChatService.listenToPatientConversations(
+      user.uid,
+      (convs: NurseConversation[]) => {
+        const formattedConvs: NurseChat[] = convs.map((conv) => ({
+          id: conv.id,
+          name: conv.nurseName,
+          avatar: conv.nurseAvatar || 'https://i.pravatar.cc/150?img=1',
+          lastMessage: conv.lastMessage || 'Start a conversation',
+          time: conv.lastMessageTime ? formatTime(conv.lastMessageTime.toDate()) : '',
+          unread: conv.patientUnreadCount || 0,
+          online: false,
+          type: 'person' as const,
+        }));
+        setConversations(formattedConvs);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  const formatTime = (date: Date): string => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const dayDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (dayDiff === 0) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (dayDiff === 1) {
+      return 'Yesterday';
+    } else if (dayDiff < 7) {
+      return date.toLocaleDateString([], { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
 
   const handleChatPress = (nurse: NurseChat) => {
     router.push({
       pathname: '/(protected)/nurse-chat-detail',
       params: {
-        nurseId: nurse.id,
+        nurseId: nurse.id.split('_')[1] || nurse.id, // Extract nurse ID from conversation ID
         nurseName: nurse.name,
         nurseAvatar: nurse.avatar || '',
         useTora: 'false',
@@ -91,10 +90,20 @@ const NurseChats = () => {
     });
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView edges={['bottom']} style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView edges={['bottom']} style={styles.container}>
       <ChatListComponent
-        users={nurses}
+        users={conversations}
         onChatPress={handleChatPress}
         title="Nurses"
         showAIOption={true}
@@ -111,5 +120,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

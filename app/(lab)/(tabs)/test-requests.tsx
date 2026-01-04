@@ -2,11 +2,15 @@ import { SearchIcon } from "@/assets/svg";
 import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import LabTestService, { LabTestRequest, TestRequestStatus } from "@/services/LabTestService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -18,132 +22,81 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const LAB_THEME_COLOR = colors.primary;
 
-interface TestRequest {
-  id: string;
-  patientName: string;
-  patientPhone: string;
-  testType: string;
-  sampleType: string;
-  collectionType: "Home Sampling" | "Lab Visit";
-  scheduledTime: string;
-  scheduledDate: string;
-  priority: "Normal" | "Urgent" | "Critical";
-  status: "New" | "Confirmed" | "Sample Collected" | "Processing" | "Report Ready" | "Sent";
-  address?: string;
-  doctor?: string;
-}
-
 const TestRequests = () => {
   const router = useRouter();
+  const { user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [selectedType, setSelectedType] = useState("All");
+  const [testRequests, setTestRequests] = useState<LabTestRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const testRequests: TestRequest[] = [
-    {
-      id: "1",
-      patientName: "Ahmed Hassan",
-      patientPhone: "+92 300 1234567",
-      testType: "Complete Blood Count (CBC)",
-      sampleType: "Blood",
-      collectionType: "Home Sampling",
-      scheduledTime: "10:30 AM",
-      scheduledDate: "Today",
-      priority: "Urgent",
-      status: "New",
-      address: "House 123, Block B, DHA Phase 5, Karachi",
-      doctor: "Dr. Amir Khan",
-    },
-    {
-      id: "2",
-      patientName: "Fatima Ali",
-      patientPhone: "+92 301 2345678",
-      testType: "Liver Function Test",
-      sampleType: "Blood",
-      collectionType: "Lab Visit",
-      scheduledTime: "11:00 AM",
-      scheduledDate: "Today",
-      priority: "Normal",
-      status: "Confirmed",
-      doctor: "Dr. Sara Malik",
-    },
-    {
-      id: "3",
-      patientName: "Imran Shah",
-      patientPhone: "+92 302 3456789",
-      testType: "Urine Analysis",
-      sampleType: "Urine",
-      collectionType: "Home Sampling",
-      scheduledTime: "02:30 PM",
-      scheduledDate: "Today",
-      priority: "Normal",
-      status: "Sample Collected",
-      address: "Flat 45, Gulshan Heights, Lahore",
-    },
-    {
-      id: "4",
-      patientName: "Ayesha Noor",
-      patientPhone: "+92 303 4567890",
-      testType: "COVID-19 PCR",
-      sampleType: "Swab",
-      collectionType: "Home Sampling",
-      scheduledTime: "09:00 AM",
-      scheduledDate: "Tomorrow",
-      priority: "Critical",
-      status: "New",
-      address: "House 78, Model Town, Islamabad",
-      doctor: "Dr. Kamran Ahmed",
-    },
-    {
-      id: "5",
-      patientName: "Bilal Khan",
-      patientPhone: "+92 304 5678901",
-      testType: "Thyroid Profile",
-      sampleType: "Blood",
-      collectionType: "Lab Visit",
-      scheduledTime: "03:00 PM",
-      scheduledDate: "Today",
-      priority: "Normal",
-      status: "Processing",
-    },
-  ];
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = LabTestService.listenToLabTestRequests(
+      user.uid,
+      (requests) => {
+        console.log('[Lab] testRequests ->', requests.length);
+        setTestRequests(requests);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'Critical': return '#F44336';
-      case 'Urgent': return '#FF9800';
-      case 'Normal': return colors.primary;
+      case 'critical': return '#F44336';
+      case 'urgent': return '#FF9800';
+      case 'normal': return colors.primary;
       default: return colors.gray;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: TestRequestStatus) => {
     switch (status) {
-      case "New":
-        return "#2196F3";
-      case "Confirmed":
-        return "#00BCD4";
-      case "Sample Collected":
-        return "#FF9800";
-      case "Processing":
-        return "#9C27B0";
-      case "Report Ready":
-        return colors.primary;
-      case "Sent":
-        return colors.gray;
-      default:
-        return colors.gray;
+      case "pending": return "#2196F3";
+      case "confirmed": return "#00BCD4";
+      case "sample_collected": return "#FF9800";
+      case "processing": return "#9C27B0";
+      case "report_ready": return colors.primary;
+      case "completed": return "#4CAF50";
+      case "cancelled": return colors.gray;
+      default: return colors.gray;
+    }
+  };
+
+  const getStatusLabel = (status: TestRequestStatus) => {
+    switch (status) {
+      case "pending": return "Pending";
+      case "confirmed": return "Confirmed";
+      case "sample_collected": return "Sample Collected";
+      case "processing": return "Processing";
+      case "report_ready": return "Report Ready";
+      case "completed": return "Completed";
+      case "cancelled": return "Cancelled";
+      default: return status;
     }
   };
 
   const filteredRequests = testRequests.filter((request) => {
     const matchesSearch =
-      request.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.testType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter =
-      selectedFilter === "All" || request.status === selectedFilter;
+      selectedFilter === "All" || getStatusLabel(request.status) === selectedFilter;
     const matchesType =
-      selectedType === "All" || request.collectionType === selectedType;
+      selectedType === "All" || 
+      (selectedType === "Home Sampling" && request.collectionType === "home_sampling") ||
+      (selectedType === "Lab Visit" && request.collectionType === "lab_visit");
     return matchesSearch && matchesFilter && matchesType;
   });
 
@@ -155,11 +108,21 @@ const TestRequests = () => {
 
   const statusFilterOptions: Array<{ label: string; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
-    { label: "New", icon: "alert-circle" },
+    { label: "Pending", icon: "alert-circle" },
     { label: "Confirmed", icon: "checkmark-circle" },
     { label: "Sample Collected", icon: "flask" },
     { label: "Processing", icon: "hourglass" },
+    { label: "Report Ready", icon: "document-text" },
   ];
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading test requests...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.mainContainer}>
@@ -237,11 +200,15 @@ const TestRequests = () => {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          }
         >
           {filteredRequests.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="flask-outline" size={60} color={colors.gray} />
               <Text style={styles.emptyText}>No requests found</Text>
+              <Text style={styles.emptySubtext}>Test requests from patients will appear here</Text>
             </View>
           ) : (
             filteredRequests.map((request) => (
@@ -261,8 +228,8 @@ const TestRequests = () => {
                       <Ionicons name="person" size={20} color={colors.white} />
                     </View>
                     <View>
-                      <Text style={styles.patientName}>{request.patientName}</Text>
-                      <Text style={styles.patientPhone}>{request.patientPhone}</Text>
+                      <Text style={styles.patientName}>{request.userName}</Text>
+                      <Text style={styles.patientPhone}>{request.userPhone}</Text>
                     </View>
                   </View>
                   <View
@@ -277,7 +244,7 @@ const TestRequests = () => {
                         { color: getPriorityColor(request.priority) },
                       ]}
                     >
-                      {request.priority}
+                      {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
                     </Text>
                   </View>
                 </View>
@@ -285,22 +252,22 @@ const TestRequests = () => {
                 {/* Collection Type Badge */}
                 <View style={styles.collectionTypeBadge}>
                   <Ionicons
-                    name={request.collectionType === "Home Sampling" ? "home" : "business"}
+                    name={request.collectionType === "home_sampling" ? "home" : "business"}
                     size={14}
-                    color={request.collectionType === "Home Sampling" ? colors.primary : "#9C27B0"}
+                    color={request.collectionType === "home_sampling" ? colors.primary : "#9C27B0"}
                   />
                   <Text
                     style={[
                       styles.collectionTypeText,
                       {
                         color:
-                          request.collectionType === "Home Sampling"
+                          request.collectionType === "home_sampling"
                             ? colors.primary
                             : "#9C27B0",
                       },
                     ]}
                   >
-                    {request.collectionType}
+                    {request.collectionType === "home_sampling" ? "Home Sampling" : "Lab Visit"}
                   </Text>
                   <Text style={styles.scheduledTime}>
                     • {request.scheduledDate}, {request.scheduledTime}
@@ -316,10 +283,10 @@ const TestRequests = () => {
                     <Ionicons name="water-outline" size={16} color={colors.gray} />
                     <Text style={styles.testLabel}>Sample: {request.sampleType}</Text>
                   </View>
-                  {request.doctor && (
+                  {request.doctorName && (
                     <View style={styles.testRow}>
                       <Ionicons name="medkit-outline" size={16} color={colors.gray} />
-                      <Text style={styles.testLabel}>Referred by: {request.doctor}</Text>
+                      <Text style={styles.testLabel}>Referred by: {request.doctorName}</Text>
                     </View>
                   )}
                 </View>
@@ -343,7 +310,7 @@ const TestRequests = () => {
                     <Text
                       style={[styles.statusText, { color: getStatusColor(request.status) }]}
                     >
-                      {request.status}
+                      {getStatusLabel(request.status)}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.gray} />
@@ -429,6 +396,24 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontFamily: Fonts.medium,
+    color: colors.gray,
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    marginTop: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
     color: colors.gray,
     marginTop: 12,
   },

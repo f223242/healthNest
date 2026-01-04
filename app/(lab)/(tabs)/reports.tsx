@@ -3,11 +3,15 @@ import FilterChip from "@/component/FilterChip";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import MedicalRecordService, { MedicalRecord } from "@/services/MedicalRecordService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -33,81 +37,89 @@ interface Report {
 
 const Reports = () => {
   const router = useRouter();
+  const { user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const reports: Report[] = [
-    {
-      id: "1",
-      patientName: "Ahmed Hassan",
-      patientPhone: "+92 300 1234567",
-      testType: "Complete Blood Count (CBC)",
-      collectionType: "Home Sampling",
-      reportDate: "Today, 11:30 AM",
-      status: "Ready",
-      reportId: "RPT-2024-001",
-      doctor: "Dr. Amir Khan",
-    },
-    {
-      id: "2",
-      patientName: "Fatima Ali",
-      patientPhone: "+92 301 2345678",
-      testType: "Liver Function Test",
-      collectionType: "Lab Visit",
-      reportDate: "Today, 10:15 AM",
-      status: "Ready",
-      reportId: "RPT-2024-002",
-      doctor: "Dr. Sara Malik",
-    },
-    {
-      id: "3",
-      patientName: "Imran Shah",
-      patientPhone: "+92 302 3456789",
-      testType: "Urine Analysis",
-      collectionType: "Home Sampling",
-      reportDate: "Yesterday, 05:30 PM",
-      status: "Sent",
-      reportId: "RPT-2024-003",
-    },
-    {
-      id: "4",
-      patientName: "Ayesha Noor",
-      patientPhone: "+92 303 4567890",
-      testType: "COVID-19 PCR",
-      collectionType: "Home Sampling",
-      reportDate: "Yesterday, 03:00 PM",
-      status: "Ready",
-      reportId: "RPT-2024-004",
-      doctor: "Dr. Kamran Ahmed",
-    },
-    {
-      id: "5",
-      patientName: "Bilal Khan",
-      patientPhone: "+92 304 5678901",
-      testType: "Thyroid Profile",
-      collectionType: "Lab Visit",
-      reportDate: "Yesterday, 12:00 PM",
-      status: "Sent",
-      reportId: "RPT-2024-005",
-    },
-    {
-      id: "6",
-      patientName: "Zainab Fatima",
-      patientPhone: "+92 305 6789012",
-      testType: "HbA1c Test",
-      collectionType: "Lab Visit",
-      reportDate: "2 days ago",
-      status: "Processing",
-      reportId: "RPT-2024-006",
-      doctor: "Dr. Usman Ali",
-    },
-  ];
+  // Listen to lab reports (medical records)
+  useEffect(() => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = MedicalRecordService.listenToLabRecords(
+      user.uid,
+      (records: MedicalRecord[]) => {
+        const formattedReports: Report[] = records.map((record) => ({
+          id: record.id,
+          patientName: record.patientName || "Unknown Patient",
+          patientPhone: record.patientPhone || "",
+          testType: record.title,
+          collectionType: record.collectionType === "home" ? "Home Sampling" : "Lab Visit",
+          reportDate: formatDate(record.createdAt.toDate()),
+          status: mapRecordStatus(record.status),
+          reportId: record.id.substring(0, 12).toUpperCase(),
+          doctor: record.doctorName,
+        }));
+        setReports(formattedReports);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  const formatDate = (date: Date): string => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const dayDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (dayDiff === 0) {
+      return `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (dayDiff === 1) {
+      return `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (dayDiff < 7) {
+      return `${dayDiff} days ago`;
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const mapRecordStatus = (status: string): "Processing" | "Ready" | "Sent" => {
+    switch (status) {
+      case "ready":
+      case "completed":
+        return "Ready";
+      case "sent":
+      case "delivered":
+        return "Sent";
+      case "pending":
+      case "processing":
+      default:
+        return "Processing";
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // The listener will update automatically
+  };
 
   const toast = useToast();
 
-  const handleSendReport = (report: Report) => {
-    // Send report logic
-    toast.success(`Report sent successfully to ${report.patientName}!`);
+  const handleSendReport = async (report: Report) => {
+    try {
+      await MedicalRecordService.updateRecordStatus(report.id, "sent");
+      toast.success(`Report sent successfully to ${report.patientName}!`);
+    } catch (error) {
+      console.error("Error sending report:", error);
+      toast.error("Failed to send report");
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -206,46 +218,58 @@ const Reports = () => {
         </View>
 
         {/* Reports List */}
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredReports.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="document-text-outline" size={60} color={colors.gray} />
-              <Text style={styles.emptyText}>No reports found</Text>
-            </View>
-          ) : (
-            filteredReports.map((report) => (
-              <TouchableOpacity
-                key={report.id}
-                style={styles.reportCard}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(lab)/test-detail" as any,
-                    params: { id: report.id },
-                  })
-                }
-              >
-                <View style={styles.reportHeader}>
-                  <View style={styles.reportIcon}>
-                    <Ionicons name="document-text" size={22} color={colors.primary} />
-                  </View>
-                  <View style={styles.reportInfo}>
-                    <Text style={styles.reportId}>{report.reportId}</Text>
-                    <Text style={styles.reportDate}>{report.reportDate}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(report.status) + "15" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={getStatusIcon(report.status)}
-                      size={12}
-                      color={getStatusColor(report.status)}
-                    />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={LAB_THEME_COLOR} />
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[LAB_THEME_COLOR]}
+              />
+            }
+          >
+            {filteredReports.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="document-text-outline" size={60} color={colors.gray} />
+                <Text style={styles.emptyText}>No reports found</Text>
+              </View>
+            ) : (
+              filteredReports.map((report) => (
+                <TouchableOpacity
+                  key={report.id}
+                  style={styles.reportCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(lab)/test-detail" as any,
+                      params: { id: report.id },
+                    })
+                  }
+                >
+                  <View style={styles.reportHeader}>
+                    <View style={styles.reportIcon}>
+                      <Ionicons name="document-text" size={22} color={colors.primary} />
+                    </View>
+                    <View style={styles.reportInfo}>
+                      <Text style={styles.reportId}>{report.reportId}</Text>
+                      <Text style={styles.reportDate}>{report.reportDate}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: getStatusColor(report.status) + "15" },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getStatusIcon(report.status)}
+                        size={12}
+                        color={getStatusColor(report.status)}
+                      />
                     <Text
                       style={[styles.statusText, { color: getStatusColor(report.status) }]}
                     >
@@ -328,9 +352,10 @@ const Reports = () => {
                   )}
                 </View>
               </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
+              ))
+            )}
+          </ScrollView>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -339,6 +364,11 @@ const Reports = () => {
 export default Reports;
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   mainContainer: {
     flex: 1,
     backgroundColor: LAB_THEME_COLOR,

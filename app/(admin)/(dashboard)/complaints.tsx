@@ -2,38 +2,62 @@ import AdminTable, { TableColumn } from "@/component/admin/AdminTable";
 import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import FeedbackComplaintService, { ComplaintStatus, Complaint as ComplaintType } from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Modal,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface Complaint {
-  id: number;
+// Map backend status to display format
+const statusMap: Record<ComplaintStatus, string> = {
+  pending: "Pending",
+  in_progress: "In Progress",
+  resolved: "Resolved",
+  rejected: "Rejected",
+  escalated: "Escalated",
+};
+
+const reverseStatusMap: Record<string, ComplaintStatus> = {
+  "Pending": "pending",
+  "In Progress": "in_progress",
+  "Resolved": "resolved",
+  "Rejected": "rejected",
+  "Escalated": "escalated",
+};
+
+interface DisplayComplaint {
+  id: string;
   subject: string;
   category: string;
   user: string;
   email: string;
   message: string;
-  status: "Pending" | "In Progress" | "Resolved" | "Rejected";
+  status: "Pending" | "In Progress" | "Resolved" | "Rejected" | "Escalated";
   date: string;
   priority: "Low" | "Medium" | "High";
+  rawData: ComplaintType;
 }
 
 const ComplaintsManagement = () => {
+  const { user } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | "Pending" | "In Progress" | "Resolved" | "Rejected">("All");
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [selectedComplaint, setSelectedComplaint] = useState<DisplayComplaint | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [complaints, setComplaints] = useState<DisplayComplaint[]>([]);
+  const [loading, setLoading] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -52,66 +76,65 @@ const ComplaintsManagement = () => {
     ]).start();
   }, []);
 
-  // Sample data
-  const complaints: Complaint[] = [
-    {
-      id: 1,
-      subject: "Lab Test Results Delay",
-      category: "Service Quality",
-      user: "John Doe",
-      email: "john.doe@example.com",
-      message: "My lab test results were supposed to be ready in 24 hours, but it's been 3 days and I still haven't received them.",
-      status: "Pending",
-      date: "Nov 26, 2025",
-      priority: "High",
-    },
-    {
-      id: 2,
-      subject: "Incorrect Billing Amount",
-      category: "Billing Problem",
-      user: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      message: "I was charged $150 for a service that costs $100. Please review my bill.",
-      status: "In Progress",
-      date: "Nov 25, 2025",
-      priority: "Medium",
-    },
-    {
-      id: 3,
-      subject: "Nurse Unprofessional Behavior",
-      category: "Provider Behavior",
-      user: "Michael Chen",
-      email: "michael.c@example.com",
-      message: "The nurse assigned to my mother was rude and unprofessional during the home visit.",
-      status: "Resolved",
-      date: "Nov 24, 2025",
-      priority: "High",
-    },
-    {
-      id: 4,
-      subject: "App Crashing Issue",
-      category: "Technical Issue",
-      user: "Emma Wilson",
-      email: "emma.w@example.com",
-      message: "The app keeps crashing when I try to book an appointment.",
-      status: "In Progress",
-      date: "Nov 23, 2025",
-      priority: "Low",
-    },
-    {
-      id: 5,
-      subject: "Medicine Not Delivered",
-      category: "Service Quality",
-      user: "David Brown",
-      email: "david.b@example.com",
-      message: "Ordered medicines 5 days ago, still not delivered despite payment.",
-      status: "Pending",
-      date: "Nov 22, 2025",
-      priority: "High",
-    },
-  ];
+  // Listen to complaints from backend
+  useEffect(() => {
+    const unsubscribe = FeedbackComplaintService.listenToComplaints((rawComplaints) => {
+      const formatted: DisplayComplaint[] = rawComplaints.map((c) => ({
+        id: c.id,
+        subject: c.subject,
+        category: c.category.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+        user: c.userName,
+        email: c.userEmail,
+        message: c.description,
+        status: statusMap[c.status] as DisplayComplaint["status"],
+        date: c.createdAt.toDate().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        priority: c.priority.charAt(0).toUpperCase() + c.priority.slice(1) as DisplayComplaint["priority"],
+        rawData: c,
+      }));
+      setComplaints(formatted);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const toast = useToast();
+
+  // Handle status change
+  const handleStatusChange = async (complaint: DisplayComplaint, newStatus: ComplaintStatus) => {
+    try {
+      await FeedbackComplaintService.updateComplaintStatus(
+        complaint.id,
+        user?.uid || "admin",
+        user?.firstname || "Admin",
+        newStatus
+      );
+      toast.success(`Status updated to ${statusMap[newStatus]}`);
+      setShowDetailModal(false);
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  // Handle resolve complaint
+  const handleResolve = async (complaint: DisplayComplaint, resolution: string) => {
+    try {
+      await FeedbackComplaintService.resolveComplaint(
+        complaint.id,
+        user?.uid || "admin",
+        user?.firstname || "Admin",
+        resolution
+      );
+      toast.success("Complaint resolved successfully");
+      setShowDetailModal(false);
+    } catch (error) {
+      toast.error("Failed to resolve complaint");
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -232,10 +255,21 @@ const ComplaintsManagement = () => {
     },
   ];
 
-  const handleComplaintPress = (complaint: Complaint) => {
+  const handleComplaintPress = (complaint: DisplayComplaint) => {
     setSelectedComplaint(complaint);
     setShowDetailModal(true);
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 16, fontFamily: Fonts.medium, color: colors.gray }}>
+          Loading complaints...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.mainContainer}>
