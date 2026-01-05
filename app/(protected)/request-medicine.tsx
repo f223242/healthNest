@@ -2,24 +2,25 @@ import DeliveryFilterButtons from "@/component/DeliveryFilterButtons";
 import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
+import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 import {
-  getRecommendedDeliveryPersons,
-  isDeliveryPersonRecommended,
+    getRecommendedDeliveryPersons,
+    isDeliveryPersonRecommended,
 } from "@/utils/deliveryRecommendation";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -49,36 +50,50 @@ const RequestMedicine = () => {
     ]).start();
   }, []);
 
-  // Fetch delivery persons from Firebase
+  // Fetch delivery persons from Firebase with dynamic ratings
   const fetchDeliveryPersons = useCallback(async () => {
     try {
       const users = await getAllUsers("Medicine Delivery");
-      const deliveryData: DeliveryPerson[] = users
-        .filter((user: User) => user.profileCompleted && user.additionalInfo)
-        .map((user: User, index: number) => {
-          const info = user.additionalInfo as DeliveryInfo;
-          const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Delivery Person";
+      const deliveryData: DeliveryPerson[] = await Promise.all(
+        users
+          .filter((user: User) => user.profileCompleted && user.additionalInfo)
+          .map(async (user: User, index: number) => {
+            const info = user.additionalInfo as DeliveryInfo;
+            const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Delivery Person";
 
-          // Default available UNLESS explicitly marked as unavailable
-          const isAvailable =
-            !info.availability ||
-            (info.availability.toLowerCase() !== "unavailable" &&
-              info.availability.toLowerCase() !== "part-time");
+            // Default available UNLESS explicitly marked as unavailable
+            const isAvailable =
+              !info.availability ||
+              (info.availability.toLowerCase() !== "unavailable" &&
+                info.availability.toLowerCase() !== "part-time");
 
-          return {
-            id: index + 1,
-            name: fullName,
-            avatar: info.profileImage || "https://via.placeholder.com/100",
-            rating: 4.5 + Math.random() * 0.5,
-            totalDeliveries: Math.floor(Math.random() * 200) + 50,
-            isAvailable,
-            deliveryTime: "20-30 min",
-            distance: info.city || "N/A",
-            vehicleType: info.vehicleType || "N/A",
-            vehicleNumber: info.vehicleNumber || "",
-            uid: user.uid,
-          };
-        });
+            // Fetch real ratings from Firebase
+            let rating = 0;
+            let totalDeliveries = 0;
+            try {
+              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(user.uid);
+              rating = ratingStats.averageRating || 0;
+              // Use reviews count as proxy for deliveries
+              totalDeliveries = ratingStats.totalReviews || 0;
+            } catch (err) {
+              console.log("No ratings for delivery person:", user.uid);
+            }
+
+            return {
+              id: index + 1,
+              name: fullName,
+              avatar: info.profileImage || "https://via.placeholder.com/100",
+              rating,
+              totalDeliveries,
+              isAvailable,
+              deliveryTime: "20-30 min",
+              distance: info.city || "N/A",
+              vehicleType: info.vehicleType || "N/A",
+              vehicleNumber: info.vehicleNumber || "",
+              uid: user.uid,
+            };
+          })
+      );
 
       setDeliveryPersons(deliveryData);
     } catch (error) {
@@ -128,6 +143,22 @@ const RequestMedicine = () => {
         deliveryId: person.uid || person.id.toString(),
         deliveryName: person.name,
         deliveryAvatar: person.avatar,
+      },
+    });
+  };
+
+  const handleViewProfile = (person: DeliveryPerson & { uid?: string }) => {
+    router.push({
+      pathname: "/(protected)/delivery-profile",
+      params: {
+        id: person.uid || person.id.toString(),
+        name: person.name,
+        avatar: person.avatar,
+        rating: person.rating.toString(),
+        totalDeliveries: person.totalDeliveries.toString(),
+        isAvailable: person.isAvailable.toString(),
+        deliveryTime: person.deliveryTime,
+        distance: person.distance,
       },
     });
   };
@@ -205,6 +236,7 @@ const RequestMedicine = () => {
                   recommendedList
                 )}
                 onPress={() => handlePersonPress(item)}
+                onViewProfile={() => handleViewProfile(item)}
               />
             )}
             contentContainerStyle={styles.listContent}

@@ -1,5 +1,6 @@
 import { SearchIcon } from "@/assets/svg";
 import FormInput from "@/component/FormInput";
+import NotificationIconWithBadge from "@/component/NotificationIconWithBadge";
 import PremiumActionCard from "@/component/PremiumActionCard";
 import SectionHeader from "@/component/SectionHeader";
 import ServiceCard from "@/component/ServiceCard";
@@ -10,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshControl, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl, StatusBar, StyleSheet, Text, View } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -142,9 +143,7 @@ const index = () => {
             avatar={userInfo.profileImage}
             whiteText={true}
             rightAction={
-              <TouchableOpacity onPress={() => router.push("/(protected)/notifications")}>
-                <Ionicons name="notifications-outline" size={22} color={colors.white} />
-              </TouchableOpacity>
+              <NotificationIconWithBadge color={colors.white} />
             }
             showGradientBg={false}
           />

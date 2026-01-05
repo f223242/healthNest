@@ -17,6 +17,7 @@ export interface DeliveryPerson {
 
 interface DeliveryPersonCardProps extends DeliveryPerson {
   onPress: () => void;
+  onViewProfile?: () => void;
   isRecommended?: boolean;
 }
 
@@ -29,6 +30,7 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
   deliveryTime,
   distance,
   onPress,
+  onViewProfile,
   isRecommended = false,
 }) => {
   return (
@@ -114,29 +116,44 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
           </View>
         </View>
 
-        {/* Chat Button */}
-        <TouchableOpacity
-          style={[styles.chatButton, !isAvailable && styles.chatButtonDisabled]}
-          onPress={isAvailable ? onPress : undefined}
-          activeOpacity={isAvailable ? 0.7 : 1}
-          disabled={!isAvailable}
-        >
-          <LinearGradient
-            colors={isAvailable ? [colors.primary, "#00D68F"] : [colors.gray, colors.gray]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.chatButtonGradient}
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsRow}>
+          {/* View Profile Button */}
+          {onViewProfile && (
+            <TouchableOpacity
+              style={styles.viewProfileButton}
+              onPress={onViewProfile}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person" size={16} color={colors.primary} />
+              <Text style={styles.viewProfileText}>Profile</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Chat Button */}
+          <TouchableOpacity
+            style={[styles.chatButton, !isAvailable && styles.chatButtonDisabled, onViewProfile && { flex: 1 }]}
+            onPress={isAvailable ? onPress : undefined}
+            activeOpacity={isAvailable ? 0.7 : 1}
+            disabled={!isAvailable}
           >
-            <Ionicons
-              name="chatbubbles"
-              size={18}
-              color={colors.white}
-            />
-            <Text style={styles.chatButtonText}>
-              {isAvailable ? "Start Chat" : "Currently Unavailable"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={isAvailable ? [colors.primary, "#00D68F"] : [colors.gray, colors.gray]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.chatButtonGradient}
+            >
+              <Ionicons
+                name="chatbubbles"
+                size={18}
+                color={colors.white}
+              />
+              <Text style={styles.chatButtonText}>
+                {isAvailable ? "Chat" : "Unavailable"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -267,6 +284,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.semiBold,
   },
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  viewProfileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
+    gap: 6,
+  },
+  viewProfileText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
   chatButton: {
     height: 44,
     borderRadius: 12,
@@ -281,6 +319,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
+    paddingHorizontal: 16,
   },
   chatButtonText: {
     fontSize: 14,

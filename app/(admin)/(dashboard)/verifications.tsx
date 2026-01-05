@@ -2,6 +2,7 @@ import FormInput from "@/component/FormInput";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import PaymentService, { BNPLApplication } from "@/services/PaymentService";
 import VerificationService, { VerificationRequest, VerificationStatus } from "@/services/VerificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,6 +21,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Tab type
+type TabType = "identity" | "bnpl";
+
 // Status display mapping
 const statusConfig: Record<VerificationStatus, { label: string; color: string; icon: string }> = {
   pending: { label: "Pending", color: "#FFA500", icon: "time" },
@@ -32,6 +36,11 @@ const statusConfig: Record<VerificationStatus, { label: string; color: string; i
 const VerificationsManagement = () => {
   const { user } = useAuthContext();
   const toast = useToast();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>("identity");
+  
+  // Identity verification states
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<VerificationRequest | null>(null);
@@ -42,6 +51,15 @@ const VerificationsManagement = () => {
   const [filterStatus, setFilterStatus] = useState<"all" | VerificationStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // BNPL states
+  const [bnplApplications, setBnplApplications] = useState<BNPLApplication[]>([]);
+  const [bnplLoading, setBnplLoading] = useState(true);
+  const [selectedBnpl, setSelectedBnpl] = useState<BNPLApplication | null>(null);
+  const [showBnplModal, setShowBnplModal] = useState(false);
+  const [bnplActionType, setBnplActionType] = useState<"approve" | "reject">("approve");
+  const [approvedAmount, setApprovedAmount] = useState("");
+  const [bnplRejectionReason, setBnplRejectionReason] = useState("");
 
   // Listen to verification requests
   useEffect(() => {
@@ -56,6 +74,62 @@ const VerificationsManagement = () => {
 
     return () => unsubscribe();
   }, [filterStatus]);
+
+  // Listen to BNPL applications
+  useEffect(() => {
+    const unsubscribe = PaymentService.listenToAllBNPLApplications((apps) => {
+      setBnplApplications(apps);
+      setBnplLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // BNPL handlers
+  const handleBnplAction = (app: BNPLApplication, action: "approve" | "reject") => {
+    setSelectedBnpl(app);
+    setBnplActionType(action);
+    setApprovedAmount(app.requestedAmount.toString());
+    setBnplRejectionReason("");
+    setShowBnplModal(true);
+  };
+
+  const processBnplAction = async () => {
+    if (!selectedBnpl) return;
+    setActionLoading(true);
+    try {
+      if (bnplActionType === "approve") {
+        const amount = parseFloat(approvedAmount);
+        if (isNaN(amount) || amount <= 0) {
+          toast.error("Please enter a valid amount");
+          setActionLoading(false);
+          return;
+        }
+        await PaymentService.approveBNPL(selectedBnpl.id, amount, user?.uid || "admin");
+        toast.success("BNPL application approved");
+      } else {
+        if (!bnplRejectionReason.trim()) {
+          toast.error("Please provide a rejection reason");
+          setActionLoading(false);
+          return;
+        }
+        await PaymentService.rejectBNPL(selectedBnpl.id, bnplRejectionReason, user?.uid || "admin");
+        toast.success("BNPL application rejected");
+      }
+      setShowBnplModal(false);
+    } catch (error) {
+      toast.error(`Failed to ${bnplActionType} BNPL application`);
+    }
+    setActionLoading(false);
+  };
+
+  // BNPL stats
+  const bnplStats = {
+    total: bnplApplications.length,
+    pending: bnplApplications.filter((a) => a.status === "pending").length,
+    approved: bnplApplications.filter((a) => ["approved", "active", "completed"].includes(a.status)).length,
+    rejected: bnplApplications.filter((a) => a.status === "rejected").length,
+  };
 
   // Filter requests
   const filteredRequests = requests.filter((req) => {
@@ -131,6 +205,23 @@ const VerificationsManagement = () => {
     }
   };
 
+  // Get BNPL status color
+  const getBnplStatusColor = (status: string): string => {
+    switch (status) {
+      case "approved":
+      case "active":
+      case "completed":
+        return "#4CAF50";
+      case "rejected":
+      case "defaulted":
+        return "#F44336";
+      case "pending":
+        return "#FF9800";
+      default:
+        return colors.gray;
+    }
+  };
+
   // Stats
   const stats = {
     total: requests.length,
@@ -139,7 +230,7 @@ const VerificationsManagement = () => {
     rejected: requests.filter((r) => r.status === "rejected").length,
   };
 
-  if (loading) {
+  if (loading && bnplLoading) {
     return (
       <View style={[styles.mainContainer, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -147,6 +238,9 @@ const VerificationsManagement = () => {
       </View>
     );
   }
+
+  // Current stats based on active tab
+  const currentStats = activeTab === "identity" ? stats : bnplStats;
 
   return (
     <View style={styles.mainContainer}>
@@ -160,28 +254,52 @@ const VerificationsManagement = () => {
         style={styles.headerGradient}
       >
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Verifications</Text>
-          <Text style={styles.headerSubtitle}>Review identity verification requests</Text>
+          <Text style={styles.headerTitle}>Verifications & BNPL</Text>
+          <Text style={styles.headerSubtitle}>
+            {activeTab === "identity" ? "Review identity verification requests" : "Manage Buy Now Pay Later applications"}
+          </Text>
+
+          {/* Tab Switcher */}
+          <View style={styles.tabSwitcher}>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "identity" && styles.tabButtonActive]}
+              onPress={() => setActiveTab("identity")}
+            >
+              <Ionicons name="shield-checkmark" size={18} color={activeTab === "identity" ? "#1E293B" : colors.white} />
+              <Text style={[styles.tabButtonText, activeTab === "identity" && styles.tabButtonTextActive]}>
+                Identity ({stats.pending})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "bnpl" && styles.tabButtonActive]}
+              onPress={() => setActiveTab("bnpl")}
+            >
+              <Ionicons name="card" size={18} color={activeTab === "bnpl" ? "#1E293B" : colors.white} />
+              <Text style={[styles.tabButtonText, activeTab === "bnpl" && styles.tabButtonTextActive]}>
+                BNPL ({bnplStats.pending})
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Stats */}
           <View style={styles.headerStats}>
             <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatValue}>{stats.total}</Text>
+              <Text style={styles.headerStatValue}>{currentStats.total}</Text>
               <Text style={styles.headerStatLabel}>Total</Text>
             </View>
             <View style={styles.headerStatDivider} />
             <View style={styles.headerStatItem}>
-              <Text style={[styles.headerStatValue, { color: "#FCD34D" }]}>{stats.pending}</Text>
+              <Text style={[styles.headerStatValue, { color: "#FCD34D" }]}>{currentStats.pending}</Text>
               <Text style={styles.headerStatLabel}>Pending</Text>
             </View>
             <View style={styles.headerStatDivider} />
             <View style={styles.headerStatItem}>
-              <Text style={[styles.headerStatValue, { color: "#4ADE80" }]}>{stats.approved}</Text>
+              <Text style={[styles.headerStatValue, { color: "#4ADE80" }]}>{currentStats.approved}</Text>
               <Text style={styles.headerStatLabel}>Approved</Text>
             </View>
             <View style={styles.headerStatDivider} />
             <View style={styles.headerStatItem}>
-              <Text style={[styles.headerStatValue, { color: "#F87171" }]}>{stats.rejected}</Text>
+              <Text style={[styles.headerStatValue, { color: "#F87171" }]}>{currentStats.rejected}</Text>
               <Text style={styles.headerStatLabel}>Rejected</Text>
             </View>
           </View>
@@ -189,31 +307,33 @@ const VerificationsManagement = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        {/* Search & Filter */}
-        <View style={styles.filterSection}>
-          <FormInput
-            placeholder="Search by name, email, or phone..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            containerStyle={styles.searchInput}
-          />
+        {activeTab === "identity" ? (
+          <>
+            {/* Search & Filter */}
+            <View style={styles.filterSection}>
+              <FormInput
+                placeholder="Search by name, email, or phone..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                containerStyle={styles.searchInput}
+              />
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
-            {["all", "pending", "under_review", "approved", "rejected"].map((status) => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.filterTab,
-                  filterStatus === status && styles.filterTabActive,
-                ]}
-                onPress={() => setFilterStatus(status as any)}
-              >
-                <Text
-                  style={[
-                    styles.filterTabText,
-                    filterStatus === status && styles.filterTabTextActive,
-                  ]}
-                >
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterTabs}>
+                {["all", "pending", "under_review", "approved", "rejected"].map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[
+                      styles.filterTab,
+                      filterStatus === status && styles.filterTabActive,
+                    ]}
+                    onPress={() => setFilterStatus(status as any)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterTabText,
+                        filterStatus === status && styles.filterTabTextActive,
+                      ]}
+                    >
                   {status === "all" ? "All" : statusConfig[status as VerificationStatus]?.label || status}
                 </Text>
               </TouchableOpacity>
@@ -297,7 +417,176 @@ const VerificationsManagement = () => {
             ))
           )}
         </ScrollView>
+          </>
+        ) : (
+          /* BNPL Applications Tab */
+          <ScrollView
+            style={styles.listContainer}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {bnplLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : bnplApplications.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="card-outline" size={48} color={colors.gray} />
+                <Text style={styles.emptyText}>No BNPL applications found</Text>
+              </View>
+            ) : (
+              bnplApplications.map((app) => (
+                <TouchableOpacity
+                  key={app.id}
+                  style={styles.requestCard}
+                  onPress={() => handleBnplAction(app, "approve")}
+                >
+                  <View style={styles.cardHeader}>
+                    <View style={styles.userInfo}>
+                      <View style={styles.avatarContainer}>
+                        <Ionicons name="person" size={20} color={colors.white} />
+                      </View>
+                      <View>
+                        <Text style={styles.userName}>{app.userName}</Text>
+                        <Text style={styles.userEmail}>{app.userEmail}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: getBnplStatusColor(app.status) + "20" }]}>
+                      <View style={[styles.statusDot, { backgroundColor: getBnplStatusColor(app.status) }]} />
+                      <Text style={[styles.statusText, { color: getBnplStatusColor(app.status) }]}>
+                        {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardDetails}>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="cash-outline" size={14} color={colors.gray} />
+                      <Text style={styles.detailText}>
+                        Requested: PKR {app.requestedAmount.toLocaleString()}
+                      </Text>
+                    </View>
+                    {app.approvedAmount && (
+                      <View style={styles.detailRow}>
+                        <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} />
+                        <Text style={styles.detailText}>
+                          Approved: PKR {app.approvedAmount.toLocaleString()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.detailRow}>
+                      <Ionicons name="calendar-outline" size={14} color={colors.gray} />
+                      <Text style={styles.detailText}>
+                        {app.installments} months @ {app.interestRate}% interest
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="time-outline" size={14} color={colors.gray} />
+                      <Text style={styles.detailText}>
+                        Applied: {app.createdAt.toDate().toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {app.status === "pending" && (
+                    <View style={styles.bnplActions}>
+                      <TouchableOpacity
+                        style={[styles.bnplActionBtn, styles.approveBtn]}
+                        onPress={() => handleBnplAction(app, "approve")}
+                      >
+                        <Ionicons name="checkmark" size={16} color={colors.white} />
+                        <Text style={styles.bnplActionText}>Approve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.bnplActionBtn, styles.rejectBtn]}
+                        onPress={() => handleBnplAction(app, "reject")}
+                      >
+                        <Ionicons name="close" size={16} color={colors.white} />
+                        <Text style={styles.bnplActionText}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        )}
       </SafeAreaView>
+
+      {/* BNPL Action Modal */}
+      <Modal visible={showBnplModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {bnplActionType === "approve" ? "Approve BNPL" : "Reject BNPL"}
+              </Text>
+              <TouchableOpacity onPress={() => setShowBnplModal(false)}>
+                <Ionicons name="close" size={24} color={colors.black} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedBnpl && (
+              <View style={styles.modalSection}>
+                <Text style={styles.sectionTitle}>Application Details</Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Applicant:</Text>
+                  <Text style={styles.infoValue}>{selectedBnpl.userName}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Requested Amount:</Text>
+                  <Text style={styles.infoValue}>PKR {selectedBnpl.requestedAmount.toLocaleString()}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Installments:</Text>
+                  <Text style={styles.infoValue}>{selectedBnpl.installments} months</Text>
+                </View>
+
+                {bnplActionType === "approve" ? (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={styles.infoLabel}>Approved Amount:</Text>
+                    <TextInput
+                      style={styles.bnplInput}
+                      value={approvedAmount}
+                      onChangeText={setApprovedAmount}
+                      keyboardType="numeric"
+                      placeholder="Enter approved amount"
+                    />
+                  </View>
+                ) : (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={styles.infoLabel}>Rejection Reason:</Text>
+                    <TextInput
+                      style={[styles.bnplInput, { height: 100, textAlignVertical: "top" }]}
+                      value={bnplRejectionReason}
+                      onChangeText={setBnplRejectionReason}
+                      multiline
+                      placeholder="Enter reason for rejection"
+                    />
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.bnplSubmitBtn,
+                    { backgroundColor: bnplActionType === "approve" ? colors.success : colors.danger },
+                  ]}
+                  onPress={processBnplAction}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <Text style={styles.bnplSubmitText}>
+                      {bnplActionType === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Detail Modal */}
       <Modal visible={showDetailModal} animationType="slide" transparent>
@@ -590,6 +879,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: sizes.paddingHorizontal,
   },
+  listContent: {
+    paddingVertical: 12,
+  },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
@@ -616,6 +908,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardDetails: {
+    marginTop: 12,
+    gap: 8,
+  },
+  avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   userInfo: {
     flexDirection: "row",
@@ -848,5 +1162,78 @@ const styles = StyleSheet.create({
   fullImage: {
     width: "100%",
     height: "80%",
+  },
+  // Tab switcher styles
+  tabSwitcher: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  tabButtonActive: {
+    backgroundColor: colors.white,
+  },
+  tabButtonText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: colors.white,
+  },
+  tabButtonTextActive: {
+    color: "#1E293B",
+  },
+  // BNPL specific styles
+  bnplActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderGray,
+  },
+  bnplActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  bnplActionText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: colors.white,
+  },
+  bnplInput: {
+    borderWidth: 1,
+    borderColor: colors.borderGray,
+    borderRadius: 8,
+    padding: 12,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    marginTop: 8,
+  },
+  bnplSubmitBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  bnplSubmitText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+    color: colors.white,
   },
 });

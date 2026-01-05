@@ -7,17 +7,19 @@ import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as ExpoLocation from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -72,6 +74,7 @@ const LabBookingForm = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -146,6 +149,65 @@ const LabBookingForm = () => {
       setShowPaymentModal(true);
     },
   });
+
+  // Get current location for home sampling
+  const handleGetCurrentLocation = async () => {
+    try {
+      setIsLocationLoading(true);
+
+      // Check existing permission first
+      const { status: existingStatus } = await ExpoLocation.getForegroundPermissionsAsync();
+      
+      if (existingStatus !== "granted") {
+        // Request permission
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setIsLocationLoading(false);
+          alert("Location permission is required for home sampling. Please enable it in settings.");
+          return;
+        }
+      }
+
+      // Get current position
+      const location = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.High,
+      });
+
+      const { latitude, longitude } = location.coords;
+
+      // Reverse geocode to get address
+      const [result] = await ExpoLocation.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (result) {
+        const address = [
+          result.streetNumber,
+          result.street,
+          result.district,
+          result.subregion,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        const city = result.city || result.subregion || result.region || "";
+        const zipCode = result.postalCode || "";
+
+        // Update form values
+        formik.setFieldValue("address", address || result.name || "");
+        formik.setFieldValue("city", city);
+        if (zipCode) {
+          formik.setFieldValue("zipCode", zipCode);
+        }
+      }
+    } catch (error) {
+      console.error("Error getting location:", error);
+      alert("Could not get your location. Please enter address manually.");
+    } finally {
+      setIsLocationLoading(false);
+    }
+  };
 
   // Check if form is valid for submission
   const isFormValid = () => {
@@ -344,7 +406,23 @@ const LabBookingForm = () => {
             {/* Address Information */}
             {selectedTestType === "Home" && (
               <View style={styles.section}>
-                <Text style={appStyles.sectionTitle}>Home Address</Text>
+                <View style={styles.addressHeader}>
+                  <Text style={appStyles.sectionTitle}>Home Address</Text>
+                  <TouchableOpacity 
+                    style={styles.locationButton}
+                    onPress={handleGetCurrentLocation}
+                    disabled={isLocationLoading}
+                  >
+                    {isLocationLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <>
+                        <Ionicons name="location" size={16} color={colors.primary} />
+                        <Text style={styles.locationButtonText}>Use Current Location</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
                 <FormInput
                   placeholder="Street Address"
                   value={formik.values.address}
@@ -640,6 +718,26 @@ const styles = StyleSheet.create({
   },
   halfInput: {
     flex: 1,
+  },
+  addressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  locationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.lightGreen,
+    borderRadius: 20,
+  },
+  locationButtonText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
   },
   notesInput: {
     height: 100,
