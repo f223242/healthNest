@@ -233,23 +233,13 @@ const AdminDashboard = () => {
           />
 
           <PremiumActionCard
-            title="User Verifications"
-            subtitle="Review and approve identity verifications"
+            title="Verifications & BNPL"
+            subtitle="Review identity verifications and BNPL requests"
             icon="shield-checkmark"
             color="#4CAF50"
             onPress={() => router.push("/(admin)/(dashboard)/verifications" as any)}
             animation="fadeInUp"
             delay={550}
-          />
-
-          <PremiumActionCard
-            title="BNPL Applications"
-            subtitle="Manage Buy Now Pay Later requests"
-            icon="card"
-            color="#9C27B0"
-            onPress={() => router.push("/(admin)/(dashboard)/bnpl" as any)}
-            animation="fadeInUp"
-            delay={600}
           />
         </View>
 

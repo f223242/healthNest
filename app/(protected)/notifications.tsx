@@ -6,16 +6,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  LayoutAnimation,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
-  View
+    ActivityIndicator,
+    FlatList,
+    LayoutAnimation,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View
 } from "react-native";
 import * as Animatable from 'react-native-animatable';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
@@ -67,15 +67,25 @@ const NotificationsScreen = () => {
   };
 
   const handleItemPress = async (item: Notification) => {
+    // First mark as read
     if (!item.read) {
-      await NotificationService.markAsRead(item.id);
+      try {
+        await NotificationService.markAsRead(item.id);
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+      }
     }
-    // Navigate based on type if needed
+    
+    // Navigate based on type
     if (item.type === 'appointment') {
       router.push("/(protected)/(tabs)/appointment");
     } else if (item.type === 'message') {
-      // If we had conversation ID we could navigate
-      // router.push(...)
+      // Navigate to chats if needed
+    } else if (item.type === 'complaint' || item.type === 'status') {
+      // Navigate to my complaints for status updates
+      router.push("/(protected)/my-complaints");
+    } else if (item.type === 'order') {
+      // Navigate to orders/delivery
     }
   };
 
@@ -92,22 +102,35 @@ const NotificationsScreen = () => {
   };
 
   const renderItem = ({ item, index }: { item: Notification; index: number }) => {
-    const isAppointment = item.type === 'appointment';
-    const iconName = isAppointment
-      ? "calendar"
-      : item.type === 'message'
-        ? "chatbubble"
-        : item.type === 'order'
-          ? "medkit"
-          : "notifications";
+    // Determine icon based on notification type
+    let iconName: keyof typeof Ionicons.glyphMap = "notifications";
+    let iconColor = colors.primary;
 
-    const iconColor = isAppointment
-      ? "#FF9800"
-      : item.type === 'message'
-        ? "#2196F3"
-        : item.type === 'order'
-          ? "#4CAF50"
-          : colors.primary;
+    switch (item.type) {
+      case 'appointment':
+        iconName = "calendar";
+        iconColor = "#FF9800";
+        break;
+      case 'message':
+        iconName = "chatbubble";
+        iconColor = "#2196F3";
+        break;
+      case 'order':
+        iconName = "medkit";
+        iconColor = "#4CAF50";
+        break;
+      case 'complaint':
+        iconName = "chatbox-ellipses";
+        iconColor = "#F44336";
+        break;
+      case 'status':
+        iconName = "checkmark-circle";
+        iconColor = "#9C27B0";
+        break;
+      default:
+        iconName = "notifications";
+        iconColor = colors.primary;
+    }
 
     return (
       <Swipeable

@@ -1,7 +1,9 @@
 import { colors, Fonts } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import PaymentService from "@/services/PaymentService";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -52,8 +54,11 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   onConfirm,
   totalAmount,
 }) => {
+  const { user } = useAuthContext();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [currentStep, setCurrentStep] = useState<ModalStep>("select");
+  const [isBNPLApproved, setIsBNPLApproved] = useState(false);
+  const [isBNPLCheckLoading, setIsBNPLCheckLoading] = useState(true);
   
   // Card details
   const [cardNumber, setCardNumber] = useState("");
@@ -72,6 +77,34 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const [emergencyContact, setEmergencyContact] = useState("");
   const [employerName, setEmployerName] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Check if user has approved BNPL application
+  useEffect(() => {
+    const checkBNPLStatus = async () => {
+      if (!user?.uid) {
+        setIsBNPLCheckLoading(false);
+        return;
+      }
+      
+      try {
+        const applications = await PaymentService.getUserBNPLApplications(user.uid);
+        // Check if any application is approved or active
+        const hasApprovedBNPL = applications.some(
+          (app: any) => app.status === "approved" || app.status === "active"
+        );
+        setIsBNPLApproved(hasApprovedBNPL);
+      } catch (error) {
+        console.error("Error checking BNPL status:", error);
+        setIsBNPLApproved(false);
+      } finally {
+        setIsBNPLCheckLoading(false);
+      }
+    };
+
+    if (visible) {
+      checkBNPLStatus();
+    }
+  }, [visible, user?.uid]);
 
   const paymentOptions: PaymentOption[] = [
     {
@@ -288,35 +321,61 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         contentContainerStyle={styles.optionsContainer}
         showsVerticalScrollIndicator={false}
       >
-        {paymentOptions.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={[
-              styles.optionCard,
-              selectedMethod === option.id && styles.optionCardSelected,
-            ]}
-            activeOpacity={0.7}
-            onPress={() => handleMethodSelect(option.id)}
-          >
-            <View
+        {paymentOptions.map((option) => {
+          // Check if BNPL (pay_later) option should be disabled
+          const isBNPLOption = option.id === "pay_later";
+          const isDisabled = isBNPLOption && !isBNPLApproved;
+          
+          return (
+            <TouchableOpacity
+              key={option.id}
               style={[
-                styles.iconContainer,
-                { backgroundColor: option.iconBgColor + "15" },
+                styles.optionCard,
+                selectedMethod === option.id && styles.optionCardSelected,
+                isDisabled && styles.optionCardDisabled,
               ]}
+              activeOpacity={isDisabled ? 1 : 0.7}
+              onPress={() => {
+                if (isDisabled) {
+                  Alert.alert(
+                    "BNPL Not Approved",
+                    "Your Buy Now Pay Later application has not been approved yet. Please apply for BNPL in your profile settings or wait for admin approval.",
+                    [{ text: "OK" }]
+                  );
+                  return;
+                }
+                handleMethodSelect(option.id);
+              }}
             >
-              {option.icon}
-            </View>
-            <View style={styles.optionInfo}>
-              <Text style={styles.optionTitle}>{option.title}</Text>
-              <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
-            </View>
-            <Ionicons 
-              name="chevron-forward" 
-              size={20} 
-              color={selectedMethod === option.id ? colors.primary : colors.gray} 
-            />
-          </TouchableOpacity>
-        ))}
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: option.iconBgColor + "15" },
+                  isDisabled && { opacity: 0.5 },
+                ]}
+              >
+                {option.icon}
+              </View>
+              <View style={styles.optionInfo}>
+                <Text style={[styles.optionTitle, isDisabled && styles.optionTitleDisabled]}>
+                  {option.title}
+                </Text>
+                <Text style={[styles.optionSubtitle, isDisabled && styles.optionSubtitleDisabled]}>
+                  {isDisabled ? "Not approved - Apply in Profile" : option.subtitle}
+                </Text>
+              </View>
+              {isDisabled ? (
+                <Ionicons name="lock-closed" size={20} color={colors.gray} />
+              ) : (
+                <Ionicons 
+                  name="chevron-forward" 
+                  size={20} 
+                  color={selectedMethod === option.id ? colors.primary : colors.gray} 
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {selectedMethod === "cash" && (
@@ -807,6 +866,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary + "08",
   },
+  optionCardDisabled: {
+    backgroundColor: "#F5F5F5",
+    opacity: 0.7,
+  },
   iconContainer: {
     width: 48,
     height: 48,
@@ -827,10 +890,17 @@ const styles = StyleSheet.create({
     color: colors.black,
     marginBottom: 2,
   },
+  optionTitleDisabled: {
+    color: colors.gray,
+  },
   optionSubtitle: {
     fontSize: 12,
     fontFamily: Fonts.regular,
     color: colors.gray,
+  },
+  optionSubtitleDisabled: {
+    color: "#AAAAAA",
+    fontStyle: "italic",
   },
   buttonContainer: {
     paddingHorizontal: 20,
