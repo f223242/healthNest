@@ -1,14 +1,14 @@
 import { colors, Fonts } from "@/constant/theme";
 import FeedbackComplaintService, { Feedback } from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface ProviderReviewsProps {
@@ -45,12 +45,16 @@ const ProviderReviews: React.FC<ProviderReviewsProps> = ({
   const [stats, setStats] = useState<RatingStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStats();
-  }, [providerId]);
+  // Reload stats when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [providerId])
+  );
 
   const loadStats = async () => {
     try {
+      setLoading(true);
       const ratingStats = await FeedbackComplaintService.getProviderRatingStats(providerId);
       setStats(ratingStats);
     } catch (error) {

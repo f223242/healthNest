@@ -1,10 +1,10 @@
 import { db } from "@/config/firebase";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, setDoc, Timestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, Timestamp, where } from "firebase/firestore";
 
 export interface Notification {
   id: string;
   userId: string;
-  type: "message" | "order" | "status" | "appointment";
+  type: "message" | "order" | "status" | "appointment" | "complaint";
   title: string;
   body: string;
   data: any;
@@ -16,7 +16,7 @@ class NotificationService {
   // Create notification
   async createNotification(
     userId: string,
-    type: "message" | "order" | "status" | "appointment",
+    type: "message" | "order" | "status" | "appointment" | "complaint",
     title: string,
     body: string,
     data: any
@@ -34,6 +34,34 @@ class NotificationService {
     } catch (error) {
       console.error("Error creating notification:", error);
       throw error;
+    }
+  }
+
+  // Notify all admins
+  async notifyAllAdmins(
+    type: "message" | "order" | "status" | "appointment" | "complaint",
+    title: string,
+    body: string,
+    data: any
+  ): Promise<void> {
+    try {
+      // Get all admin users
+      const adminsQuery = query(
+        collection(db, "users"),
+        where("role", "==", "admin")
+      );
+      const adminsSnapshot = await getDocs(adminsQuery);
+
+      // Create notification for each admin
+      const notificationPromises = adminsSnapshot.docs.map((adminDoc) =>
+        this.createNotification(adminDoc.id, type, title, body, data)
+      );
+
+      await Promise.all(notificationPromises);
+      console.log(`Notified ${adminsSnapshot.docs.length} admin(s)`);
+    } catch (error) {
+      console.error("Error notifying admins:", error);
+      // Don't throw - notification failure shouldn't break the main flow
     }
   }
 

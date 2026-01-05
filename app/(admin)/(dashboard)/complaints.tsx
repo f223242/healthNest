@@ -457,10 +457,21 @@ const ComplaintsManagement = () => {
 
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: "#2196F3" }]}
+                    onPress={() => {
+                      if (selectedComplaint) {
+                        handleStatusChange(selectedComplaint, "in_progress");
+                      }
+                    }}
+                  >
+                    <Text style={styles.actionButtonText}>In Progress</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.success }]}
                     onPress={() => {
-                      toast.success("Complaint resolved");
-                      setShowDetailModal(false);
+                      if (selectedComplaint) {
+                        handleResolve(selectedComplaint, "Issue has been addressed and resolved by admin.");
+                      }
                     }}
                   >
                     <Text style={styles.actionButtonText}>Resolve</Text>
@@ -468,8 +479,9 @@ const ComplaintsManagement = () => {
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.danger }]}
                     onPress={() => {
-                      toast.success("Complaint rejected");
-                      setShowDetailModal(false);
+                      if (selectedComplaint) {
+                        handleStatusChange(selectedComplaint, "rejected");
+                      }
                     }}
                   >
                     <Text style={styles.actionButtonText}>Reject</Text>

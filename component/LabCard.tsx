@@ -11,6 +11,7 @@ interface LabCardProps {
   rating: number;
   review: string;
   onPress?: () => void;
+  onViewProfile?: () => void;
   isSelected?: boolean;
   distance?: string;
   openTime?: string;
@@ -26,6 +27,7 @@ const LabCard: React.FC<LabCardProps> = ({
   rating,
   review,
   onPress,
+  onViewProfile,
   isSelected = false,
   distance,
   openTime,
@@ -38,6 +40,7 @@ const LabCard: React.FC<LabCardProps> = ({
       style={styles.labItem}
       onPress={onPress}
       activeOpacity={0.8}
+      onLongPress={onViewProfile}
     >
       <LinearGradient
         colors={
@@ -115,6 +118,18 @@ const LabCard: React.FC<LabCardProps> = ({
               </View>
             )}
           </View>
+
+          {/* View Profile Button */}
+          {onViewProfile && (
+            <TouchableOpacity
+              style={styles.viewProfileBtn}
+              onPress={onViewProfile}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewProfileText}>View Profile</Text>
+              <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Selected Badge */}
@@ -262,5 +277,20 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     justifyContent: "center",
     alignItems: "center",
+  },
+  viewProfileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderGray,
+    gap: 4,
+  },
+  viewProfileText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
   },
 });

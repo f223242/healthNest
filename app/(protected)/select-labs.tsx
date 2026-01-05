@@ -6,6 +6,7 @@ import LabCard from "@/component/LabCard";
 import StatCard from "@/component/StatCard";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { LabInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
+import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -78,32 +79,45 @@ const SelectLabs = () => {
     ]).start();
   }, []);
 
-  // Fetch labs from Firebase
+  // Fetch labs from Firebase with dynamic ratings
   const fetchLabs = useCallback(async () => {
     try {
       const users = await getAllUsers("Lab");
-      const labsData: LabCardData[] = users
-        .filter((user: User) => user.profileCompleted && user.additionalInfo)
-        .map((user: User) => {
-          const info = user.additionalInfo as LabInfo;
-          const labName = info.labName || `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Lab";
-          
-          return {
-            id: user.uid,
-            name: labName,
-            description: info.servicesOffered || "Comprehensive lab testing services",
-            image: info.profileImage ? { uri: info.profileImage } : require("@/assets/png/labcorp.png"),
-            rating: 4.0 + Math.random() * 0.9, // Random rating 4.0-4.9
-            reviews: Math.floor(Math.random() * 150) + 50, // Random reviews
-            distance: info.city || "N/A",
-            openTime: info.operatingHours || "8:00 AM - 8:00 PM",
-            testsAvailable: Math.floor(Math.random() * 200) + 100,
-            accredited: !!info.licenseNumber,
-            homeCollection: info.homeSampling || false,
-            city: info.city || "",
-            servicesOffered: info.servicesOffered || "",
-          };
-        });
+      const labsData: LabCardData[] = await Promise.all(
+        users
+          .filter((user: User) => user.profileCompleted && user.additionalInfo)
+          .map(async (user: User) => {
+            const info = user.additionalInfo as LabInfo;
+            const labName = info.labName || `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Lab";
+            
+            // Fetch real ratings from Firebase
+            let rating = 0;
+            let reviews = 0;
+            try {
+              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(user.uid);
+              rating = ratingStats.averageRating || 0;
+              reviews = ratingStats.totalReviews || 0;
+            } catch (err) {
+              console.log("No ratings for lab:", user.uid);
+            }
+            
+            return {
+              id: user.uid,
+              name: labName,
+              description: info.servicesOffered || "Comprehensive lab testing services",
+              image: info.profileImage ? { uri: info.profileImage } : require("@/assets/png/labcorp.png"),
+              rating,
+              reviews,
+              distance: info.city || "N/A",
+              openTime: info.operatingHours || "8:00 AM - 8:00 PM",
+              testsAvailable: 100, // Default test count
+              accredited: !!info.licenseNumber,
+              homeCollection: info.homeSampling || false,
+              city: info.city || "",
+              servicesOffered: info.servicesOffered || "",
+            };
+          })
+      );
       
       setLabs(labsData);
     } catch (error) {
@@ -164,6 +178,27 @@ const SelectLabs = () => {
         },
       });
     }
+  };
+
+  const handleViewLabProfile = (lab: LabCardData) => {
+    router.push({
+      pathname: "/(protected)/lab-profile",
+      params: {
+        id: lab.id,
+        name: lab.name,
+        description: lab.description,
+        image: typeof lab.image === "object" ? lab.image.uri : "",
+        rating: lab.rating.toString(),
+        reviews: lab.reviews.toString(),
+        distance: lab.distance,
+        openTime: lab.openTime,
+        testsAvailable: lab.testsAvailable.toString(),
+        accredited: lab.accredited.toString(),
+        homeCollection: lab.homeCollection.toString(),
+        city: lab.city,
+        servicesOffered: lab.servicesOffered,
+      },
+    });
   };
 
   if (loading) {
@@ -305,6 +340,7 @@ const SelectLabs = () => {
                   homeCollection={lab.homeCollection}
                   isSelected={selectedLab === lab.id}
                   onPress={() => setSelectedLab(lab.id)}
+                  onViewProfile={() => handleViewLabProfile(lab)}
                 />
               ))}
             </View>
