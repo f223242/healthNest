@@ -431,13 +431,12 @@ class FeedbackComplaintService {
         updatedAt: Timestamp.now(),
       });
 
-      // Notify admin
-      await NotificationService.createNotification(
-        "admin",
-        "status",
+      // Notify all admins about new complaint
+      await NotificationService.notifyAllAdmins(
+        "complaint",
         `New ${priority.toUpperCase()} Priority Complaint`,
         `${userName} submitted: ${subject}`,
-        { complaintId: docRef.id }
+        { complaintId: docRef.id, priority, category }
       );
 
       return docRef.id;
@@ -464,20 +463,33 @@ class FeedbackComplaintService {
       const complaint = complaintSnap.data() as Complaint;
       const timeline = [...(complaint.timeline || [])];
 
-      timeline.push({
+      // Create timeline event - only include note if it exists
+      const timelineEvent: ComplaintTimelineEvent = {
         action: `Status changed to ${status}`,
         performedBy: adminId,
         performedByName: adminName,
-        note,
         timestamp: Timestamp.now(),
-      });
+      };
+      if (note) {
+        timelineEvent.note = note;
+      }
+      timeline.push(timelineEvent);
 
-      await updateDoc(complaintRef, {
+      // Build update object without undefined values
+      const updateData: any = {
         status,
         timeline,
-        assignedTo: status === "in_progress" ? adminId : complaint.assignedTo,
         updatedAt: Timestamp.now(),
-      });
+      };
+      
+      // Only set assignedTo if it has a value
+      if (status === "in_progress") {
+        updateData.assignedTo = adminId;
+      } else if (complaint.assignedTo) {
+        updateData.assignedTo = complaint.assignedTo;
+      }
+
+      await updateDoc(complaintRef, updateData);
 
       // Notify user
       await NotificationService.createNotification(
@@ -593,6 +605,27 @@ class FeedbackComplaintService {
       console.error("Error getting user complaints:", error);
       throw error;
     }
+  }
+
+  // Listen to user's complaints in real-time
+  listenToUserComplaints(
+    userId: string,
+    callback: (complaints: Complaint[]) => void
+  ) {
+    const q = query(
+      collection(db, this.complaintsCollection),
+      where("userId", "==", userId)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const complaints: Complaint[] = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Complaint, "id">),
+        }))
+        .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+      callback(complaints);
+    });
   }
 
   // Admin: Listen to all complaints
