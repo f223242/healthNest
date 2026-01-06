@@ -58,6 +58,7 @@ const ComplaintsManagement = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [complaints, setComplaints] = useState<DisplayComplaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null); // Track which action is loading
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -106,6 +107,8 @@ const ComplaintsManagement = () => {
 
   // Handle status change
   const handleStatusChange = async (complaint: DisplayComplaint, newStatus: ComplaintStatus) => {
+    console.log("handleStatusChange called:", complaint.id, newStatus);
+    setActionLoading(newStatus);
     try {
       await FeedbackComplaintService.updateComplaintStatus(
         complaint.id,
@@ -116,12 +119,17 @@ const ComplaintsManagement = () => {
       toast.success(`Status updated to ${statusMap[newStatus]}`);
       setShowDetailModal(false);
     } catch (error) {
+      console.error("Status update error:", error);
       toast.error("Failed to update status");
+    } finally {
+      setActionLoading(null);
     }
   };
 
   // Handle resolve complaint
   const handleResolve = async (complaint: DisplayComplaint, resolution: string) => {
+    console.log("handleResolve called:", complaint.id);
+    setActionLoading("resolve");
     try {
       await FeedbackComplaintService.resolveComplaint(
         complaint.id,
@@ -132,7 +140,10 @@ const ComplaintsManagement = () => {
       toast.success("Complaint resolved successfully");
       setShowDetailModal(false);
     } catch (error) {
+      console.error("Resolve error:", error);
       toast.error("Failed to resolve complaint");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -457,34 +468,67 @@ const ComplaintsManagement = () => {
 
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: "#2196F3" }]}
+                    style={[
+                      styles.actionButton, 
+                      { backgroundColor: "#2196F3" },
+                      actionLoading === "in_progress" && { opacity: 0.7 }
+                    ]}
+                    activeOpacity={0.7}
+                    disabled={actionLoading !== null}
                     onPress={() => {
+                      console.log("In Progress button pressed");
                       if (selectedComplaint) {
                         handleStatusChange(selectedComplaint, "in_progress");
                       }
                     }}
                   >
-                    <Text style={styles.actionButtonText}>In Progress</Text>
+                    {actionLoading === "in_progress" ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <Text style={styles.actionButtonText}>In Progress</Text>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: colors.success }]}
+                    style={[
+                      styles.actionButton, 
+                      { backgroundColor: colors.success },
+                      actionLoading === "resolve" && { opacity: 0.7 }
+                    ]}
+                    activeOpacity={0.7}
+                    disabled={actionLoading !== null}
                     onPress={() => {
+                      console.log("Resolve button pressed");
                       if (selectedComplaint) {
                         handleResolve(selectedComplaint, "Issue has been addressed and resolved by admin.");
                       }
                     }}
                   >
-                    <Text style={styles.actionButtonText}>Resolve</Text>
+                    {actionLoading === "resolve" ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <Text style={styles.actionButtonText}>Resolve</Text>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: colors.danger }]}
+                    style={[
+                      styles.actionButton, 
+                      { backgroundColor: colors.danger },
+                      actionLoading === "rejected" && { opacity: 0.7 }
+                    ]}
+                    activeOpacity={0.7}
+                    disabled={actionLoading !== null}
                     onPress={() => {
+                      console.log("Reject button pressed");
                       if (selectedComplaint) {
                         handleStatusChange(selectedComplaint, "rejected");
                       }
                     }}
                   >
-                    <Text style={styles.actionButtonText}>Reject</Text>
+                    {actionLoading === "rejected" ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <Text style={styles.actionButtonText}>Reject</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -695,13 +739,21 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 40,
+    paddingBottom: 20,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   actionButtonText: {
     fontSize: 14,
