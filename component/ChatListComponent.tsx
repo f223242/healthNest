@@ -1,14 +1,16 @@
 import { colors, Fonts } from '@/constant/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FormInput from './FormInput';
 
@@ -46,50 +48,66 @@ const ChatListComponent: React.FC<ChatListComponentProps> = ({
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderChatItem = ({ item }: { item: ChatUser }) => (
-    <TouchableOpacity
-      style={styles.chatItem}
-      onPress={() => onChatPress(item)}
-      activeOpacity={0.7}
+  const renderChatItem = ({ item, index }: { item: ChatUser; index: number }) => (
+    <Animatable.View 
+      animation="fadeInUp" 
+      delay={index * 50} 
+      duration={400}
+      useNativeDriver
     >
-      <View style={styles.avatarContainer}>
-        {item.avatar ? (
-          <Image source={{ uri: item.avatar }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarText}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        {item.online && <View style={styles.onlineIndicator} />}
-      </View>
+      <TouchableOpacity
+        style={styles.chatItem}
+        onPress={() => onChatPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.avatarContainer}>
+          {item.avatar ? (
+            <Image source={{ uri: item.avatar }} style={styles.avatar} />
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, '#00D68F']}
+              style={[styles.avatar, styles.avatarPlaceholder]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.avatarText}>
+                {item.name.charAt(0).toUpperCase()}
+              </Text>
+            </LinearGradient>
+          )}
+          {item.online && <View style={styles.onlineIndicator} />}
+        </View>
 
-      <View style={styles.chatInfo}>
-        <View style={styles.chatHeader}>
-          <Text style={styles.chatName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={styles.chatTime}>{item.time}</Text>
+        <View style={styles.chatInfo}>
+          <View style={styles.chatHeader}>
+            <Text style={styles.chatName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.chatTime}>{item.time}</Text>
+          </View>
+          <View style={styles.messageRow}>
+            <Text 
+              style={[
+                styles.lastMessage, 
+                item.unread && item.unread > 0 ? styles.unreadMessage : null
+              ]} 
+              numberOfLines={1}
+            >
+              {item.lastMessage}
+            </Text>
+            {item.unread && item.unread > 0 ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{item.unread > 99 ? '99+' : item.unread}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-        <View style={styles.messageRow}>
-          <Text 
-            style={[
-              styles.lastMessage, 
-              item.unread && item.unread > 0 ? styles.unreadMessage : null
-            ]} 
-            numberOfLines={1}
-          >
-            {item.lastMessage}
-          </Text>
-          {item.unread && item.unread > 0 ? (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{item.unread}</Text>
-            </View>
-          ) : null}
+        
+        <View style={styles.chevronContainer}>
+          <Ionicons name="chevron-forward" size={18} color={colors.gray} />
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animatable.View>
   );
 
   const insets = useSafeAreaInsets();
@@ -152,15 +170,20 @@ export default ChatListComponent;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: '#F5F7FA',
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 0,
+    paddingBottom: 8,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8ECF0',
   },
   searchInputContainer: {
     marginBottom: 0,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 12,
   },
   aiChatCard: {
     flexDirection: 'row',
@@ -210,25 +233,26 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.background,
+    paddingVertical: 14,
+    backgroundColor: '#F5F7FA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8ECF0',
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.semiBold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   listContent: {
     paddingBottom: 16,
-    paddingTop: 8,
+    paddingTop: 0,
     flexGrow: 1,
   },
   flatList: {
     flex: 1,
   },
-  // ensure there's a minimum bottom spacing for last item visibility
   listBottomSpacer: {
     height: 120,
   },
@@ -238,27 +262,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: colors.white,
-    gap: 12,
+    gap: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderGray + '50',
+    borderBottomColor: '#F0F2F5',
+    marginHorizontal: 0,
   },
   avatarContainer: {
     position: 'relative',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 2,
+    borderColor: '#F0F2F5',
   },
   avatarPlaceholder: {
-    backgroundColor: colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 0,
   },
   avatarText: {
     fontSize: 20,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
+    fontFamily: Fonts.bold,
+    color: colors.white,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -268,12 +295,12 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     backgroundColor: '#4CAF50',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: colors.white,
   },
   chatInfo: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   chatHeader: {
     flexDirection: 'row',
@@ -302,6 +329,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: colors.textSecondary,
+    lineHeight: 20,
   },
   unreadMessage: {
     fontFamily: Fonts.semiBold,
@@ -309,9 +337,9 @@ const styles = StyleSheet.create({
   },
   unreadBadge: {
     backgroundColor: colors.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 12,
+    minWidth: 22,
+    height: 22,
     paddingHorizontal: 6,
     justifyContent: 'center',
     alignItems: 'center',
@@ -319,21 +347,26 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     fontSize: 11,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.bold,
     color: colors.white,
+  },
+  chevronContainer: {
+    width: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
     paddingHorizontal: 40,
   },
   emptyText: {
     fontSize: 18,
     fontFamily: Fonts.semiBold,
     color: colors.text,
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
   },
   emptySubtext: {
@@ -341,5 +374,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
   },
 });
