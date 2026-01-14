@@ -1,5 +1,5 @@
 import AppButton from "@/component/AppButton";
-import BookDeliveryModal from "@/component/BookDeliveryModal";
+import BookAppointmentModal from "@/component/BookAppointmentModal";
 import FeaturesGrid, { FeatureItem } from "@/component/FeaturesGrid";
 import ProviderReviews from "@/component/ProviderReviews";
 import StatsRow from "@/component/StatsRow";
@@ -75,7 +75,12 @@ const DeliveryProfile = () => {
           useNativeDriver: true,
         }),
       ]).start();
-    }, [loadRatingStats])
+
+      // Check if we should open booking modal automatically
+      if (params.openBooking === "true") {
+        setShowBookingModal(true);
+      }
+    }, [loadRatingStats, params.openBooking])
   );
 
   // Parse the delivery person data from params
@@ -260,13 +265,13 @@ const DeliveryProfile = () => {
                   },
                   { 
                     type: "number",
-                    value: `${delivery.totalDeliveries}+`, 
+                    value: loading ? "..." : `${ratingStats?.totalReviews || 0}+`, 
                     label: "Deliveries"
                   },
                   { 
                     type: "number",
-                    value: delivery.deliveryTime, 
-                    label: "Avg. Time"
+                    value: delivery.distance || "N/A", 
+                    label: "Location"
                   },
                 ]}
               />

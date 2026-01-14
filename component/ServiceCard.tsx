@@ -42,6 +42,7 @@ export default ServiceCard;
 const styles = StyleSheet.create({
   container: {
     width: (sizes.width - sizes.paddingHorizontal * 2 - 12) / 2,
+    height: 180,
     borderRadius: 16,
     padding: 20,
     elevation: 2,

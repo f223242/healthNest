@@ -20,17 +20,27 @@ const NotificationIconWithBadge: React.FC<NotificationIconWithBadgeProps> = ({
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            console.log("NotificationIconWithBadge: No user found");
+            return;
+        }
 
+        console.log("NotificationIconWithBadge: Setting up listener for user:", user.uid);
+        
         const unsubscribe = NotificationService.listenToNotifications(
             user.uid,
             (notifications) => {
+                console.log("NotificationIconWithBadge: Received notifications:", notifications.length);
                 const count = notifications.filter((n) => !n.read).length;
+                console.log("NotificationIconWithBadge: Unread count:", count);
                 setUnreadCount(count);
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+            console.log("NotificationIconWithBadge: Cleaning up listener");
+            unsubscribe();
+        };
     }, [user]);
 
     const handlePress = () => {

@@ -31,19 +31,32 @@ interface BookAppointmentModalProps {
         address: string;
         duration: string;
     }) => void;
-    nurseName: string;
-    nurseSpecialization: string;
+    providerName?: string;
+    providerType?: "nurse" | "delivery";
+    providerSpecialization?: string;
     hourlyRate?: string;
+    // Legacy props for backward compatibility
+    nurseName?: string;
+    nurseSpecialization?: string;
 }
 
 const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     visible,
     onClose,
     onBook,
+    providerName,
+    providerType = "nurse",
+    providerSpecialization,
+    hourlyRate,
+    // Legacy props
     nurseName,
     nurseSpecialization,
-    hourlyRate,
 }) => {
+    // Support both new and legacy props
+    const displayName = providerName || nurseName || "";
+    const displaySpecialization = providerSpecialization || nurseSpecialization || "";
+    const isDelivery = providerType === "delivery";
+    
     const toast = useToast();
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedTime, setSelectedTime] = useState(new Date());
@@ -56,7 +69,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-    const serviceTypes = [
+    const serviceTypes = isDelivery ? [
+        { label: "Medicine Delivery", icon: "medkit" as const, color: colors.primary },
+        { label: "Pharmacy Pickup", icon: "business" as const, color: "#2196F3" },
+        { label: "Medical Supplies", icon: "bandage" as const, color: "#9C27B0" },
+        { label: "Lab Sample Pickup", icon: "flask" as const, color: "#FF9800" },
+        { label: "Prescription Delivery", icon: "document-text" as const, color: "#F44336" },
+    ] : [
         { label: "Elderly Care", icon: "accessibility" as const, color: "#9C27B0" },
         { label: "Child Care", icon: "happy" as const, color: "#FF9800" },
         { label: "Patient Care", icon: "medical" as const, color: "#2196F3" },
@@ -194,14 +213,18 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     >
                         <View style={styles.headerContent}>
                             <View style={styles.headerTextContainer}>
-                                <Text style={styles.modalTitle}>Book Appointment</Text>
-                                <Text style={styles.modalSubtitle}>with {nurseName}</Text>
-                                <View style={styles.specializationBadge}>
-                                    <Ionicons name="medical" size={12} color={colors.white} />
-                                    <Text style={styles.specializationText}>
-                                        {nurseSpecialization}
-                                    </Text>
-                                </View>
+                                <Text style={styles.modalTitle}>
+                                    {isDelivery ? "Request Delivery" : "Book Appointment"}
+                                </Text>
+                                <Text style={styles.modalSubtitle}>with {displayName}</Text>
+                                {displaySpecialization ? (
+                                    <View style={styles.specializationBadge}>
+                                        <Ionicons name={isDelivery ? "bicycle" : "medical"} size={12} color={colors.white} />
+                                        <Text style={styles.specializationText}>
+                                            {displaySpecialization}
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
                             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                                 <Ionicons name="close" size={24} color={colors.white} />
@@ -315,7 +338,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </View>
                         </View>
 
-                        {/* Duration Section */}
+                        {/* Duration Section - Only for Nurse */}
+                        {!isDelivery && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="hourglass-outline" size={20} color={colors.primary} />
@@ -348,12 +372,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 ))}
                             </ScrollView>
                         </View>
+                        )}
 
                         {/* Address Section */}
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Ionicons name="location-outline" size={20} color={colors.primary} />
-                                <Text style={styles.sectionTitle}>Service Location *</Text>
+                                <Text style={styles.sectionTitle}>{isDelivery ? "Delivery Address" : "Service Location"} *</Text>
                                 <TouchableOpacity onPress={handleGetCurrentLocation} disabled={isGettingLocation}>
                                     {isGettingLocation ? (
                                         <ActivityIndicator size="small" color={colors.primary} />
@@ -429,18 +454,22 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 style={styles.bookButtonGradient}
                             >
                                 {isSubmitting ? (
-                                    <Text style={styles.bookButtonText}>Booking...</Text>
+                                    <Text style={styles.bookButtonText}>
+                                        {isDelivery ? "Requesting..." : "Booking..."}
+                                    </Text>
                                 ) : (
                                     <>
-                                        <Ionicons name="checkmark-circle" size={22} color={colors.white} />
-                                        <Text style={styles.bookButtonText}>Confirm Booking</Text>
+                                        <Ionicons name={isDelivery ? "send" : "checkmark-circle"} size={22} color={colors.white} />
+                                        <Text style={styles.bookButtonText}>
+                                            {isDelivery ? "Send Request" : "Confirm Booking"}
+                                        </Text>
                                     </>
                                 )}
                             </LinearGradient>
                         </TouchableOpacity>
 
                         <Text style={styles.disclaimer}>
-                            By booking, you agree to our terms of service. The nurse will confirm your appointment.
+                            By {isDelivery ? "requesting" : "booking"}, you agree to our terms of service. The {isDelivery ? "delivery person" : "nurse"} will confirm your {isDelivery ? "request" : "appointment"}.
                         </Text>
 
                         <View style={{ height: 30 }} />

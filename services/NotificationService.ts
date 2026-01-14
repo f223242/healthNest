@@ -71,21 +71,30 @@ class NotificationService {
     callback: (notifications: Notification[]) => void
   ) {
     try {
+      console.log("NotificationService.listenToNotifications: Setting up listener for userId:", userId);
+      
       const q = query(
         collection(db, "notifications"),
         where("userId", "==", userId)
         // Removed validation for read status to fetch all notifications
       );
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const notifications: Notification[] = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...(doc.data() as Omit<Notification, "id">),
-          }))
-          .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis()); // Sort by newest first
-        callback(notifications);
-      });
+      const unsubscribe = onSnapshot(
+        q, 
+        (snapshot) => {
+          console.log("NotificationService.listenToNotifications: Snapshot received, docs count:", snapshot.docs.length);
+          const notifications: Notification[] = snapshot.docs
+            .map((doc) => ({
+              id: doc.id,
+              ...(doc.data() as Omit<Notification, "id">),
+            }))
+            .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis()); // Sort by newest first
+          callback(notifications);
+        },
+        (error) => {
+          console.error("NotificationService.listenToNotifications: Snapshot error:", error);
+        }
+      );
 
       return unsubscribe;
     } catch (error) {
