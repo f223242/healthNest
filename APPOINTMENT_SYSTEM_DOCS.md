@@ -145,6 +145,15 @@ Implemented a complete appointment-based nursing booking system with real-time n
 6. If accepted, nurse becomes reserved for that time slot
 7. Can view all appointments with filters
 
+### Delivery Booking Flow:
+1. Patient opens delivery person's profile
+2. Clicks "Request Delivery" → selects date & time on calendar
+3. System checks delivery person's availability
+4. Request created with "pending" status and notification sent to delivery person
+5. Delivery person accepts/rejects
+6. If accepted, that delivery time slot becomes reserved and user is notified
+7. Admins receive notification about confirmed delivery bookings (optional)
+
 ## Notification System
 - Automatic notifications on:
   - New appointment request (to nurse)
