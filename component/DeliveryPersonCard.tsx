@@ -18,7 +18,6 @@ export interface DeliveryPerson {
 interface DeliveryPersonCardProps extends DeliveryPerson {
   onPress: () => void;
   onViewProfile?: () => void;
-  isRecommended?: boolean;
 }
 
 const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
@@ -31,7 +30,6 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
   distance,
   onPress,
   onViewProfile,
-  isRecommended = false,
 }) => {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -41,14 +39,6 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
         end={{ x: 1, y: 1 }}
         style={styles.cardGradient}
       >
-        {/* Recommended Badge */}
-        {isRecommended && (
-          <View style={styles.recommendedBadge}>
-            <Ionicons name="star" size={14} color={colors.white} />
-            <Text style={styles.recommendedText}>Recommended</Text>
-          </View>
-        )}
-
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.imageContainer}>
@@ -174,22 +164,6 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     padding: 16,
-  },
-  recommendedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginBottom: 12,
-    alignSelf: "flex-start",
-    gap: 4,
-  },
-  recommendedText: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
   },
   header: {
     flexDirection: "row",
