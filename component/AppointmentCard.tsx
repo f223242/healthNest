@@ -80,9 +80,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         return `${displayHour}:${minutes} ${ampm}`;
     };
 
-    const displayName = userType === "user" ? appointment.nurseName : appointment.userName;
-    const displayImage = userType === "user" ? appointment.nurseImage : appointment.userImage;
-    const displayRole = userType === "user" ? appointment.nurseSpecialization : "Patient";
+    const providerName = appointment.nurseName ?? (appointment as any).deliveryName ?? "";
+    const providerImage = appointment.nurseImage ?? (appointment as any).deliveryImage ?? "";
+    const providerRole = appointment.nurseSpecialization ?? (appointment.providerType === "delivery" ? "Delivery" : "Provider");
+
+    const displayName = userType === "user" ? providerName : appointment.userName;
+    const displayImage = userType === "user" ? providerImage : appointment.userImage;
+    const displayRole = userType === "user" ? providerRole : "Patient";
 
     return (
         <TouchableOpacity
