@@ -67,9 +67,12 @@ const AppointmentScreen = () => {
 
   const filteredAppointments = appointments
     .filter((appointment) => {
+      const providerName = (appointment.nurseName ?? (appointment as any).deliveryName ?? "").toLowerCase();
+      const serviceType = (appointment.serviceType ?? "").toLowerCase();
+
       const matchesSearch =
-        appointment.nurseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        appointment.serviceType.toLowerCase().includes(searchQuery.toLowerCase());
+        providerName.includes(searchQuery.toLowerCase()) ||
+        serviceType.includes(searchQuery.toLowerCase());
 
       const matchesFilter =
         selectedFilter === "all" || appointment.status === selectedFilter;
@@ -84,10 +87,11 @@ const AppointmentScreen = () => {
     });
 
   const handleCancelAppointment = async (appointment: Appointment) => {
+    const providerName = appointment.nurseName ?? (appointment as any).deliveryName ?? "Provider";
     setConfirmModal({
       visible: true,
       title: "Cancel Appointment",
-      message: `Are you sure you want to cancel this appointment with ${appointment.nurseName}?`,
+      message: `Are you sure you want to cancel this appointment with ${providerName}?`,
       type: "danger",
       onConfirm: async () => {
         try {
