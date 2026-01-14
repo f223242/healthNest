@@ -2,6 +2,7 @@ import DeliveryFilterButtons from "@/component/DeliveryFilterButtons";
 import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
+import AppointmentService from "@/services/AppointmentService";
 import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -23,11 +24,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const RequestMedicine = () => {
   const router = useRouter();
-  const { getAllUsers } = useAuthContext();
+  const { getAllUsers, user } = useAuthContext();
   const [filter, setFilter] = useState<"all" | "available">("all");
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeAppointments, setActiveAppointments] = useState<Set<string>>(new Set());
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -46,6 +48,27 @@ const RequestMedicine = () => {
       }),
     ]).start();
   }, []);
+
+  // Listen to user's active delivery appointments
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = AppointmentService.listenToUserAppointments(
+      user.uid,
+      (appointments) => {
+        // Get delivery persons with accepted appointments
+        const activeDeliveryIds = new Set<string>();
+        appointments.forEach((apt) => {
+          if (apt.providerType === "delivery" && apt.status === "accepted" && apt.deliveryId) {
+            activeDeliveryIds.add(apt.deliveryId);
+          }
+        });
+        setActiveAppointments(activeDeliveryIds);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
 
   // Fetch delivery persons from Firebase with dynamic ratings
   const fetchDeliveryPersons = useCallback(async () => {
@@ -147,6 +170,24 @@ const RequestMedicine = () => {
     });
   };
 
+  const handleBook = (person: DeliveryPerson & { uid?: string }) => {
+    // Navigate to delivery profile where booking modal can be opened
+    router.push({
+      pathname: "/(protected)/delivery-profile",
+      params: {
+        id: person.uid || person.id.toString(),
+        name: person.name,
+        avatar: person.avatar,
+        rating: person.rating.toString(),
+        totalDeliveries: person.totalDeliveries.toString(),
+        isAvailable: person.isAvailable.toString(),
+        deliveryTime: person.deliveryTime,
+        distance: person.distance,
+        openBooking: "true",
+      },
+    });
+  };
+
   if (loading) {
     return (
       <View style={[styles.mainContainer, styles.loadingContainer]}>
@@ -217,6 +258,8 @@ const RequestMedicine = () => {
                 {...item}
                 onPress={() => handlePersonPress(item)}
                 onViewProfile={() => handleViewProfile(item)}
+                onBook={() => handleBook(item)}
+                hasActiveAppointment={activeAppointments.has((item as any).uid || "")}
               />
             )}
             contentContainerStyle={styles.listContent}

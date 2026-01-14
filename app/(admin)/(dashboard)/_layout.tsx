@@ -1,44 +1,11 @@
-import { colors, Fonts } from "@/constant/theme";
+import CustomTabBar from "@/component/CustomTabBar";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import FeedbackComplaintService, { Complaint } from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Badge component
-const TabBadge = ({ count }: { count: number }) => {
-  if (count === 0) return null;
-  return (
-    <View style={badgeStyles.badge}>
-      <Text style={badgeStyles.badgeText}>{count > 9 ? "9+" : count}</Text>
-    </View>
-  );
-};
-
-const badgeStyles = StyleSheet.create({
-  badge: {
-    position: "absolute",
-    top: -5,
-    right: -10,
-    backgroundColor: "#FF3B30",
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-  },
-});
 
 export default function DashboardLayout() {
-  const insets = useSafeAreaInsets();
   const { user } = useAuthContext();
   const [complaintsBadge, setComplaintsBadge] = useState(0);
   const [pendingVerificationsBadge, setPendingVerificationsBadge] = useState(0);
@@ -76,83 +43,47 @@ export default function DashboardLayout() {
     return () => unsubscribe();
   }, []);
 
+  // Define tabs for CustomTabBar
+  const adminTabs = [
+    {
+      name: "index",
+      label: "Dashboard",
+      icon: "grid-outline" as keyof typeof Ionicons.glyphMap,
+      iconFilled: "grid" as keyof typeof Ionicons.glyphMap,
+      badge: pendingVerificationsBadge,
+    },
+    {
+      name: "users",
+      label: "Users",
+      icon: "people-outline" as keyof typeof Ionicons.glyphMap,
+      iconFilled: "people" as keyof typeof Ionicons.glyphMap,
+    },
+    {
+      name: "complaints",
+      label: "Complaints",
+      icon: "chatbox-ellipses-outline" as keyof typeof Ionicons.glyphMap,
+      iconFilled: "chatbox-ellipses" as keyof typeof Ionicons.glyphMap,
+      badge: complaintsBadge,
+    },
+    {
+      name: "settings",
+      label: "Settings",
+      icon: "settings-outline" as keyof typeof Ionicons.glyphMap,
+      iconFilled: "settings" as keyof typeof Ionicons.glyphMap,
+    },
+  ];
+
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} tabs={adminTabs} />}
       screenOptions={{
-        tabBarActiveTintColor: '#1E293B',
-        tabBarInactiveTintColor: colors.gray,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: Fonts.semiBold,
-          marginBottom: 5,
-        },
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopLeftRadius: 25,
-          borderTopRightRadius: 25,
-          borderTopWidth: 0,
-          elevation: 20,
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: -5 },
-          shadowOpacity: 0.15,
-          shadowRadius: 15,
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom ? insets.bottom : 12,
-          height: 70,
-          paddingBottom: insets.bottom ? insets.bottom / 2 : 10,
-        },
-        tabBarItemStyle: { paddingVertical: 5 },
         headerShown: false,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          headerShown: false,
-          title: "Dashboard",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View>
-              <Ionicons name={focused ? "grid" : "grid-outline"} size={size} color={color} />
-              <TabBadge count={pendingVerificationsBadge} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="users"
-        options={{
-          headerShown: false,
-          title: "Users",
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="complaints"
-        options={{
-          headerShown: false,
-          title: "Complaints",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View>
-              <Ionicons name={focused ? "chatbox-ellipses" : "chatbox-ellipses-outline"} size={size} color={color} />
-              <TabBadge count={complaintsBadge} />
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          headerShown: false,
-          title: "Settings",
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? "settings" : "settings-outline"} size={size} color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="users" />
+      <Tabs.Screen name="complaints" />
+      <Tabs.Screen name="settings" />
       {/* Hidden screens - accessible from dashboard but not in tab bar */}
       <Tabs.Screen
         name="verifications"

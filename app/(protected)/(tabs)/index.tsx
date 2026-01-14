@@ -96,7 +96,7 @@ const index = () => {
     },
     {
       id: 2,
-      title: "Medicine",
+      title: "Medicine Delivery",
       description: "Order medications",
       icon: <Ionicons name="medkit" size={28} color={colors.primary} />,
       color: "#FFF4E6",
@@ -113,7 +113,7 @@ const index = () => {
     {
       id: 4,
       title: "AI Assistant",
-      description: "Chat with Tora",
+      description: "Chat with AI Assistant",
       icon: <Ionicons name="chatbubbles" size={28} color={colors.primary} />,
       color: "#E6F3FF",
       onPress: handleAIAssistant,
