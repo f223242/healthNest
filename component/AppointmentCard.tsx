@@ -13,21 +13,29 @@ import {
 
 interface AppointmentCardProps {
     appointment: Appointment;
-    userType: "user" | "nurse"; // To show different views
+    userType?: "user" | "nurse"; // To show different views (legacy support)
+    isProvider?: boolean; // New: true if viewing as provider (nurse/delivery)
+    providerType?: "nurse" | "delivery" | "lab"; // New: type of provider
     onAccept?: () => void;
     onReject?: () => void;
     onCancel?: () => void;
+    onComplete?: () => void;
     onPress?: () => void;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({
     appointment,
     userType,
+    isProvider,
+    providerType,
     onAccept,
     onReject,
     onCancel,
+    onComplete,
     onPress,
 }) => {
+    // Determine if viewing as provider (supports both old and new interface)
+    const isProviderView = isProvider ?? (userType === "nurse");
     const getStatusColor = (status: AppointmentStatus) => {
         switch (status) {
             case "pending":
@@ -80,9 +88,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         return `${displayHour}:${minutes} ${ampm}`;
     };
 
-    const displayName = userType === "user" ? appointment.nurseName : appointment.userName;
-    const displayImage = userType === "user" ? appointment.nurseImage : appointment.userImage;
-    const displayRole = userType === "user" ? appointment.nurseSpecialization : "Patient";
+    const providerName = appointment.nurseName ?? (appointment as any).deliveryName ?? "";
+    const providerImage = appointment.nurseImage ?? (appointment as any).deliveryImage ?? "";
+    const providerRole = appointment.nurseSpecialization ?? (appointment.providerType === "delivery" ? "Delivery" : "Provider");
+
+    const displayName = isProviderView ? appointment.userName : providerName;
+    const displayImage = isProviderView ? appointment.userImage : providerImage;
+    const displayRole = isProviderView ? "Patient" : providerRole;
 
     return (
         <TouchableOpacity
@@ -173,8 +185,8 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                         </View>
                     )}
 
-                    {/* Action Buttons for Nurse */}
-                    {userType === "nurse" && appointment.status === "pending" && (
+                    {/* Action Buttons for Provider (Nurse/Delivery) */}
+                    {isProviderView && appointment.status === "pending" && (
                         <View style={styles.actionsContainer}>
                             <TouchableOpacity
                                 style={[styles.actionButton, styles.rejectButton]}
@@ -190,6 +202,19 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                             >
                                 <Ionicons name="checkmark" size={18} color={colors.white} />
                                 <Text style={styles.acceptButtonText}>Accept</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* Complete Button for Provider with accepted appointments */}
+                    {isProviderView && appointment.status === "accepted" && onComplete && (
+                        <View style={styles.actionsContainer}>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.acceptButton, { flex: 1 }]}
+                                onPress={onComplete}
+                            >
+                                <Ionicons name="checkmark-done" size={18} color={colors.white} />
+                                <Text style={styles.acceptButtonText}>Mark Complete</Text>
                             </TouchableOpacity>
                         </View>
                     )}

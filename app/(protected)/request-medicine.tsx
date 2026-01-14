@@ -3,31 +3,28 @@ import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCa
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import FeedbackComplaintService from "@/services/FeedbackComplaintService";
-import {
-    getRecommendedDeliveryPersons,
-    isDeliveryPersonRecommended,
-} from "@/utils/deliveryRecommendation";
+
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    FlatList,
-    RefreshControl,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const RequestMedicine = () => {
   const router = useRouter();
   const { getAllUsers } = useAuthContext();
-  const [filter, setFilter] = useState<"all" | "available" | "recommended">("all");
+  const [filter, setFilter] = useState<"all" | "available">("all");
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -113,28 +110,15 @@ const RequestMedicine = () => {
     fetchDeliveryPersons();
   }, [fetchDeliveryPersons]);
 
-  // Get recommended list (Top 3 by totalDeliveries)
-  const recommendedList = useMemo(
-    () => getRecommendedDeliveryPersons(deliveryPersons),
-    [deliveryPersons]
-  );
+
 
   // Filter based on active filter
   const filteredPersons = useMemo(() => {
-    console.log("Filter:", filter, "Count:", deliveryPersons.length);
-    switch (filter) {
-      case "available":
-        const available = deliveryPersons.filter((p) => p.isAvailable);
-        console.log("Available count:", available.length);
-        return available;
-      case "recommended":
-        console.log("Recommended count:", recommendedList.length);
-        return recommendedList;
-      case "all":
-      default:
-        return deliveryPersons;
+    if (filter === "available") {
+      return deliveryPersons.filter((p) => p.isAvailable);
     }
-  }, [filter, deliveryPersons, recommendedList]);
+    return deliveryPersons;
+  }, [filter, deliveryPersons]);
 
   const handlePersonPress = (person: DeliveryPerson & { uid?: string }) => {
     router.push({
@@ -225,16 +209,12 @@ const RequestMedicine = () => {
           </Text>
 
           {/* Delivery List */}
-          <FlatList
+            <FlatList
             data={filteredPersons}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
               <DeliveryPersonCard
                 {...item}
-                isRecommended={isDeliveryPersonRecommended(
-                  item,
-                  recommendedList
-                )}
                 onPress={() => handlePersonPress(item)}
                 onViewProfile={() => handleViewProfile(item)}
               />
@@ -255,8 +235,6 @@ const RequestMedicine = () => {
                     ? "No delivery persons registered"
                     : filter === "available"
                     ? "No available delivery persons"
-                    : filter === "recommended"
-                    ? "No recommended delivery persons"
                     : "No delivery persons found"}
                 </Text>
               </View>

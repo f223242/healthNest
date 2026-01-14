@@ -1,15 +1,18 @@
 import AppButton from "@/component/AppButton";
+import BookAppointmentModal from "@/component/BookAppointmentModal";
 import FeaturesGrid, { FeatureItem } from "@/component/FeaturesGrid";
 import ProviderReviews from "@/component/ProviderReviews";
 import StatsRow from "@/component/StatsRow";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import AppointmentService from "@/services/AppointmentService";
 import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
     Animated,
     Image,
@@ -26,6 +29,9 @@ const DeliveryProfile = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const toast = useToast();
+  const { user } = useAuthContext();
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -97,15 +103,76 @@ const DeliveryProfile = () => {
     return delivery.isAvailable ? colors.success : colors.gray;
   };
 
-  const handleChat = () => {
-    router.push({
-      pathname: "/(protected)/delivery-chat-detail",
-      params: {
+  const handleChat = async () => {
+    if (!user) {
+      toast.show({ type: "error", text1: "Login Required", text2: "Please login to chat" });
+      return;
+    }
+
+    try {
+      const hasAccepted = await AppointmentService.checkAcceptedAppointmentForDelivery(user.uid, delivery.id);
+      if (hasAccepted) {
+        router.push({
+          pathname: "/(protected)/delivery-chat-detail",
+          params: {
+            deliveryId: delivery.id,
+            deliveryName: delivery.name,
+            deliveryAvatar: delivery.avatar,
+          },
+        });
+      } else {
+        toast.show({ type: "error", text1: "Chat Unavailable", text2: "You can only chat with this delivery person after your request is accepted." });
+      }
+    } catch (error) {
+      console.error("Error checking chat permission:", error);
+      toast.show({ type: "error", text1: "Error", text2: "Failed to verify chat permission" });
+    }
+  };
+
+  const handleBookNow = () => {
+    if (!user) {
+      toast.show({ type: "error", text1: "Login Required", text2: "Please login to request delivery" });
+      return;
+    }
+    setShowBookingModal(true);
+  };
+
+  const handleConfirmBooking = async (appointmentData: { date: string; time: string; serviceType: string; notes: string; address: string; duration: string; }) => {
+    try {
+      setIsBooking(true);
+      const isAvailable = await AppointmentService.checkDeliveryAvailability(delivery.id, appointmentData.date, appointmentData.time);
+
+      if (!isAvailable) {
+        toast.show({ type: "error", text1: "Time Slot Unavailable", text2: "Delivery person is already booked for this time." });
+        setIsBooking(false);
+        return;
+      }
+
+      await AppointmentService.createAppointment({
+        userId: user!.uid,
         deliveryId: delivery.id,
+        userName: `${(user as any).firstname} ${(user as any).lastname}`,
         deliveryName: delivery.name,
-        deliveryAvatar: delivery.avatar,
-      },
-    });
+        userImage: (user!.additionalInfo as any)?.profileImage || "",
+        deliveryImage: delivery.avatar || "",
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
+        status: "pending",
+        serviceType: appointmentData.serviceType,
+        notes: appointmentData.notes || "",
+        address: appointmentData.address,
+        providerType: "delivery",
+      });
+
+      setShowBookingModal(false);
+      toast.success("Delivery Requested Successfully");
+      setTimeout(() => router.push("/(protected)/(tabs)/appointment"), 1500);
+    } catch (error) {
+      toast.error("Failed to request delivery");
+      console.error(error);
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
@@ -193,13 +260,13 @@ const DeliveryProfile = () => {
                   },
                   { 
                     type: "number",
-                    value: `${delivery.totalDeliveries}+`, 
+                    value: loading ? "..." : `${ratingStats?.totalReviews || 0}+`, 
                     label: "Deliveries"
                   },
                   { 
                     type: "number",
-                    value: delivery.deliveryTime, 
-                    label: "Avg. Time"
+                    value: delivery.distance || "N/A", 
+                    label: "Location"
                   },
                 ]}
               />
@@ -255,18 +322,35 @@ const DeliveryProfile = () => {
               providerName={delivery.name}
             />
 
+            <BookAppointmentModal
+              visible={showBookingModal}
+              onClose={() => setShowBookingModal(false)}
+              providerName={delivery.name}
+              providerType="delivery"
+              onBook={handleConfirmBooking}
+            />
+
             <View style={{ height: 100 }} />
           </Animated.View>
         </ScrollView>
 
         {/* Bottom Action Bar */}
         <View style={styles.bottomBar}>
-          <AppButton
-            title={delivery.isAvailable ? "Start Chat" : "Currently Unavailable"}
-            onPress={handleChat}
-            containerStyle={styles.chatButton}
-            disabled={!delivery.isAvailable}
-          />
+          <View style={styles.actionRow}>
+            <AppButton
+              title={"Start Chat"}
+              onPress={handleChat}
+              containerStyle={styles.chatButton}
+              disabled={!delivery.isAvailable}
+            />
+
+            <AppButton
+              title={isBooking ? "Requesting..." : (delivery.isAvailable ? "Request Delivery" : "Currently Unavailable")}
+              onPress={handleBookNow}
+              containerStyle={styles.bookButton}
+              disabled={!delivery.isAvailable || isBooking}
+            />
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -485,5 +569,14 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     flex: 1,
+  },
+  bookButton: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  actionRow: {
+    flexDirection: "row",
+    width: "100%",
+    padding: 12,
   },
 });

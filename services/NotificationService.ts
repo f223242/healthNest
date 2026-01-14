@@ -181,7 +181,7 @@ class NotificationService {
     appointmentId: string,
     providerName: string,
     appointmentTime: Date,
-    appointmentType: "nurse" | "lab"
+    appointmentType: "nurse" | "lab" | "delivery"
   ): Promise<string | null> {
     try {
       // Calculate 5 minutes before appointment
