@@ -4,8 +4,8 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface DeliveryFilterButtonsProps {
-  onFilterChange: (filter: "all" | "available" | "recommended") => void;
-  activeFilter: "all" | "available" | "recommended";
+  onFilterChange: (filter: "all" | "available") => void;
+  activeFilter: "all" | "available";
 }
 
 const DeliveryFilterButtons: React.FC<DeliveryFilterButtonsProps> = ({
@@ -58,31 +58,6 @@ const DeliveryFilterButtons: React.FC<DeliveryFilterButtonsProps> = ({
           numberOfLines={1}
         >
           Available
-        </Text>
-      </TouchableOpacity>
-
-      {/* Button 3: RECOMMENDED */}
-      <TouchableOpacity
-        style={[
-          styles.button,
-          activeFilter === "recommended" && styles.buttonActive,
-        ]}
-        onPress={() => onFilterChange("recommended")}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name="star"
-          size={12}
-          color={activeFilter === "recommended" ? colors.white : colors.primary}
-        />
-        <Text
-          style={[
-            styles.buttonText,
-            activeFilter === "recommended" && styles.buttonTextActive,
-          ]}
-          numberOfLines={1}
-        >
-          Recommended
         </Text>
       </TouchableOpacity>
     </View>

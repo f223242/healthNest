@@ -1,80 +1,65 @@
-import { colors, Fonts } from '@/constant/theme';
+import CustomTabBar from '@/component/CustomTabBar';
 import { useAuthContext } from '@/hooks/useFirebaseAuth';
-import { Ionicons } from '@expo/vector-icons';
+import AppointmentService from '@/services/AppointmentService';
+import ChatService from '@/services/ChatService';
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from 'react';
 
 export default function DeliveryTabsLayout() {
-  const insets = useSafeAreaInsets();
-  const { logout } = useAuthContext();
+  const { user } = useAuthContext();
+  const [chatBadge, setChatBadge] = useState(0);
+  const [appointmentBadge, setAppointmentBadge] = useState(0);
+
+  // Listen to chats
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = ChatService.listenToConversations(
+      user.uid,
+      (conversations) => {
+        const count = conversations.reduce((acc, curr) => acc + (curr.unreadCount || 0), 0);
+        setChatBadge(count);
+      },
+      true
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Listen to pending appointments
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = AppointmentService.listenToDeliveryAppointments(
+      user.uid,
+      (appointments) => {
+        const pendingCount = appointments.filter(a => a.status === "pending").length;
+        setAppointmentBadge(pendingCount);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Tab configuration for custom tab bar
+  const tabs = [
+    { name: "index", label: "Home", icon: "home-outline" as const, iconFilled: "home" as const },
+    { name: "requests", label: "Requests", icon: "clipboard-outline" as const, iconFilled: "clipboard" as const, badge: appointmentBadge },
+    { name: "delivery-chats", label: "Chats", icon: "chatbubbles-outline" as const, iconFilled: "chatbubbles" as const, badge: chatBadge },
+    { name: "profile", label: "Profile", icon: "person-outline" as const, iconFilled: "person" as const },
+  ];
 
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} tabs={tabs} />}
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: Fonts.semiBold,
-          marginBottom: 5,
-        },
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopLeftRadius: 25,
-          borderTopRightRadius: 25,
-          borderTopWidth: 0,
-          elevation: 20,
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: -5 },
-          shadowOpacity: 0.15,
-          shadowRadius: 15,
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom ? insets.bottom : 12,
-          height: 70,
-          paddingBottom: insets.bottom ? insets.bottom / 2 : 10,
-        },
-        tabBarItemStyle: { paddingVertical: 5 },
         headerShown: false,
       }}
     >
-      {/* Dashboard */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          headerShown: false,
-          tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
-          ),
-        }}
-      />
-
-      {/* Chats */}
-      <Tabs.Screen
-        name="delivery-chats"
-        options={{
-          headerShown: false,
-          tabBarLabel: 'Chats',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} />
-          ),
-        }}
-      />
-
-      {/* Profile */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          headerShown: false,
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="requests" />
+      <Tabs.Screen name="delivery-chats" />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }

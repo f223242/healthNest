@@ -5,14 +5,17 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Bubble, GiftedChat, IMessage, InputToolbar, Send } from 'react-native-gifted-chat';
+import * as Animatable from 'react-native-animatable';
+import { Bubble, Day, GiftedChat, IMessage, InputToolbar, Send, Time } from 'react-native-gifted-chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -249,32 +252,39 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         wrapperStyle={{
           right: {
             backgroundColor: colors.primary,
-            borderBottomRightRadius: 4,
-            borderTopRightRadius: 16,
-            borderTopLeftRadius: 16,
-            borderBottomLeftRadius: 16,
-            padding: 2,
-            marginBottom: 2,
+            borderBottomRightRadius: 6,
+            borderTopRightRadius: 18,
+            borderTopLeftRadius: 18,
+            borderBottomLeftRadius: 18,
+            paddingVertical: 2,
+            paddingHorizontal: 4,
+            marginBottom: 4,
+            marginRight: 8,
             shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 3,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.25,
+            shadowRadius: 5,
+            elevation: 4,
+            maxWidth: '80%',
           },
           left: {
             backgroundColor: colors.white,
-            borderBottomLeftRadius: 4,
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            borderBottomRightRadius: 16,
-            padding: 2,
-            marginBottom: 2,
+            borderBottomLeftRadius: 6,
+            borderTopLeftRadius: 18,
+            borderTopRightRadius: 18,
+            borderBottomRightRadius: 18,
+            paddingVertical: 2,
+            paddingHorizontal: 4,
+            marginBottom: 4,
+            marginLeft: 4,
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-            elevation: 1,
-            marginLeft: -4,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 2,
+            maxWidth: '80%',
+            borderWidth: 1,
+            borderColor: '#F0F0F0',
           },
         }}
         textStyle={{
@@ -291,6 +301,52 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
             lineHeight: 22,
           },
         }}
+        timeTextStyle={{
+          right: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 10, fontFamily: Fonts.regular },
+          left: { color: colors.gray, fontSize: 10, fontFamily: Fonts.regular },
+        }}
+      />
+    );
+  };
+
+  const renderAvatar = (props: any) => {
+    const { currentMessage } = props;
+    const avatar = currentMessage?.user?.avatar;
+    
+    if (currentMessage?.user?._id === 1) {
+      // Don't show avatar for current user
+      return null;
+    }
+
+    return (
+      <View style={styles.avatarContainer}>
+        {typeof avatar === 'number' ? (
+          <Image source={avatar} style={styles.avatar} />
+        ) : avatar ? (
+          <Image source={{ uri: avatar }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.defaultAvatar]}>
+            <Ionicons name="person" size={18} color={colors.white} />
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderDay = (props: any) => {
+    return (
+      <Day
+        {...props}
+        textStyle={styles.dayText}
+        wrapperStyle={styles.dayWrapper}
+      />
+    );
+  };
+
+  const renderTime = (props: any) => {
+    return (
+      <Time
+        {...props}
         timeTextStyle={{
           right: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 10, fontFamily: Fonts.regular },
           left: { color: colors.gray, fontSize: 10, fontFamily: Fonts.regular },
@@ -347,6 +403,23 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
     );
   };
 
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Animatable.View animation="fadeIn" delay={300}>
+        <LinearGradient
+          colors={[colors.lightGreen, colors.lightGreen]}
+          style={styles.emptyIconContainer}
+        >
+          <Ionicons name="chatbubbles-outline" size={48} color={colors.primary} />
+        </LinearGradient>
+        <Text style={styles.emptyTitle}>Start a Conversation</Text>
+        <Text style={styles.emptySubtitle}>
+          {mode === 'real' ? 'Say hello to get started!' : 'Ask me anything about your health!'}
+        </Text>
+      </Animatable.View>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -363,10 +436,18 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
         renderBubble={renderBubble}
         renderSend={renderSend}
         renderInputToolbar={renderInputToolbar}
-        isTyping={mode === 'real' ? false : isTyping} // Or pass prop if real typing status
+        renderAvatar={renderAvatar}
+        renderDay={renderDay}
+        renderTime={renderTime}
+        renderChatEmpty={renderEmpty}
+        isTyping={mode === 'real' ? false : isTyping}
         messagesContainerStyle={styles.messagesContainer}
         minInputToolbarHeight={70}
-        textInputProps={{ style: { color: '#000' } }}
+        textInputProps={{ 
+          style: styles.textInput,
+          placeholderTextColor: colors.gray,
+          placeholder: mode === 'real' ? 'Type a message...' : 'Ask Tora anything...',
+        }}
       />
     </KeyboardAvoidingView>
   );
@@ -375,36 +456,49 @@ const ToraAIChat: React.FC<ToraAIChatProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F5F7FA',
   },
   innerContainer: {
     flex: 1,
   },
   messagesContainer: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F5F7FA',
     paddingBottom: 20,
+    paddingHorizontal: 8,
   },
   inputToolbar: {
     backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#EFEFEF',
+    borderTopWidth: 0,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    paddingBottom: Platform.OS === 'android' ? 12 : 8,
+    paddingVertical: 10,
+    paddingBottom: Platform.OS === 'android' ? 14 : 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 5,
   },
   inputPrimary: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 24,
-    borderWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: '#E8ECF0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 50,
+  },
+  textInput: {
+    color: colors.text,
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    lineHeight: 20,
+    paddingTop: Platform.OS === 'ios' ? 8 : 4,
   },
   attachButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.lightGreen,
@@ -420,31 +514,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 5,
   },
   actionButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.lightGreen,
-    marginRight: 4,
+    marginRight: 6,
   },
   recordingButton: {
     backgroundColor: '#FFE5E5',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#FF4444',
+  },
+  avatarContainer: {
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  defaultAvatar: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayWrapper: {
+    marginVertical: 16,
+  },
+  dayText: {
+    color: colors.gray,
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    backgroundColor: 'transparent',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    transform: [{ scaleY: -1 }],
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  scrollToBottomContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E8ECF0',
   },
 });
 

@@ -792,6 +792,28 @@
   dependencies:
     "@types/hammerjs" "^2.0.36"
 
+"@emnapi/core@^1.4.3":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.8.1.tgz#fd9efe721a616288345ffee17a1f26ac5dd01349"
+  integrity sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==
+  dependencies:
+    "@emnapi/wasi-threads" "1.1.0"
+    tslib "^2.4.0"
+
+"@emnapi/runtime@^1.4.3":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.8.1.tgz#550fa7e3c0d49c5fb175a116e8cd70614f9a22a5"
+  integrity sha512-mehfKSMWjjNol8659Z8KxEMrdSJDDot5SXMq00dM8BN4o+CLNXQ0xH2V7EchNHV4RmbZLmmPdEaXZc5H2FXmDg==
+  dependencies:
+    tslib "^2.4.0"
+
+"@emnapi/wasi-threads@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/wasi-threads/-/wasi-threads-1.1.0.tgz#60b2102fddc9ccb78607e4a3cf8403ea69be41bf"
+  integrity sha512-WI0DdZ8xFSbgMjR1sFsKABJ/C5OnRrjT06JXbZKexJGrDuPTzZdDYfFlsgcCXCyf+suG5QU2e/y1Wo2V/OapLQ==
+  dependencies:
+    tslib "^2.4.0"
+
 "@emotion/is-prop-valid@^0.8.2":
   version "0.8.8"
   resolved "https://registry.npmjs.org/@emotion/is-prop-valid/-/is-prop-valid-0.8.8.tgz"
@@ -2434,7 +2456,7 @@
     sf-symbols-typescript "^2.1.0"
     warn-once "^0.1.1"
 
-"@react-navigation/native@^7.1.19", "@react-navigation/native@^7.1.26", "@react-navigation/native@^7.1.8":
+"@react-navigation/native@^7.1.26", "@react-navigation/native@^7.1.8":
   version "7.1.26"
   resolved "https://registry.npmjs.org/@react-navigation/native/-/native-7.1.26.tgz"
   integrity sha512-RhKmeD0E2ejzKS6z8elAfdfwShpcdkYY8zJzvHYLq+wv183BBcElTeyMLcIX6wIn7QutXeI92Yi21t7aUWfqNQ==
@@ -2683,7 +2705,7 @@
   dependencies:
     undici-types "~7.16.0"
 
-"@types/react@*", "@types/react@^19.1.0", "@types/react@~19.1.0":
+"@types/react@~19.1.0":
   version "19.1.17"
   resolved "https://registry.npmjs.org/@types/react/-/react-19.1.17.tgz"
   integrity sha512-Qec1E3mhALmaspIrhWt9jkQMNdw6bReVu64mjvhbhq2NFPftLPVr+l1SZgmw/66WwBNpDh7ao5AT6gF5v41PFA==
@@ -4418,14 +4440,6 @@ expo-linear-gradient@^15.0.8:
   resolved "https://registry.npmjs.org/expo-linear-gradient/-/expo-linear-gradient-15.0.8.tgz"
   integrity sha512-V2d8Wjn0VzhPHO+rrSBtcl+Fo+jUUccdlmQ6OoL9/XQB7Qk3d9lYrqKDJyccwDxmQT10JdST3Tmf2K52NLc3kw==
 
-expo-linking@^8.0.8, expo-linking@~8.0.8:
-  version "8.0.8"
-  resolved "https://registry.npmjs.org/expo-linking/-/expo-linking-8.0.8.tgz"
-  integrity sha512-MyeMcbFDKhXh4sDD1EHwd0uxFQNAc6VCrwBkNvvvufUsTYFq3glTA9Y8a+x78CPpjNqwNAamu74yIaIz7IEJyg==
-  dependencies:
-    expo-constants "~18.0.8"
-    invariant "^2.2.4"
-
 expo-linking@~8.0.10:
   version "8.0.10"
   resolved "https://registry.npmjs.org/expo-linking/-/expo-linking-8.0.10.tgz"
@@ -6058,7 +6072,7 @@ metro-resolver@0.83.3:
   dependencies:
     flow-enums-runtime "^0.0.6"
 
-metro-runtime@^0.83.1, metro-runtime@0.83.2:
+metro-runtime@0.83.2, metro-runtime@^0.83.1:
   version "0.83.2"
   resolved "https://registry.npmjs.org/metro-runtime/-/metro-runtime-0.83.2.tgz"
   integrity sha512-nnsPtgRvFbNKwemqs0FuyFDzXLl+ezuFsUXDbX8o0SXOfsOPijqiQrf3kuafO1Zx1aUWf4NOrKJMAQP5EEHg9A==
@@ -6074,7 +6088,7 @@ metro-runtime@0.83.3:
     "@babel/runtime" "^7.25.0"
     flow-enums-runtime "^0.0.6"
 
-metro-source-map@^0.83.1, metro-source-map@0.83.2:
+metro-source-map@0.83.2, metro-source-map@^0.83.1:
   version "0.83.2"
   resolved "https://registry.npmjs.org/metro-source-map/-/metro-source-map-0.83.2.tgz"
   integrity sha512-5FL/6BSQvshIKjXOennt9upFngq2lFvDakZn5LfauIVq8+L4sxXewIlSTcxAtzbtjAIaXeOSVMtCJ5DdfCt9AA==
@@ -7169,7 +7183,7 @@ react-native-zoom-reanimated@^1.4.10:
   resolved "https://registry.npmjs.org/react-native-zoom-reanimated/-/react-native-zoom-reanimated-1.4.10.tgz"
   integrity sha512-5UPEGv3UDcH21jHJSIu87CxLGMrcdGS1Hx6EP7eBbLYf0XEOHL3F9v0p5iSuM31exuBjrNQZsDouNcPQW5liMQ==
 
-react-native@*, "react-native@^0.0.0-0 || >=0.65 <1.0", react-native@^0.81.4, react-native@>=0.42.0, react-native@>=0.48.4, react-native@>=0.59.0, react-native@>=0.65.0:
+react-native@^0.81.4:
   version "0.81.4"
   resolved "https://registry.npmjs.org/react-native/-/react-native-0.81.4.tgz"
   integrity sha512-bt5bz3A/+Cv46KcjV0VQa+fo7MKxs17RCcpzjftINlen4ZDUl0I6Ut+brQ2FToa5oD0IB0xvQHfmsg2EDqsZdQ==
@@ -7241,7 +7255,7 @@ react-style-singleton@^2.2.2, react-style-singleton@^2.2.3:
     get-nonce "^1.0.0"
     tslib "^2.0.0"
 
-react@*, "react@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react@^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc", "react@^18.0.0 || ^19.0.0", react@^19.1.0, "react@>= 18.2.0", react@>=16.8, "react@>=16.8 || ^17.0.0 || ^18.0.0", react@>=16.8.0, react@>=17.0.0, react@>=18.0.0:
+react@^19.1.0:
   version "19.1.0"
   resolved "https://registry.npmjs.org/react/-/react-19.1.0.tgz"
   integrity sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==

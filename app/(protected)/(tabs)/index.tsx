@@ -1,5 +1,3 @@
-import { SearchIcon } from "@/assets/svg";
-import FormInput from "@/component/FormInput";
 import NotificationIconWithBadge from "@/component/NotificationIconWithBadge";
 import PremiumActionCard from "@/component/PremiumActionCard";
 import SectionHeader from "@/component/SectionHeader";
@@ -18,7 +16,6 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 const index = () => {
   const router = useRouter();
   const { user, getAllUsers } = useAuthContext();
-  const [searchQuery, setSearchQuery] = useState("");
   const [serviceStats, setServiceStats] = useState({
     nurses: 0,
     labs: 0,
@@ -99,7 +96,7 @@ const index = () => {
     },
     {
       id: 2,
-      title: "Medicine",
+      title: "Medicine Delivery",
       description: "Order medications",
       icon: <Ionicons name="medkit" size={28} color={colors.primary} />,
       color: "#FFF4E6",
@@ -116,7 +113,7 @@ const index = () => {
     {
       id: 4,
       title: "AI Assistant",
-      description: "Chat with Tora",
+      description: "Chat with AI Assistant",
       icon: <Ionicons name="chatbubbles" size={28} color={colors.primary} />,
       color: "#E6F3FF",
       onPress: handleAIAssistant,
@@ -147,6 +144,33 @@ const index = () => {
             }
             showGradientBg={false}
           />
+
+          {/* Stats in Header */}
+          <View style={styles.headerStats}>
+            <View style={styles.headerStatItem}>
+              <View style={styles.headerStatIcon}>
+                <Ionicons name="people" size={18} color={colors.white} />
+              </View>
+              <Text style={styles.headerStatValue}>{serviceStats.nurses}</Text>
+              <Text style={styles.headerStatLabel}>Nurses</Text>
+            </View>
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <View style={styles.headerStatIcon}>
+                <Ionicons name="flask" size={18} color={colors.white} />
+              </View>
+              <Text style={styles.headerStatValue}>{serviceStats.labs}</Text>
+              <Text style={styles.headerStatLabel}>Labs</Text>
+            </View>
+            <View style={styles.headerStatDivider} />
+            <View style={styles.headerStatItem}>
+              <View style={styles.headerStatIcon}>
+                <Ionicons name="bicycle" size={18} color={colors.white} />
+              </View>
+              <Text style={styles.headerStatValue}>{serviceStats.delivery}</Text>
+              <Text style={styles.headerStatLabel}>Delivery</Text>
+            </View>
+          </View>
         </LinearGradient>
       </View>
 
@@ -165,19 +189,8 @@ const index = () => {
           />
         }
       >
-        {/* Search Bar */}
-        <Animatable.View animation="fadeInUp" delay={200}>
-          <FormInput
-            LeftIcon={SearchIcon}
-            placeholder="Search for services, labs, medicines..."
-            containerStyle={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </Animatable.View>
-
         {/* Quick Services Grid */}
-        <Animatable.View animation="fadeInUp" delay={300}>
+        <Animatable.View animation="fadeInUp" delay={200}>
           <SectionHeader
             title="Quick Services"
             icon="grid"
@@ -376,17 +389,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  searchInput: {
-    marginHorizontal: sizes.paddingHorizontal,
-    marginBottom: 20,
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
   servicesGrid: {
     flexDirection: "row",

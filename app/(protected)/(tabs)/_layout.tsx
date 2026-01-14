@@ -1,34 +1,11 @@
-import {
-  AppointmentFilled,
-  AppointmentUnfilled,
-  HomeFilled,
-  HomeUnfilled,
-  MedicalRecordFilled,
-  MedicalRecordUnfilled,
-  ProfileFilled,
-  ProfileUnfilled,
-} from "@/assets/svg";
-import { colors, Fonts } from "@/constant/theme";
+import CustomTabBar from "@/component/CustomTabBar";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import AppointmentService, { Appointment } from "@/services/AppointmentService";
 import NotificationService from "@/services/NotificationService";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Badge component
-const TabBadge = ({ count }: { count: number }) => {
-  if (count === 0) return null;
-  return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>{count > 9 ? "9+" : count}</Text>
-    </View>
-  );
-};
 
 const _layout = () => {
-  const insets = useSafeAreaInsets();
   const { user } = useAuthContext();
   const [appointmentBadge, setAppointmentBadge] = useState(0);
   const [notificationBadge, setNotificationBadge] = useState(0);
@@ -66,112 +43,34 @@ const _layout = () => {
     return () => unsubscribe();
   }, [user]);
 
+  // Tab configuration for custom tab bar
+  const tabs = [
+    { name: "index", label: "Home", icon: "home-outline" as const, iconFilled: "home" as const },
+    { name: "appointment", label: "Bookings", icon: "calendar-outline" as const, iconFilled: "calendar" as const, badge: appointmentBadge },
+    { name: "madical-record", label: "Records", icon: "document-text-outline" as const, iconFilled: "document-text" as const },
+    { name: "profile", label: "Profile", icon: "person-outline" as const, iconFilled: "person" as const },
+  ];
+
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} tabs={tabs} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontFamily: Fonts.semiBold,
-          marginTop: -2,
-        },
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopLeftRadius: 25,
-          borderTopRightRadius: 25,
-          borderTopWidth: 0,
-          elevation: 20,
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: -5 },
-          shadowOpacity: 0.15,
-          shadowRadius: 15,
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: insets.bottom ? insets.bottom : 12,
-          height: 75,
-          paddingTop: 8,
-          paddingBottom: insets.bottom ? insets.bottom / 2 : 12,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 4,
-          height: 60,
-        },
-        tabBarIconStyle: {
-          marginBottom: 2,
-        },
       }}
     >
       {/* HOME */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarLabel: "Home",
-          tabBarIcon: ({ focused }) =>
-            focused ? <HomeFilled /> : <HomeUnfilled />,
-        }}
-      />
+      <Tabs.Screen name="index" />
 
       {/* APPOINTMENTS */}
-      <Tabs.Screen
-        name="appointment"
-        options={{
-          tabBarLabel: "Bookings",
-          tabBarIcon: ({ focused }) => (
-            <View>
-              {focused ? <AppointmentFilled /> : <AppointmentUnfilled />}
-              <TabBadge count={appointmentBadge} />
-            </View>
-          ),
-        }}
-      />
+      <Tabs.Screen name="appointment" />
 
       {/* MEDICAL RECORDS */}
-      <Tabs.Screen
-        name="madical-record"
-        options={{
-          tabBarLabel: "Records",
-          tabBarIcon: ({ focused }) =>
-            focused ? <MedicalRecordFilled /> : <MedicalRecordUnfilled />,
-        }}
-      />
+      <Tabs.Screen name="madical-record" />
 
       {/* PROFILE */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarLabel: "Profile",
-          tabBarIcon: ({ focused }) =>
-            focused ? <ProfileFilled /> : <ProfileUnfilled />,
-        }}
-      />
-
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 };
 
 export default _layout;
-
-const styles = StyleSheet.create({
-  badge: {
-    position: "absolute",
-    top: -5,
-    right: -10,
-    backgroundColor: "#FF3B30",
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
-  badgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-  },
-});
