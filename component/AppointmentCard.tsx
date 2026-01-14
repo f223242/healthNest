@@ -92,9 +92,9 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     const providerImage = appointment.nurseImage ?? (appointment as any).deliveryImage ?? "";
     const providerRole = appointment.nurseSpecialization ?? (appointment.providerType === "delivery" ? "Delivery" : "Provider");
 
-    const displayName = isProviderView ? appointment.userName : providerName;
-    const displayImage = isProviderView ? appointment.userImage : providerImage;
-    const displayRole = isProviderView ? "Patient" : providerRole;
+    const displayName = userType === "user" ? providerName : appointment.userName;
+    const displayImage = userType === "user" ? providerImage : appointment.userImage;
+    const displayRole = userType === "user" ? providerRole : "Patient";
 
     return (
         <TouchableOpacity
