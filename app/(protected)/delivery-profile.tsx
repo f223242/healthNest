@@ -75,7 +75,12 @@ const DeliveryProfile = () => {
           useNativeDriver: true,
         }),
       ]).start();
-    }, [loadRatingStats])
+
+      // Check if we should open booking modal automatically
+      if (params.openBooking === "true") {
+        setShowBookingModal(true);
+      }
+    }, [loadRatingStats, params.openBooking])
   );
 
   // Parse the delivery person data from params

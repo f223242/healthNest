@@ -18,6 +18,8 @@ export interface DeliveryPerson {
 interface DeliveryPersonCardProps extends DeliveryPerson {
   onPress: () => void;
   onViewProfile?: () => void;
+  onBook?: () => void;
+  hasActiveAppointment?: boolean;
 }
 
 const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
@@ -30,9 +32,13 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
   distance,
   onPress,
   onViewProfile,
+  onBook,
+  hasActiveAppointment = false,
 }) => {
+  // Chat is only enabled if user has an active/accepted appointment with this delivery person
+  const canChat = hasActiveAppointment;
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+    <View style={styles.card}>
       <LinearGradient
         colors={["#FFFFFF", "#F8F9FA"]}
         start={{ x: 0, y: 0 }}
@@ -120,32 +126,47 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* Chat Button */}
-          <TouchableOpacity
-            style={[styles.chatButton, !isAvailable && styles.chatButtonDisabled, onViewProfile && { flex: 1 }]}
-            onPress={isAvailable ? onPress : undefined}
-            activeOpacity={isAvailable ? 0.7 : 1}
-            disabled={!isAvailable}
-          >
-            <LinearGradient
-              colors={isAvailable ? [colors.primary, "#00D68F"] : [colors.gray, colors.gray]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.chatButtonGradient}
+          {/* Book Button */}
+          {onBook && (
+            <TouchableOpacity
+              style={[styles.bookButton, !isAvailable && styles.buttonDisabled]}
+              onPress={isAvailable ? onBook : undefined}
+              activeOpacity={isAvailable ? 0.7 : 1}
+              disabled={!isAvailable}
             >
+              <LinearGradient
+                colors={isAvailable ? [colors.primary, "#00D68F"] : [colors.gray, colors.gray]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.bookButtonGradient}
+              >
+                <Ionicons name="calendar" size={16} color={colors.white} />
+                <Text style={styles.bookButtonText}>Book</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* Chat Button - Locked until appointment is booked */}
+          <TouchableOpacity
+            style={[styles.chatButton, !canChat && styles.buttonDisabled]}
+            onPress={canChat ? onPress : undefined}
+            activeOpacity={canChat ? 0.7 : 1}
+            disabled={!canChat}
+          >
+            <View style={[styles.chatButtonInner, !canChat && styles.chatButtonLocked]}>
               <Ionicons
-                name="chatbubbles"
-                size={18}
-                color={colors.white}
+                name={canChat ? "chatbubbles" : "lock-closed"}
+                size={16}
+                color={canChat ? colors.primary : colors.gray}
               />
-              <Text style={styles.chatButtonText}>
-                {isAvailable ? "Chat" : "Unavailable"}
+              <Text style={[styles.chatButtonTextOutline, !canChat && styles.chatButtonTextLocked]}>
+                {canChat ? "Chat" : "Locked"}
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -260,32 +281,75 @@ const styles = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   viewProfileButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 44,
-    paddingHorizontal: 16,
+    height: 42,
+    paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: colors.primary,
     backgroundColor: colors.white,
-    gap: 6,
+    gap: 5,
   },
   viewProfileText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.semiBold,
     color: colors.primary,
   },
-  chatButton: {
-    height: 44,
+  bookButton: {
+    flex: 1,
+    height: 42,
     borderRadius: 12,
     overflow: "hidden",
   },
-  chatButtonDisabled: {
+  bookButtonGradient: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+  },
+  bookButtonText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.white,
+  },
+  chatButton: {
+    height: 42,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  buttonDisabled: {
     opacity: 0.5,
+  },
+  chatButtonInner: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+  },
+  chatButtonLocked: {
+    borderColor: colors.gray,
+    backgroundColor: colors.lightGray,
+  },
+  chatButtonTextOutline: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+  },
+  chatButtonTextLocked: {
+    color: colors.gray,
   },
   chatButtonGradient: {
     flex: 1,
