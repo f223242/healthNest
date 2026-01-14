@@ -14,14 +14,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
-    Animated,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -142,7 +142,7 @@ const DeliveryProfile = () => {
     setShowBookingModal(true);
   };
 
-  const handleConfirmBooking = async (appointmentData: { date: string; time: string; serviceType: string; notes: string; address: string; duration: string; }) => {
+  const handleConfirmBooking = async (appointmentData: { date: string; time: string; serviceType: string; notes: string; address: string; }) => {
     try {
       setIsBooking(true);
       const isAvailable = await AppointmentService.checkDeliveryAvailability(delivery.id, appointmentData.date, appointmentData.time);
@@ -327,11 +327,10 @@ const DeliveryProfile = () => {
               providerName={delivery.name}
             />
 
-            <BookAppointmentModal
+            <BookDeliveryModal
               visible={showBookingModal}
               onClose={() => setShowBookingModal(false)}
-              providerName={delivery.name}
-              providerType="delivery"
+              deliveryName={delivery.name}
               onBook={handleConfirmBooking}
             />
 
