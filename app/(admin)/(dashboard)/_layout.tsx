@@ -73,9 +73,12 @@ export default function DashboardLayout() {
     },
   ];
 
+  // Admin theme color
+  const adminColor = "#1E293B";
+
   return (
     <Tabs
-      tabBar={(props) => <CustomTabBar {...props} tabs={adminTabs} />}
+      tabBar={(props) => <CustomTabBar {...props} tabs={adminTabs} activeColor={adminColor} />}
       screenOptions={{
         headerShown: false,
       }}

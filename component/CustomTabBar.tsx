@@ -20,6 +20,7 @@ interface TabItem {
 
 interface CustomTabBarProps extends BottomTabBarProps {
   tabs: TabItem[];
+  activeColor?: string; // Custom active color (default: colors.primary)
 }
 
 // Badge component
@@ -39,12 +40,14 @@ const AnimatedTabItem = ({
   onPress, 
   onLongPress,
   accessibilityLabel,
+  activeColor = colors.primary,
 }: {
   isFocused: boolean;
   tabConfig: TabItem;
   onPress: () => void;
   onLongPress: () => void;
   accessibilityLabel?: string;
+  activeColor?: string;
 }) => {
   const scale = useSharedValue(1);
 
@@ -73,7 +76,7 @@ const AnimatedTabItem = ({
       <Animated.View style={[
         styles.tabContent, 
         animatedContainerStyle,
-        { backgroundColor: isFocused ? colors.primary : 'transparent' }
+        { backgroundColor: isFocused ? activeColor : 'transparent' }
       ]}>
         <View style={styles.iconContainer}>
           <Ionicons
@@ -83,9 +86,12 @@ const AnimatedTabItem = ({
           />
           {tabConfig.badge ? <TabBadge count={tabConfig.badge} /> : null}
         </View>
-        {isFocused && (
-          <Text style={styles.label} numberOfLines={1}>{tabConfig.label}</Text>
-        )}
+        <Text style={[
+          styles.label, 
+          { color: isFocused ? colors.white : colors.gray }
+        ]} numberOfLines={1}>
+          {tabConfig.label}
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -96,6 +102,7 @@ const CustomTabBar: React.FC<CustomTabBarProps> = ({
   descriptors,
   navigation,
   tabs,
+  activeColor = colors.primary,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -136,6 +143,7 @@ const CustomTabBar: React.FC<CustomTabBarProps> = ({
               onPress={onPress}
               onLongPress={onLongPress}
               accessibilityLabel={options.tabBarAccessibilityLabel}
+              activeColor={activeColor}
             />
           );
         })}
@@ -173,23 +181,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabContent: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    gap: 4,
-    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    gap: 2,
+    minHeight: 50,
   },
   iconContainer: {
     position: "relative",
   },
   label: {
-    fontSize: 11,
-    fontFamily: Fonts.semiBold,
-    color: colors.white,
-    marginLeft: 2,
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    textAlign: "center",
   },
   badge: {
     position: "absolute",
