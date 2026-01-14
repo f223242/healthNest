@@ -327,10 +327,12 @@ const DeliveryProfile = () => {
               providerName={delivery.name}
             />
 
-            <BookDeliveryModal
+            <BookAppointmentModal
               visible={showBookingModal}
               onClose={() => setShowBookingModal(false)}
-              deliveryName={delivery.name}
+              providerName={delivery.name}
+              providerType="delivery"
+              providerSpecialization="Medicine Delivery"
               onBook={handleConfirmBooking}
             />
 
