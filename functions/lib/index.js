@@ -9,86 +9,114 @@ admin.initializeApp();
  * This uses Firebase Admin SDK which can update passwords without the old password
  */
 exports.resetPasswordWithOTP = functions.https.onCall(async (data, context) => {
-    const { email, phoneNumber, newPassword, otpVerified } = data;
-    // Validate input
-    if (!email || !phoneNumber || !newPassword) {
-        throw new functions.https.HttpsError("invalid-argument", "Email, phone number, and new password are required");
+  const { email, phoneNumber, newPassword, otpVerified } = data;
+  // Validate input
+  if (!email || !phoneNumber || !newPassword) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Email, phone number, and new password are required",
+    );
+  }
+  if (!otpVerified) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "OTP must be verified before resetting password",
+    );
+  }
+  // Password validation
+  if (newPassword.length < 8) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Password must be at least 8 characters",
+    );
+  }
+  try {
+    // Verify OTP was actually verified in Firestore
+    const otpDoc = await admin
+      .firestore()
+      .collection("passwordResetOTPs")
+      .doc(phoneNumber.replace(/\+/g, ""))
+      .get();
+    if (!otpDoc.exists) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "No OTP verification found for this phone number",
+      );
     }
-    if (!otpVerified) {
-        throw new functions.https.HttpsError("permission-denied", "OTP must be verified before resetting password");
+    const otpData = otpDoc.data();
+    if (!(otpData === null || otpData === void 0 ? void 0 : otpData.verified)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "OTP has not been verified",
+      );
     }
-    // Password validation
-    if (newPassword.length < 8) {
-        throw new functions.https.HttpsError("invalid-argument", "Password must be at least 8 characters");
+    // Check if OTP verification is not expired (within 10 minutes)
+    const verifiedAt = otpData.verifiedAt ? new Date(otpData.verifiedAt) : null;
+    if (verifiedAt) {
+      const now = new Date();
+      const diffMinutes = (now.getTime() - verifiedAt.getTime()) / (1000 * 60);
+      if (diffMinutes > 10) {
+        throw new functions.https.HttpsError(
+          "deadline-exceeded",
+          "OTP verification has expired. Please start over.",
+        );
+      }
     }
-    try {
-        // Verify OTP was actually verified in Firestore
-        const otpDoc = await admin.firestore()
-            .collection("passwordResetOTPs")
-            .doc(phoneNumber.replace(/\+/g, ""))
-            .get();
-        if (!otpDoc.exists) {
-            throw new functions.https.HttpsError("not-found", "No OTP verification found for this phone number");
-        }
-        const otpData = otpDoc.data();
-        if (!(otpData === null || otpData === void 0 ? void 0 : otpData.verified)) {
-            throw new functions.https.HttpsError("permission-denied", "OTP has not been verified");
-        }
-        // Check if OTP verification is not expired (within 10 minutes)
-        const verifiedAt = otpData.verifiedAt ? new Date(otpData.verifiedAt) : null;
-        if (verifiedAt) {
-            const now = new Date();
-            const diffMinutes = (now.getTime() - verifiedAt.getTime()) / (1000 * 60);
-            if (diffMinutes > 10) {
-                throw new functions.https.HttpsError("deadline-exceeded", "OTP verification has expired. Please start over.");
-            }
-        }
-        // Get user by email
-        const userRecord = await admin.auth().getUserByEmail(email);
-        // Update the password using Admin SDK
-        await admin.auth().updateUser(userRecord.uid, {
-            password: newPassword,
-        });
-        // Mark OTP as used
-        await admin.firestore()
-            .collection("passwordResetOTPs")
-            .doc(phoneNumber.replace(/\+/g, ""))
-            .update({
-            used: true,
-            usedAt: new Date().toISOString(),
-            verified: false, // Reset verified flag
-        });
-        console.log(`Password updated successfully for user: ${email}`);
-        return {
-            success: true,
-            message: "Password has been reset successfully",
-        };
+    // Get user by email
+    const userRecord = await admin.auth().getUserByEmail(email);
+    // Update the password using Admin SDK
+    await admin.auth().updateUser(userRecord.uid, {
+      password: newPassword,
+    });
+    // Mark OTP as used
+    await admin
+      .firestore()
+      .collection("passwordResetOTPs")
+      .doc(phoneNumber.replace(/\+/g, ""))
+      .update({
+        used: true,
+        usedAt: new Date().toISOString(),
+        verified: false, // Reset verified flag
+      });
+    console.log(`Password updated successfully for user: ${email}`);
+    return {
+      success: true,
+      message: "Password has been reset successfully",
+    };
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
     }
-    catch (error) {
-        console.error("Error resetting password:", error);
-        if (error instanceof functions.https.HttpsError) {
-            throw error;
-        }
-        if (error.code === "auth/user-not-found") {
-            throw new functions.https.HttpsError("not-found", "No user found with this email address");
-        }
-        throw new functions.https.HttpsError("internal", "Failed to reset password. Please try again.");
+    if (error.code === "auth/user-not-found") {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "No user found with this email address",
+      );
     }
+    throw new functions.https.HttpsError(
+      "internal",
+      "Failed to reset password. Please try again.",
+    );
+  }
 });
 /**
  * Cloud Function to send OTP via SMS (optional - for real SMS integration)
  * You can integrate with Twilio or other SMS providers here
  */
 exports.sendOTPSMS = functions.https.onCall(async (data, context) => {
-    const { phoneNumber, otp } = data;
-    if (!phoneNumber || !otp) {
-        throw new functions.https.HttpsError("invalid-argument", "Phone number and OTP are required");
-    }
-    // TODO: Integrate with Twilio or other SMS provider
-    // For now, just log the OTP (for development)
-    console.log(`📱 OTP for ${phoneNumber}: ${otp}`);
-    // Example Twilio integration (uncomment and configure when ready):
-    /*
+  const { phoneNumber, otp } = data;
+  if (!phoneNumber || !otp) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Phone number and OTP are required",
+    );
+  }
+  // TODO: Integrate with Twilio or other SMS provider
+  // For now, just log the OTP (for development)
+  console.log(`📱 OTP for ${phoneNumber}: ${otp}`);
+  // Example Twilio integration (uncomment and configure when ready):
+  /*
     const twilio = require('twilio');
     const client = twilio(
       functions.config().twilio.account_sid,
@@ -101,9 +129,41 @@ exports.sendOTPSMS = functions.https.onCall(async (data, context) => {
       to: phoneNumber,
     });
     */
-    return {
-        success: true,
-        message: "OTP sent successfully",
-    };
+  return {
+    success: true,
+    message: "OTP sent successfully",
+  };
 });
 //# sourceMappingURL=index.js.map
+exports.fakePaymentGateway = functions.https.onCall(async (data, context) => {
+  const { userId, amount, paymentMethod } = data;
+
+  if (!userId || !amount || !paymentMethod) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Missing payment data",
+    );
+  }
+
+  // Fake delay (real gateway jaisa)
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  const success = true; // hamesha success for demo
+
+  const paymentRecord = {
+    userId: userId,
+    amount: amount,
+    paymentMethod: paymentMethod,
+    status: success ? "success" : "failed",
+    transactionId: "TXN_" + Date.now(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  await admin.firestore().collection("payments").add(paymentRecord);
+
+  return {
+    success: true,
+    message: "Payment Successful (Sandbox Demo)",
+    transactionId: paymentRecord.transactionId,
+  };
+});

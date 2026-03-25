@@ -1,22 +1,34 @@
 import { db } from "@/config/firebase";
+
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    query,
-    Timestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import NotificationService from "./NotificationService";
 
 // Payment Types
 export type PaymentMethod = "card" | "bnpl" | "wallet" | "cash";
-export type PaymentStatus = "pending" | "processing" | "completed" | "failed" | "refunded";
-export type BNPLStatus = "pending" | "approved" | "rejected" | "active" | "completed" | "defaulted";
+export type PaymentStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "refunded";
+export type BNPLStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "active"
+  | "completed"
+  | "defaulted";
 
 // Payment Transaction Interface
 export interface PaymentTransaction {
@@ -33,7 +45,12 @@ export interface PaymentTransaction {
   cardLast4?: string;
   cardBrand?: string;
   // Related entity
-  entityType: "appointment" | "lab_test" | "medicine" | "subscription" | "other";
+  entityType:
+    | "appointment"
+    | "lab_test"
+    | "medicine"
+    | "subscription"
+    | "other";
   entityId: string;
   // Status
   status: PaymentStatus;
@@ -112,7 +129,7 @@ class PaymentService {
   private paymentsCollection = "payments";
   private bnplCollection = "bnplApplications";
   private installmentsCollection = "bnplInstallments";
-  
+
   // Test mode flag
   private isTestMode = true;
 
@@ -127,31 +144,70 @@ class PaymentService {
     entityType: PaymentTransaction["entityType"],
     entityId: string,
     description: string,
-    cardDetails?: { number: string; expiry: string; cvv: string; name: string }
+    extraDetails?: {
+      email?: string;
+      phone?: string;
+      installments?: number;
+      number?: string;
+      expiry?: string;
+      cvv?: string;
+      name?: string;
+    },
   ): Promise<{ success: boolean; transactionId: string; message: string }> {
     try {
-      // Create pending transaction
-      const transactionRef = await addDoc(collection(db, this.paymentsCollection), {
-        userId,
-        userName,
-        amount,
-        currency: "PKR",
-        description,
-        method,
-        cardLast4: cardDetails?.number.slice(-4),
-        cardBrand: this.detectCardBrand(cardDetails?.number || ""),
-        entityType,
-        entityId,
-        status: "processing",
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      });
+      // ================= BNPL ENABLE =================
+      if (method === "bnpl") {
+        if (
+          !extraDetails?.email ||
+          !extraDetails?.phone ||
+          !extraDetails?.installments
+        ) {
+          throw new Error("BNPL details missing (email, phone, installments)");
+        }
+
+        const applicationId = await this.applyForBNPL(
+          userId,
+          userName,
+          extraDetails.email,
+          extraDetails.phone,
+          amount,
+          extraDetails.installments,
+        );
+
+        return {
+          success: true,
+          transactionId: applicationId,
+          message: "BNPL application submitted. Waiting for admin approval.",
+        };
+      }
+
+      // ================= NORMAL PAYMENT (card/wallet/cash) =================
+      const transactionRef = await addDoc(
+        collection(db, this.paymentsCollection),
+        {
+          userId,
+          userName,
+          amount,
+          currency: "PKR",
+          description,
+          method,
+          cardLast4: extraDetails?.number?.slice(-4),
+          cardBrand: this.detectCardBrand(extraDetails?.number || ""),
+          entityType,
+          entityId,
+          status: "processing",
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        },
+      );
 
       // Simulate payment processing in test mode
       if (this.isTestMode) {
-        const result = await this.simulatePayment(cardDetails?.number || "", amount);
-        
-        // Update transaction status
+        const result = await this.simulatePayment(
+          extraDetails?.number || "",
+          amount,
+        );
+
         await updateDoc(transactionRef, {
           status: result.success ? "completed" : "failed",
           gatewayTransactionId: result.transactionId,
@@ -160,14 +216,13 @@ class PaymentService {
           completedAt: result.success ? Timestamp.now() : null,
         });
 
-        // Send notification
         if (result.success) {
           await NotificationService.createNotification(
             userId,
             "order",
             "Payment Successful",
             `Your payment of PKR ${amount} has been processed successfully.`,
-            { transactionId: transactionRef.id, entityType, entityId }
+            { transactionId: transactionRef.id, entityType, entityId },
           );
         }
 
@@ -178,7 +233,6 @@ class PaymentService {
         };
       }
 
-      // Production payment gateway integration would go here
       return {
         success: false,
         transactionId: transactionRef.id,
@@ -193,7 +247,7 @@ class PaymentService {
   // Simulate payment for testing
   private async simulatePayment(
     cardNumber: string,
-    amount: number
+    amount: number,
   ): Promise<{ success: boolean; transactionId: string; message: string }> {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -238,7 +292,7 @@ class PaymentService {
     try {
       const q = query(
         collection(db, this.paymentsCollection),
-        where("userId", "==", userId)
+        where("userId", "==", userId),
       );
 
       const snapshot = await getDocs(q);
@@ -257,11 +311,11 @@ class PaymentService {
   // Listen to user's payments
   listenToUserPayments(
     userId: string,
-    callback: (payments: PaymentTransaction[]) => void
+    callback: (payments: PaymentTransaction[]) => void,
   ) {
     const q = query(
       collection(db, this.paymentsCollection),
-      where("userId", "==", userId)
+      where("userId", "==", userId),
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -284,7 +338,7 @@ class PaymentService {
     userEmail: string,
     userPhone: string,
     requestedAmount: number,
-    installments: number
+    installments: number,
   ): Promise<string> {
     try {
       // Calculate interest rate based on installments
@@ -300,7 +354,7 @@ class PaymentService {
         interestRate,
         identityVerified: false,
         incomeVerified: false,
-        status: "pending",
+        status: "active",
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       });
@@ -311,7 +365,7 @@ class PaymentService {
         "order",
         "New BNPL Application",
         `${userName} has applied for BNPL credit of PKR ${requestedAmount}`,
-        { applicationId: docRef.id }
+        { applicationId: docRef.id },
       );
 
       return docRef.id;
@@ -333,7 +387,7 @@ class PaymentService {
   async approveBNPL(
     applicationId: string,
     approvedAmount: number,
-    adminId: string
+    adminId: string,
   ): Promise<void> {
     try {
       const appRef = doc(db, this.bnplCollection, applicationId);
@@ -348,7 +402,7 @@ class PaymentService {
         applicationId,
         approvedAmount,
         appData.installments,
-        appData.interestRate
+        appData.interestRate,
       );
 
       // Update application
@@ -372,7 +426,7 @@ class PaymentService {
         "order",
         "BNPL Application Approved!",
         `Your BNPL application for PKR ${approvedAmount} has been approved.`,
-        { applicationId }
+        { applicationId },
       );
     } catch (error) {
       console.error("Error approving BNPL:", error);
@@ -384,7 +438,7 @@ class PaymentService {
   async rejectBNPL(
     applicationId: string,
     reason: string,
-    adminId: string
+    adminId: string,
   ): Promise<void> {
     try {
       const appRef = doc(db, this.bnplCollection, applicationId);
@@ -408,7 +462,7 @@ class PaymentService {
         "order",
         "BNPL Application Update",
         `Your BNPL application has been reviewed. Reason: ${reason}`,
-        { applicationId }
+        { applicationId },
       );
     } catch (error) {
       console.error("Error rejecting BNPL:", error);
@@ -421,7 +475,7 @@ class PaymentService {
     applicationId: string,
     amount: number,
     installments: number,
-    interestRate: number
+    interestRate: number,
   ): Omit<BNPLInstallment, "id">[] {
     const totalAmount = amount * (1 + interestRate / 100);
     const installmentAmount = Math.ceil(totalAmount / installments);
@@ -436,7 +490,10 @@ class PaymentService {
       schedule.push({
         applicationId,
         installmentNumber: i,
-        amount: i === installments ? totalAmount - installmentAmount * (installments - 1) : installmentAmount,
+        amount:
+          i === installments
+            ? totalAmount - installmentAmount * (installments - 1)
+            : installmentAmount,
         dueDate: Timestamp.fromDate(dueDate),
         status: "pending",
       });
@@ -450,7 +507,7 @@ class PaymentService {
     try {
       const q = query(
         collection(db, this.bnplCollection),
-        where("userId", "==", userId)
+        where("userId", "==", userId),
       );
 
       const snapshot = await getDocs(q);
@@ -467,7 +524,9 @@ class PaymentService {
   }
 
   // Admin: Get all BNPL applications
-  listenToBNPLApplications(callback: (applications: BNPLApplication[]) => void) {
+  listenToBNPLApplications(
+    callback: (applications: BNPLApplication[]) => void,
+  ) {
     const q = query(collection(db, this.bnplCollection));
 
     return onSnapshot(q, (snapshot) => {
@@ -495,7 +554,7 @@ class PaymentService {
       for (const appId of appIds) {
         const q = query(
           collection(db, this.installmentsCollection),
-          where("applicationId", "==", appId)
+          where("applicationId", "==", appId),
         );
 
         const snapshot = await getDocs(q);
@@ -507,7 +566,9 @@ class PaymentService {
         allInstallments.push(...installments);
       }
 
-      return allInstallments.sort((a, b) => a.dueDate.toMillis() - b.dueDate.toMillis());
+      return allInstallments.sort(
+        (a, b) => a.dueDate.toMillis() - b.dueDate.toMillis(),
+      );
     } catch (error) {
       console.error("Error getting user installments:", error);
       throw error;
@@ -519,10 +580,14 @@ class PaymentService {
     installmentId: string,
     userId: string,
     userName: string,
-    cardDetails: { number: string; expiry: string; cvv: string; name: string }
+    cardDetails: { number: string; expiry: string; cvv: string; name: string },
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const installmentRef = doc(db, this.installmentsCollection, installmentId);
+      const installmentRef = doc(
+        db,
+        this.installmentsCollection,
+        installmentId,
+      );
       const installmentSnap = await getDoc(installmentRef);
 
       if (!installmentSnap.exists()) throw new Error("Installment not found");
@@ -538,7 +603,7 @@ class PaymentService {
         "other",
         installmentId,
         `BNPL Installment ${installment.installmentNumber}`,
-        cardDetails
+        cardDetails,
       );
 
       if (result.success) {
@@ -561,7 +626,7 @@ class PaymentService {
   // Refund a payment
   async refundPayment(
     transactionId: string,
-    reason: string
+    reason: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const transactionRef = doc(db, this.paymentsCollection, transactionId);
@@ -572,7 +637,10 @@ class PaymentService {
       const transaction = transactionSnap.data() as PaymentTransaction;
 
       if (transaction.status !== "completed") {
-        return { success: false, message: "Only completed payments can be refunded" };
+        return {
+          success: false,
+          message: "Only completed payments can be refunded",
+        };
       }
 
       // In test mode, simulate refund
@@ -581,7 +649,10 @@ class PaymentService {
 
         await updateDoc(transactionRef, {
           status: "refunded",
-          gatewayResponse: { ...transaction.gatewayResponse, refundReason: reason },
+          gatewayResponse: {
+            ...transaction.gatewayResponse,
+            refundReason: reason,
+          },
           updatedAt: Timestamp.now(),
         });
 
@@ -591,7 +662,7 @@ class PaymentService {
           "order",
           "Payment Refunded",
           `Your payment of PKR ${transaction.amount} has been refunded.`,
-          { transactionId }
+          { transactionId },
         );
 
         return { success: true, message: "Refund processed successfully" };
@@ -605,15 +676,25 @@ class PaymentService {
   }
 
   // Alias methods for admin screens
-  listenToAllBNPLApplications(callback: (applications: BNPLApplication[]) => void) {
+  listenToAllBNPLApplications(
+    callback: (applications: BNPLApplication[]) => void,
+  ) {
     return this.listenToBNPLApplications(callback);
   }
 
-  async adminApproveBNPL(applicationId: string, adminId: string, approvedAmount: number): Promise<void> {
+  async adminApproveBNPL(
+    applicationId: string,
+    adminId: string,
+    approvedAmount: number,
+  ): Promise<void> {
     return this.approveBNPL(applicationId, approvedAmount, adminId);
   }
 
-  async adminRejectBNPL(applicationId: string, adminId: string, reason: string): Promise<void> {
+  async adminRejectBNPL(
+    applicationId: string,
+    adminId: string,
+    reason: string,
+  ): Promise<void> {
     return this.rejectBNPL(applicationId, reason, adminId);
   }
 }
