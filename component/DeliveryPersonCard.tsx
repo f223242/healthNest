@@ -13,6 +13,8 @@ export interface DeliveryPerson {
   isAvailable: boolean;
   deliveryTime: string;
   distance: string;
+  deliveryType?: "medicine" | "lab";
+  qualification?: string;
 }
 
 interface DeliveryPersonCardProps extends DeliveryPerson {
@@ -70,7 +72,9 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={14} color="#FFB800" />
               <Text style={styles.rating}>{rating.toFixed(1)}</Text>
-              <Text style={styles.reviews}>({totalDeliveries}+ deliveries)</Text>
+              <Text style={styles.reviews}>
+                ({totalDeliveries}+ deliveries)
+              </Text>
             </View>
           </View>
         </View>
@@ -92,7 +96,11 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
           <View
             style={[
               styles.availabilityBadge,
-              { backgroundColor: isAvailable ? colors.success + "20" : colors.gray + "20" },
+              {
+                backgroundColor: isAvailable
+                  ? colors.success + "20"
+                  : colors.gray + "20",
+              },
             ]}
           >
             <View
@@ -135,7 +143,11 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
               disabled={!isAvailable}
             >
               <LinearGradient
-                colors={isAvailable ? [colors.primary, "#00D68F"] : [colors.gray, colors.gray]}
+                colors={
+                  isAvailable
+                    ? [colors.primary, "#00D68F"]
+                    : [colors.gray, colors.gray]
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.bookButtonGradient}
@@ -153,13 +165,23 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
             activeOpacity={canChat ? 0.7 : 1}
             disabled={!canChat}
           >
-            <View style={[styles.chatButtonInner, !canChat && styles.chatButtonLocked]}>
+            <View
+              style={[
+                styles.chatButtonInner,
+                !canChat && styles.chatButtonLocked,
+              ]}
+            >
               <Ionicons
                 name={canChat ? "chatbubbles" : "lock-closed"}
                 size={16}
                 color={canChat ? colors.primary : colors.gray}
               />
-              <Text style={[styles.chatButtonTextOutline, !canChat && styles.chatButtonTextLocked]}>
+              <Text
+                style={[
+                  styles.chatButtonTextOutline,
+                  !canChat && styles.chatButtonTextLocked,
+                ]}
+              >
                 {canChat ? "Chat" : "Locked"}
               </Text>
             </View>

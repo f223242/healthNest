@@ -4,15 +4,15 @@ import { useRouter } from "expo-router";
 import { useFormik } from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as Yup from "yup";
@@ -29,6 +29,21 @@ import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
+
+// ----------------------
+// Role Options
+// ----------------------
+const roleOptions = [
+  { label: "User", value: "User" },
+  { label: "Lab", value: "Lab" },
+  { label: "Nurse", value: "Nurse" },
+  { label: "Delivery Boy", value: "Delivery Boy" },
+];
+
+const deliveryTypeOptions = [
+  { label: "Medicine Delivery Boy", value: "medicine" },
+  { label: "Lab Delivery Boy", value: "lab" },
+];
 
 // ----------------------
 // Yup Validation Schema
@@ -52,17 +67,15 @@ const SignupSchema = Yup.object().shape({
     .required("Phone number is required"),
   role: Yup.string().required("Role is required"),
   dateOfBirth: Yup.string().required("Date of birth is required"),
+  deliveryType: Yup.string().when("role", {
+    is: "Delivery Boy",
+    then: (schema) =>
+      schema
+        .required("Delivery type is required")
+        .oneOf(["medicine", "lab"], "Select a valid delivery type"),
+    otherwise: (schema) => schema,
+  }),
 });
-
-// ----------------------
-// Role Options
-// ----------------------
-const roleOptions = [
-  { label: "User", value: "User" },
-  { label: "Lab", value: "Lab" },
-  { label: "Nurse", value: "Nurse" },
-  { label: "Medicine Delivery", value: "Medicine Delivery" },
-];
 
 // ----------------------
 // Component
@@ -106,6 +119,7 @@ export default function SignupScreen() {
       password: "",
       confirmPassword: "",
       role: "",
+      deliveryType: "",
       phoneNumber: "",
       dateOfBirth: "",
     },
@@ -119,9 +133,16 @@ export default function SignupScreen() {
         const formattedPhone = `${countryCode}${values.phoneNumber}`;
         const payload = { ...values, phoneNumber: formattedPhone };
         const res = await register(payload);
-        // After successful register, navigate to OTP verification screen so user sees verification flow
+
+        // After successful register, navigate based on delivery type
         if (res && (res.requiresVerification || res.success !== false)) {
-          router.push("/(auth)/otp-screen");
+          if (values.role === "Delivery Boy" && values.deliveryType === "lab") {
+            // Navigate to education screen for lab delivery boys
+            router.push("/(auth)/education");
+          } else {
+            // Navigate to OTP verification screen for other users
+            router.push("/(auth)/otp-screen");
+          }
         }
       } catch (error: any) {
         showToast(error?.text2 || "Failed to sign up", "error");
@@ -168,7 +189,7 @@ export default function SignupScreen() {
         fadeAnim={fadeAnim}
       />
 
-      <SafeAreaView edges={['bottom']} style={styles.contentContainer}>
+      <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
         <KeyboardAwareScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -177,15 +198,22 @@ export default function SignupScreen() {
           extraScrollHeight={120}
           keyboardShouldPersistTaps="handled"
         >
-          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
-
+          <FormCard
+            animatedStyle={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+            style={styles.formCard}
+          >
             <FormInput
               label="First Name"
               LeftIcon={Person}
               value={values.firstname}
               onChangeText={handleChange("firstname")}
               onBlur={handleBlur("firstname")}
-              error={touched.firstname && errors.firstname ? errors.firstname : ""}
+              error={
+                touched.firstname && errors.firstname ? errors.firstname : ""
+              }
               placeholder="Enter your first name"
             />
 
@@ -217,7 +245,11 @@ export default function SignupScreen() {
               value={values.phoneNumber}
               onChangeText={(text) => setFieldValue("phoneNumber", text)}
               onBlur={() => handleBlur("phoneNumber")}
-              error={touched.phoneNumber && errors.phoneNumber ? errors.phoneNumber : ""}
+              error={
+                touched.phoneNumber && errors.phoneNumber
+                  ? errors.phoneNumber
+                  : ""
+              }
               countryCode={countryCode}
               countryFlag={countryFlag}
               onCountryChange={(code, flag) => {
@@ -259,11 +291,37 @@ export default function SignupScreen() {
               isDropdown
               data={roleOptions}
               value={values.role}
-              onDropdownChange={(item) => setFieldValue("role", item.value)}
+              onDropdownChange={(item) => {
+                setFieldValue("role", item.value);
+                if (item.value !== "Delivery Boy") {
+                  setFieldValue("deliveryType", "");
+                }
+              }}
               error={touched.role && errors.role ? errors.role : ""}
               placeholder="Select your role"
               RightIcon={DropDownIcon}
             />
+
+            {values.role === "Delivery Boy" && (
+              <>
+                <FormInput
+                  label="Delivery Boy Type"
+                  isDropdown
+                  data={deliveryTypeOptions}
+                  value={values.deliveryType}
+                  onDropdownChange={(item) =>
+                    setFieldValue("deliveryType", item.value)
+                  }
+                  error={
+                    touched.deliveryType && errors.deliveryType
+                      ? errors.deliveryType
+                      : ""
+                  }
+                  placeholder="Select delivery type"
+                  RightIcon={DropDownIcon}
+                />
+              </>
+            )}
 
             {/* DATE PICKER */}
             <View style={styles.datePickerContainer}>
@@ -285,16 +343,25 @@ export default function SignupScreen() {
                   setFieldTouched("dateOfBirth", true);
                 }}
               >
-                <Text style={[styles.dateValue, !values.dateOfBirth && styles.datePlaceholder]}>
+                <Text
+                  style={[
+                    styles.dateValue,
+                    !values.dateOfBirth && styles.datePlaceholder,
+                  ]}
+                >
                   {values.dateOfBirth
                     ? new Date(values.dateOfBirth).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
                     : "Select your date of birth"}
                 </Text>
-                <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+                <Ionicons
+                  name="calendar-outline"
+                  size={24}
+                  color={colors.primary}
+                />
               </TouchableOpacity>
             </View>
 
@@ -317,12 +384,16 @@ export default function SignupScreen() {
               />
             )}
 
-
             {/* SUBMIT BUTTON */}
             <AppButton
               onPress={() => handleSubmit()}
               disabled={!isValid || isSubmitting}
-              containerStyle={[styles.submitButton, (!isValid || isSubmitting) ? styles.submitButtonDisabled : undefined]}
+              containerStyle={[
+                styles.submitButton,
+                !isValid || isSubmitting
+                  ? styles.submitButtonDisabled
+                  : undefined,
+              ]}
               gradientColors={[colors.primary, "#00D68F"]}
             >
               {isSubmitting ? (
@@ -330,7 +401,12 @@ export default function SignupScreen() {
               ) : (
                 <>
                   <Text style={styles.submitButtonText}>Sign Up</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color="#fff"
+                    style={{ marginLeft: 8 }}
+                  />
                 </>
               )}
             </AppButton>
@@ -355,7 +431,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 40,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 60
+        : StatusBar.currentHeight
+          ? StatusBar.currentHeight + 20
+          : 40,
     paddingBottom: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,

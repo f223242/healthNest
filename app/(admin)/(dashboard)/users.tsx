@@ -8,15 +8,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { collection, getDocs } from "firebase/firestore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,7 +25,7 @@ interface DisplayUser {
   name: string;
   email: string;
   phone: string;
-  type: "User" | "Lab" | "Nurse" | "Medicine Delivery";
+  type: "User" | "Lab" | "Nurse" | "Medicine Delivery" | "Lab Delivery";
   location?: string;
   registeredDate: string;
 }
@@ -33,7 +33,9 @@ interface DisplayUser {
 const UsersManagement = () => {
   const { getAllUsers } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"All" | "User" | "Lab" | "Nurse" | "Medicine Delivery">("All");
+  const [filterType, setFilterType] = useState<
+    "All" | "User" | "Lab" | "Nurse" | "Medicine Delivery" | "Lab Delivery"
+  >("All");
   const [users, setUsers] = useState<DisplayUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -56,12 +58,21 @@ const UsersManagement = () => {
   }, []);
 
   // Map role to display type
-  const mapRoleToType = (role: string): "User" | "Lab" | "Nurse" | "Medicine Delivery" => {
+  const mapRoleToType = (
+    role: string,
+    deliveryType?: string,
+  ): "User" | "Lab" | "Nurse" | "Medicine Delivery" | "Lab Delivery" => {
+    if (role === "delivery") {
+      if (deliveryType === "lab") return "Lab Delivery";
+      return "Medicine Delivery";
+    }
     switch (role) {
-      case "lab": return "Lab";
-      case "nurse": return "Nurse";
-      case "delivery": return "Medicine Delivery";
-      default: return "User";
+      case "lab":
+        return "Lab";
+      case "nurse":
+        return "Nurse";
+      default:
+        return "User";
     }
   };
 
@@ -69,13 +80,28 @@ const UsersManagement = () => {
   const fetchUsers = useCallback(async () => {
     try {
       const firestoreUsers = await getAllUsers();
-      console.log('[Admin] getAllUsers ->', firestoreUsers && firestoreUsers.length ? `${firestoreUsers.length} users` : 'no users', firestoreUsers);
+      console.log(
+        "[Admin] getAllUsers ->",
+        firestoreUsers && firestoreUsers.length
+          ? `${firestoreUsers.length} users`
+          : "no users",
+        firestoreUsers,
+      );
       // also include pendingUsers (not yet verified) so admin can manage them
       let pendingUsers: any[] = [];
       try {
         const pendingSnap = await getDocs(collection(db, "pendingUsers"));
-        pendingUsers = pendingSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
-        console.log('[Admin] pendingUsers ->', pendingUsers && pendingUsers.length ? `${pendingUsers.length} pending` : 'no pending', pendingUsers);
+        pendingUsers = pendingSnap.docs.map((d) => ({
+          uid: d.id,
+          ...d.data(),
+        }));
+        console.log(
+          "[Admin] pendingUsers ->",
+          pendingUsers && pendingUsers.length
+            ? `${pendingUsers.length} pending`
+            : "no pending",
+          pendingUsers,
+        );
       } catch (e) {
         console.warn("Failed to fetch pendingUsers:", e);
       }
@@ -93,7 +119,7 @@ const UsersManagement = () => {
           name: `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Unknown",
           email: u.email || "",
           phone: u.phoneNumber || "",
-          type: mapRoleToType(u.role),
+          type: mapRoleToType(u.role, (u as any).deliveryType),
           location: location || "-",
           registeredDate: "-", // We can add createdAt field to users if needed
         };
@@ -102,10 +128,15 @@ const UsersManagement = () => {
       // append pending users (mark as pending in registeredDate)
       if (pendingUsers.length) {
         const pendingDisplay = pendingUsers.map((p) => {
-          const name = `${p.firstname || ""} ${p.lastname || ""}`.trim() || "Unknown";
-          const location = (p.city || p.address) || "-";
-          const role = mapRoleToType(p.role || "user");
-          const created = p.createdAt ? (typeof p.createdAt === 'number' ? new Date(p.createdAt).toISOString() : p.createdAt) : "Pending";
+          const name =
+            `${p.firstname || ""} ${p.lastname || ""}`.trim() || "Unknown";
+          const location = p.city || p.address || "-";
+          const role = mapRoleToType(p.role || "user", p.deliveryType);
+          const created = p.createdAt
+            ? typeof p.createdAt === "number"
+              ? new Date(p.createdAt).toISOString()
+              : p.createdAt
+            : "Pending";
           return {
             id: p.uid,
             name: `${name} (Pending)`,
@@ -119,7 +150,7 @@ const UsersManagement = () => {
 
         displayUsers.unshift(...pendingDisplay);
       }
-      console.log('[Admin] displayUsers count ->', displayUsers.length);
+      console.log("[Admin] displayUsers count ->", displayUsers.length);
       setUsers(displayUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -141,13 +172,15 @@ const UsersManagement = () => {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "User":
-        return '#1E293B';
+        return "#1E293B";
       case "Lab":
         return "#2196F3";
       case "Nurse":
         return "#9C27B0";
       case "Medicine Delivery":
         return "#FF5722";
+      case "Lab Delivery":
+        return "#4CAF50";
       default:
         return colors.gray;
     }
@@ -190,9 +223,7 @@ const UsersManagement = () => {
       key: "location",
       title: "Location",
       width: 180,
-      render: (value) => (
-        <Text style={styles.cellText}>{value || "-"}</Text>
-      ),
+      render: (value) => <Text style={styles.cellText}>{value || "-"}</Text>,
     },
   ];
 
@@ -201,7 +232,8 @@ const UsersManagement = () => {
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.phone.includes(searchQuery) ||
-      (user.location && user.location.toLowerCase().includes(searchQuery.toLowerCase()));
+      (user.location &&
+        user.location.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesFilter = filterType === "All" || user.type === filterType;
     return matchesSearch && matchesFilter;
   });
@@ -210,12 +242,12 @@ const UsersManagement = () => {
     {
       label: "Total Users",
       value: users.length,
-      color: '#1E293B',
+      color: "#1E293B",
     },
     {
       label: "Regular Users",
       value: users.filter((u) => u.type === "User").length,
-      color: '#1E293B',
+      color: "#1E293B",
     },
     {
       label: "Labs",
@@ -239,7 +271,7 @@ const UsersManagement = () => {
       <View style={styles.mainContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
         <LinearGradient
-          colors={['#1E293B', '#334155', '#475569']}
+          colors={["#1E293B", "#334155", "#475569"]}
           style={styles.headerGradient}
         >
           <Text style={styles.headerTitle}>Users Management</Text>
@@ -258,7 +290,7 @@ const UsersManagement = () => {
 
       {/* Premium Gradient Header */}
       <LinearGradient
-        colors={['#1E293B', '#334155', '#475569']}
+        colors={["#1E293B", "#334155", "#475569"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -275,17 +307,23 @@ const UsersManagement = () => {
             </View>
             <View style={styles.headerStatDivider} />
             <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatValue}>{users.filter(u => u.type === "User").length}</Text>
+              <Text style={styles.headerStatValue}>
+                {users.filter((u) => u.type === "User").length}
+              </Text>
               <Text style={styles.headerStatLabel}>Users</Text>
             </View>
             <View style={styles.headerStatDivider} />
             <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatValue}>{users.filter(u => u.type === "Nurse").length}</Text>
+              <Text style={styles.headerStatValue}>
+                {users.filter((u) => u.type === "Nurse").length}
+              </Text>
               <Text style={styles.headerStatLabel}>Nurses</Text>
             </View>
             <View style={styles.headerStatDivider} />
             <View style={styles.headerStatItem}>
-              <Text style={styles.headerStatValue}>{users.filter(u => u.type === "Lab").length}</Text>
+              <Text style={styles.headerStatValue}>
+                {users.filter((u) => u.type === "Lab").length}
+              </Text>
               <Text style={styles.headerStatLabel}>Labs</Text>
             </View>
           </View>
@@ -301,19 +339,25 @@ const UsersManagement = () => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={onRefresh}
-              colors={['#1E293B']}
+              colors={["#1E293B"]}
             />
           }
         >
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
             {/* Search and Filters */}
             <View style={styles.searchSection}>
               <FormInput
                 placeholder="Search by name, email, phone, location..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                LeftIcon={() => <Ionicons name="search" size={20} color={colors.gray} />}
+                LeftIcon={() => (
+                  <Ionicons name="search" size={20} color={colors.gray} />
+                )}
                 containerStyle={styles.searchInput}
               />
 
@@ -322,7 +366,16 @@ const UsersManagement = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filtersContainer}
               >
-                {(["All", "User", "Lab", "Nurse", "Medicine Delivery"] as const).map((type) => (
+                {(
+                  [
+                    "All",
+                    "User",
+                    "Lab",
+                    "Nurse",
+                    "Medicine Delivery",
+                    "Lab Delivery",
+                  ] as const
+                ).map((type) => (
                   <TouchableOpacity
                     key={type}
                     style={[
@@ -346,14 +399,15 @@ const UsersManagement = () => {
 
             {/* Users Table */}
             <View style={styles.tableSection}>
-              <Text style={styles.tableTitle}>All Registered Users ({filteredUsers.length})</Text>
+              <Text style={styles.tableTitle}>
+                All Registered Users ({filteredUsers.length})
+              </Text>
               <AdminTable
                 columns={columns}
                 data={filteredUsers}
                 emptyMessage="No users found"
               />
             </View>
-
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
@@ -366,7 +420,7 @@ export default UsersManagement;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
   },
 
   headerGradient: {
@@ -376,7 +430,7 @@ const styles = StyleSheet.create({
   },
 
   headerContent: {
-    width: '100%',
+    width: "100%",
   },
 
   headerTitle: {
@@ -389,14 +443,14 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: 'rgba(255,255,255,0.7)',
+    color: "rgba(255,255,255,0.7)",
     marginBottom: 20,
   },
 
   headerStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -404,7 +458,7 @@ const styles = StyleSheet.create({
 
   headerStatItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   headerStatValue: {
@@ -417,19 +471,19 @@ const styles = StyleSheet.create({
   headerStatLabel: {
     fontSize: 11,
     fontFamily: Fonts.medium,
-    color: 'rgba(255,255,255,0.7)',
+    color: "rgba(255,255,255,0.7)",
     letterSpacing: 0.3,
   },
 
   headerStatDivider: {
     width: 1,
     height: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
 
   contentContainer: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     marginTop: -10,
@@ -446,7 +500,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
 
   loadingText: {
@@ -506,8 +560,8 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
   filterChipActive: {
-    backgroundColor: '#1E293B',
-    borderColor: '#1E293B',
+    backgroundColor: "#1E293B",
+    borderColor: "#1E293B",
   },
   filterText: {
     fontSize: 13,
