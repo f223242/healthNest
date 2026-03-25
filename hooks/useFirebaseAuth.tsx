@@ -1,25 +1,25 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import {
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  updatePassword as firebaseUpdatePassword,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut,
+    createUserWithEmailAndPassword,
+    EmailAuthProvider,
+    updatePassword as firebaseUpdatePassword,
+    onAuthStateChanged,
+    reauthenticateWithCredential,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+    signOut,
 } from "firebase/auth";
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  setDoc,
-  where
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    setDoc,
+    where,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
@@ -37,6 +37,8 @@ export interface UserProfile {
   lastname?: string;
   phoneNumber?: string;
   role: string;
+  deliveryType?: "medicine" | "lab";
+  qualification?: string;
   createdAt: number;
   profileCompleted?: boolean;
   additionalInfo?: AdditionalInfo;
@@ -95,7 +97,12 @@ export interface AdminInfo {
   city?: string;
 }
 
-export type AdditionalInfo = PatientInfo | NurseInfo | LabInfo | DeliveryInfo | AdminInfo;
+export type AdditionalInfo =
+  | PatientInfo
+  | NurseInfo
+  | LabInfo
+  | DeliveryInfo
+  | AdminInfo;
 
 // Backwards-compatible exports expected elsewhere in the app
 export type User = UserProfile;
@@ -111,7 +118,7 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-    phone: string
+    phone: string,
   ) => Promise<any>;
 
   login: (values: { email: string; password: string }) => Promise<any>;
@@ -129,8 +136,12 @@ interface AuthContextType {
   saveAdditionalInfo: (info: AdditionalInfo) => Promise<void>;
 
   // Update basic profile fields (firstname, lastname, phoneNumber)
-  updateProfile: (data: { firstname?: string; lastname?: string; phoneNumber?: string }) => Promise<void>;
-  
+  updateProfile: (data: {
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+  }) => Promise<void>;
+
   // Backwards-compatible API used across the app
   register: (values: any) => Promise<any>;
   resendVerificationEmail: () => Promise<void>;
@@ -139,7 +150,18 @@ interface AuthContextType {
   verifyPasswordResetOTP: (otp: string) => Promise<boolean>;
   resendPasswordResetOTP: () => Promise<string>;
   updatePassword: (email: string) => Promise<void>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
+
+  // Submit education details for Lab Delivery Boys
+  submitEducationDetails: (values: {
+    matricType: string;
+    certificateUrl: string;
+    certificateName: string;
+  }) => Promise<{ success: boolean }>;
+
   isLoading?: boolean;
 }
 
@@ -173,6 +195,8 @@ const normalizeRole = (r?: string) => {
     nurse: "nurse",
     "Medicine Delivery": "delivery",
     "Medicine delivery": "delivery",
+    "Delivery Boy": "delivery",
+    "delivery boy": "delivery",
     Delivery: "delivery",
     delivery: "delivery",
   };
@@ -240,7 +264,7 @@ export const AuthProvider = ({ children }: any) => {
     email: string,
     password: string,
     fullName: string,
-    phone: string
+    phone: string,
   ) => {
     try {
       setLoading(true);
@@ -298,9 +322,33 @@ export const AuthProvider = ({ children }: any) => {
     firstname: string;
     lastname: string;
     role: string;
+    deliveryType?: "medicine" | "lab";
+    qualification?: string;
     dateOfBirth: string;
     phoneNumber: string;
   }) => {
+    // Backend validation: ensure correct fields for delivery boy registration
+    const isDeliveryRole = [
+      "Delivery Boy",
+      "delivery boy",
+      "Medicine Delivery",
+      "medicine delivery",
+      "Delivery",
+      "delivery",
+    ].includes(values.role);
+    if (isDeliveryRole) {
+      const deliveryType =
+        values.deliveryType ??
+        (values.role === "Medicine Delivery" ? "medicine" : undefined);
+      if (!deliveryType) {
+        throw new Error("Delivery type is required for Delivery Boy");
+      }
+      // Remove qualification validation for lab delivery - will be handled in education screen
+      if (deliveryType === "medicine") {
+        // Medicine delivery can proceed immediately
+      }
+    }
+
     // Normalize display role to internal role value
     const mapRoleToInternal = (r: string) => {
       const lookup: { [k: string]: string } = {
@@ -312,6 +360,8 @@ export const AuthProvider = ({ children }: any) => {
         nurse: "nurse",
         "Medicine Delivery": "delivery",
         "Medicine delivery": "delivery",
+        "Delivery Boy": "delivery",
+        "delivery boy": "delivery",
         Delivery: "delivery",
         delivery: "delivery",
       };
@@ -320,7 +370,11 @@ export const AuthProvider = ({ children }: any) => {
     try {
       setLoading(true);
       // Check if email already exists is skipped for brevity
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password,
+      );
 
       // Send verification email
       await sendEmailVerification(userCredential.user);
@@ -332,32 +386,51 @@ export const AuthProvider = ({ children }: any) => {
         firstname: values.firstname,
         lastname: values.lastname,
         role: mapRoleToInternal(values.role),
+        deliveryType:
+          values.deliveryType ||
+          (values.role === "Medicine Delivery" ? "medicine" : undefined),
+        qualification: values.qualification || undefined,
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
         createdAt: new Date().toISOString(),
         verified: false,
+        verificationStatus:
+          values.deliveryType === "lab" ? "pending_education" : "pending",
       });
 
       // Sign out so user must verify email
       await signOut(auth);
 
       // Store pending locally for verification screen
-      await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
-        email: values.email,
-        password: values.password,
-        uid: userCredential.user.uid,
-        role: values.role,
-        firstname: values.firstname,
-        lastname: values.lastname,
-        phoneNumber: values.phoneNumber,
-        dateOfBirth: values.dateOfBirth,
-      }));
+      await AsyncStorage.setItem(
+        PENDING_USER_KEY,
+        JSON.stringify({
+          email: values.email,
+          password: values.password,
+          uid: userCredential.user.uid,
+          role: values.role,
+          deliveryType:
+            values.deliveryType ||
+            (values.role === "Medicine Delivery" ? "medicine" : undefined),
+          qualification: values.qualification || undefined,
+          firstname: values.firstname,
+          lastname: values.lastname,
+          phoneNumber: values.phoneNumber,
+          dateOfBirth: values.dateOfBirth,
+        }),
+      );
 
       toast.show(firebaseMessages.registerSuccess as any);
 
-      return { requiresVerification: true };
+      return {
+        requiresVerification: true,
+        requiresEducation: values.deliveryType === "lab",
+      };
     } catch (err: any) {
-      const msg = (firebaseMessages.errors as any)[err.code as string] || firebaseMessages.errors["auth/internal-error"];
+      const msg =
+        err?.message ||
+        (firebaseMessages.errors as any)[err.code as string] ||
+        firebaseMessages.errors["auth/internal-error"];
       toast.show(msg as any);
       return { success: false };
     } finally {
@@ -389,6 +462,42 @@ export const AuthProvider = ({ children }: any) => {
       return { success: false };
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ---------------------------------------------------
+  // SUBMIT EDUCATION DETAILS (for Lab Delivery Boys)
+  // ---------------------------------------------------
+  const submitEducationDetails = async (values: {
+    matricType: string;
+    certificateUrl: string;
+    certificateName: string;
+  }) => {
+    try {
+      if (!auth.currentUser) {
+        throw new Error("User not authenticated");
+      }
+
+      const uid = auth.currentUser.uid;
+
+      // Update pending user document with education details
+      await setDoc(
+        doc(db, "pendingUsers", uid),
+        {
+          matricType: values.matricType,
+          certificateUrl: values.certificateUrl,
+          certificateName: values.certificateName,
+          educationSubmitted: true,
+          verificationStatus: "pending_admin_review",
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Education submission error:", error);
+      throw new Error(error.message || "Failed to submit education details");
     }
   };
 
@@ -427,7 +536,22 @@ export const AuthProvider = ({ children }: any) => {
 
       if (filter) {
         const normalized = normalizeRole(filter) || filter;
-        q = query(usersRef, where("role", "==", normalized));
+
+        if (filter === "Medicine Delivery") {
+          q = query(
+            usersRef,
+            where("role", "==", "delivery"),
+            where("deliveryType", "==", "medicine"),
+          );
+        } else if (filter === "Lab Delivery") {
+          q = query(
+            usersRef,
+            where("role", "==", "delivery"),
+            where("deliveryType", "==", "lab"),
+          );
+        } else {
+          q = query(usersRef, where("role", "==", normalized));
+        }
       } else {
         q = query(usersRef);
       }
@@ -439,20 +563,28 @@ export const AuthProvider = ({ children }: any) => {
       // 2) if still empty, fetch all and filter client-side using case-insensitive matching
       if (filter && snap.empty) {
         try {
-          console.warn("getAllUsers: normalized query returned 0 results for filter:", filter);
+          console.warn(
+            "getAllUsers: normalized query returned 0 results for filter:",
+            filter,
+          );
           // try raw filter
           const rawQ = query(usersRef, where("role", "==", filter));
           const rawSnap = await getDocs(rawQ);
           if (!rawSnap.empty) {
-            return rawSnap.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
+            return rawSnap.docs.map(
+              (d) => ({ uid: d.id, ...d.data() }) as UserProfile,
+            );
           }
 
           // final fallback: fetch all and filter client-side
-          console.warn("getAllUsers: trying client-side filtering fallback for filter:", filter);
+          console.warn(
+            "getAllUsers: trying client-side filtering fallback for filter:",
+            filter,
+          );
           const allSnap = await getDocs(query(usersRef));
           const lc = (filter || "").toLowerCase();
           const filtered = allSnap.docs
-            .map((d) => ({ uid: d.id, ...d.data() } as UserProfile))
+            .map((d) => ({ uid: d.id, ...d.data() }) as UserProfile)
             .filter((u) => {
               const role = (u.role || "").toString().toLowerCase();
               return role === lc || role.includes(lc) || lc.includes(role);
@@ -469,7 +601,7 @@ export const AuthProvider = ({ children }: any) => {
           ({
             uid: d.id,
             ...d.data(),
-          } as UserProfile)
+          }) as UserProfile,
       );
     } catch {
       return [];
@@ -484,14 +616,20 @@ export const AuthProvider = ({ children }: any) => {
       if (!auth.currentUser) throw new Error("Not authenticated");
       const uid = auth.currentUser.uid;
       const userDocRef = doc(db, "users", uid);
-      await setDoc(userDocRef, {
-        additionalInfo: info,
-        profileCompleted: true,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      await setDoc(
+        userDocRef,
+        {
+          additionalInfo: info,
+          profileCompleted: true,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
 
       // Update local state
-      setUser((prev) => prev ? { ...prev, additionalInfo: info, profileCompleted: true } : prev);
+      setUser((prev) =>
+        prev ? { ...prev, additionalInfo: info, profileCompleted: true } : prev,
+      );
     } catch (e) {
       console.error("saveAdditionalInfo error:", e);
       throw e;
@@ -501,25 +639,45 @@ export const AuthProvider = ({ children }: any) => {
   // ---------------------------------------------------
   // Update basic profile fields and maintain publicPhoneIndex
   // ---------------------------------------------------
-  const updateProfile = async (data: { firstname?: string; lastname?: string; phoneNumber?: string }): Promise<void> => {
+  const updateProfile = async (data: {
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+  }): Promise<void> => {
     try {
       if (!auth.currentUser) throw new Error("Not authenticated");
       const uid = auth.currentUser.uid;
       const userDocRef = doc(db, "users", uid);
-      await setDoc(userDocRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(
+        userDocRef,
+        { ...data, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
 
       // If phone changed, update publicPhoneIndex
       if (data.phoneNumber) {
         const newDigits = data.phoneNumber.replace(/\D+/g, "");
         try {
-          await setDoc(doc(db, "publicPhoneIndex", newDigits), { uid, email: auth.currentUser?.email || null });
+          await setDoc(doc(db, "publicPhoneIndex", newDigits), {
+            uid,
+            email: auth.currentUser?.email || null,
+          });
         } catch (e) {
           console.warn("Failed to set publicPhoneIndex:", e);
         }
       }
 
       // Update local state
-      setUser((prev) => prev ? { ...prev, firstname: data.firstname || prev.firstname, lastname: data.lastname || prev.lastname, phoneNumber: data.phoneNumber || prev.phoneNumber } : prev);
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              firstname: data.firstname || prev.firstname,
+              lastname: data.lastname || prev.lastname,
+              phoneNumber: data.phoneNumber || prev.phoneNumber,
+            }
+          : prev,
+      );
     } catch (e) {
       console.error("updateProfile error:", e);
       throw e;
@@ -573,12 +731,19 @@ export const AuthProvider = ({ children }: any) => {
             if (pendingStr) {
               const pending = safeJSONParse(pendingStr);
               if (pending && pending.email && pending.password) {
-                const userCredential = await signInWithEmailAndPassword(auth, pending.email, pending.password);
+                const userCredential = await signInWithEmailAndPassword(
+                  auth,
+                  pending.email,
+                  pending.password,
+                );
                 await sendEmailVerification(userCredential.user);
                 await signOut(auth);
                 return;
               } else {
-                console.warn("resendVerificationEmail: pending data invalid", pendingStr);
+                console.warn(
+                  "resendVerificationEmail: pending data invalid",
+                  pendingStr,
+                );
               }
             }
           } catch (e) {
@@ -597,50 +762,70 @@ export const AuthProvider = ({ children }: any) => {
             // Temporarily sign in to check verification; set skip flag so listener ignores this transient sign-in
             skipAuthHandlingRef.current = true;
             try {
-              userCredential = await signInWithEmailAndPassword(auth, pendingUser.email, pendingUser.password);
+              userCredential = await signInWithEmailAndPassword(
+                auth,
+                pendingUser.email,
+                pendingUser.password,
+              );
               await userCredential.user.reload();
               const isVerified = userCredential.user.emailVerified;
 
               if (isVerified) {
                 // Move to users collection
-                  // Ensure role is normalized when moving to users collection
-                  const normalizedRole = ((): string => {
-                    const r = pendingUser.role || "user";
-                    const map: { [k: string]: string } = {
-                      User: "user",
-                      user: "user",
-                      Lab: "lab",
-                      lab: "lab",
-                      Nurse: "nurse",
-                      nurse: "nurse",
-                      "Medicine Delivery": "delivery",
-                      "Medicine delivery": "delivery",
-                      Delivery: "delivery",
-                      delivery: "delivery",
-                    };
-                    return map[r] || (typeof r === "string" ? r.toLowerCase() : "user");
-                  })();
+                // Ensure role is normalized when moving to users collection
+                const normalizedRole = ((): string => {
+                  const r = pendingUser.role || "user";
+                  const map: { [k: string]: string } = {
+                    User: "user",
+                    user: "user",
+                    Lab: "lab",
+                    lab: "lab",
+                    Nurse: "nurse",
+                    nurse: "nurse",
+                    "Medicine Delivery": "delivery",
+                    "Medicine delivery": "delivery",
+                    "Delivery Boy": "delivery",
+                    "delivery boy": "delivery",
+                    Delivery: "delivery",
+                    delivery: "delivery",
+                  };
+                  return (
+                    map[r] || (typeof r === "string" ? r.toLowerCase() : "user")
+                  );
+                })();
 
-                  await setDoc(doc(db, "users", userCredential.user.uid), {
-                    uid: userCredential.user.uid,
-                    email: pendingUser.email,
-                    firstname: pendingUser.firstname,
-                    lastname: pendingUser.lastname,
-                    role: normalizedRole,
-                    phoneNumber: pendingUser.phoneNumber,
-                    dateOfBirth: pendingUser.dateOfBirth,
-                    emailVerified: true,
-                    profileCompleted: false,
-                    createdAt: new Date().toISOString(),
-                  });
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                  uid: userCredential.user.uid,
+                  email: pendingUser.email,
+                  firstname: pendingUser.firstname,
+                  lastname: pendingUser.lastname,
+                  role: normalizedRole,
+                  deliveryType:
+                    pendingUser.deliveryType ||
+                    (normalizedRole === "delivery" ? "medicine" : undefined),
+                  qualification: pendingUser.qualification || undefined,
+                  phoneNumber: pendingUser.phoneNumber,
+                  dateOfBirth: pendingUser.dateOfBirth,
+                  emailVerified: true,
+                  profileCompleted: false,
+                  createdAt: new Date().toISOString(),
+                });
 
                 // Delete pending user doc
-                await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+                await deleteDoc(
+                  doc(db, "pendingUsers", userCredential.user.uid),
+                );
 
                 // Create publicPhoneIndex entry
-                const digitsOnly = (pendingUser.phoneNumber || "").replace(/\D+/g, "");
+                const digitsOnly = (pendingUser.phoneNumber || "").replace(
+                  /\D+/g,
+                  "",
+                );
                 if (digitsOnly) {
-                  await setDoc(doc(db, "publicPhoneIndex", digitsOnly), { uid: userCredential.user.uid, email: pendingUser.email });
+                  await setDoc(doc(db, "publicPhoneIndex", digitsOnly), {
+                    uid: userCredential.user.uid,
+                    email: pendingUser.email,
+                  });
                 }
 
                 // Mark verification complete and remove pending flag
@@ -651,7 +836,10 @@ export const AuthProvider = ({ children }: any) => {
                 try {
                   router.replace("/(auth)");
                 } catch (navErr) {
-                  console.warn("Router navigation failed after verification:", navErr);
+                  console.warn(
+                    "Router navigation failed after verification:",
+                    navErr,
+                  );
                 }
 
                 return true;
@@ -660,12 +848,18 @@ export const AuthProvider = ({ children }: any) => {
               return false;
             } finally {
               // Always sign out the temporary session and resume normal auth handling
-              try { if (userCredential) await signOut(auth); } catch (e) { /* ignore */ }
+              try {
+                if (userCredential) await signOut(auth);
+              } catch (e) {
+                /* ignore */
+              }
               skipAuthHandlingRef.current = false;
             }
           } catch (e) {
             console.error("checkEmailVerification error:", e);
-            try { if (userCredential) await signOut(auth); } catch (_) {}
+            try {
+              if (userCredential) await signOut(auth);
+            } catch (_) {}
             skipAuthHandlingRef.current = false;
             return false;
           }
@@ -682,9 +876,25 @@ export const AuthProvider = ({ children }: any) => {
             }
             const data: any = idx.data();
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            await setDoc(doc(db, "passwordResetOTPs", normalized), { phoneNumber, uid: data.uid, email: data.email || null, otp, verified: false, createdAt: new Date().toISOString() });
+            await setDoc(doc(db, "passwordResetOTPs", normalized), {
+              phoneNumber,
+              uid: data.uid,
+              email: data.email || null,
+              otp,
+              verified: false,
+              createdAt: new Date().toISOString(),
+            });
             await AsyncStorage.setItem(OTP_KEY, otp);
-            await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({ phoneNumber, isPasswordReset: true, uid: data.uid, email: data.email || null, createdAt: new Date().toISOString() }));
+            await AsyncStorage.setItem(
+              PENDING_USER_KEY,
+              JSON.stringify({
+                phoneNumber,
+                isPasswordReset: true,
+                uid: data.uid,
+                email: data.email || null,
+                createdAt: new Date().toISOString(),
+              }),
+            );
             console.log("Password reset OTP:", otp);
             return otp;
           } catch (e) {
@@ -692,16 +902,24 @@ export const AuthProvider = ({ children }: any) => {
             throw e;
           }
         },
-        verifyPasswordResetOTP: async (enteredOTP: string): Promise<boolean> => {
+        verifyPasswordResetOTP: async (
+          enteredOTP: string,
+        ): Promise<boolean> => {
           const stored = await AsyncStorage.getItem(OTP_KEY);
           if (enteredOTP === stored) return true;
-          const err: any = new Error("Invalid OTP"); err.code = "invalid-otp"; throw err;
+          const err: any = new Error("Invalid OTP");
+          err.code = "invalid-otp";
+          throw err;
         },
         resendPasswordResetOTP: async (): Promise<string> => {
           const pendingStr = await AsyncStorage.getItem(PENDING_USER_KEY);
-          if (!pendingStr) { throw new Error("No pending reset"); }
+          if (!pendingStr) {
+            throw new Error("No pending reset");
+          }
           const pending = safeJSONParse(pendingStr);
-          if (!pending) { throw new Error("Invalid pending reset data"); }
+          if (!pending) {
+            throw new Error("Invalid pending reset data");
+          }
           const otp = Math.floor(100000 + Math.random() * 900000).toString();
           await AsyncStorage.setItem(OTP_KEY, otp);
           console.log("Resent OTP:", otp);
@@ -712,12 +930,20 @@ export const AuthProvider = ({ children }: any) => {
           await AsyncStorage.removeItem(OTP_KEY);
           await AsyncStorage.removeItem(PENDING_USER_KEY);
         },
-        changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
-          if (!auth.currentUser || !auth.currentUser.email) throw new Error("Not authenticated");
-          const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        changePassword: async (
+          currentPassword: string,
+          newPassword: string,
+        ): Promise<void> => {
+          if (!auth.currentUser || !auth.currentUser.email)
+            throw new Error("Not authenticated");
+          const credential = EmailAuthProvider.credential(
+            auth.currentUser.email,
+            currentPassword,
+          );
           await reauthenticateWithCredential(auth.currentUser, credential);
           await firebaseUpdatePassword(auth.currentUser, newPassword);
         },
+        submitEducationDetails,
       }}
     >
       {children}
@@ -730,8 +956,7 @@ export const AuthProvider = ({ children }: any) => {
 // -------------------------------
 export const useFirebaseAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx)
-    throw new Error("useFirebaseAuth must be used inside AuthProvider");
+  if (!ctx) throw new Error("useFirebaseAuth must be used inside AuthProvider");
   return ctx;
 };
 
