@@ -1,19 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useFormik } from "formik";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -54,8 +55,31 @@ export default function EducationScreen() {
   const { showToast } = useToast();
   const router = useRouter();
 
+  const [pendingUid, setPendingUid] = useState<string | null>(
+    user?.uid ?? null,
+  );
   const [certificateUri, setCertificateUri] = useState<string | null>(null);
   const [certificateName, setCertificateName] = useState<string>("");
+
+  useEffect(() => {
+    const loadPendingUser = async () => {
+      if (pendingUid) return;
+      const pendingUserRaw = await AsyncStorage.getItem(
+        "@healthnest_pending_user",
+      );
+      if (!pendingUserRaw) return;
+      try {
+        const pendingUser = JSON.parse(pendingUserRaw);
+        if (pendingUser?.uid) {
+          setPendingUid(pendingUser.uid);
+        }
+      } catch {
+        // ignore invalid JSON
+      }
+    };
+
+    loadPendingUser();
+  }, [pendingUid]);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -107,10 +131,15 @@ export default function EducationScreen() {
         setSubmitting(true);
 
         // Upload certificate to Firebase Storage
+        const uploadUid = pendingUid || user?.uid;
+        if (!uploadUid) {
+          throw new Error("User ID not available for education submission");
+        }
+
         const storage = getStorage();
         const certificateRef = ref(
           storage,
-          `certificates/${user?.uid}/matric_certificate`,
+          `certificates/${uploadUid}/matric_certificate`,
         );
 
         // Convert URI to blob
@@ -125,6 +154,7 @@ export default function EducationScreen() {
 
         // Submit education details using auth context
         await submitEducationDetails({
+          uid: uploadUid,
           matricType: values.matricType,
           certificateUrl: certificateUrl,
           certificateName: certificateName,

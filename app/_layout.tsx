@@ -2,7 +2,12 @@ import { ToastProvider } from "@/component/Toast/ToastProvider";
 import { AuthProvider, useAuthContext } from "@/hooks/useFirebaseAuth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
+import {
+  Stack,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -43,16 +48,21 @@ function InnerLayout() {
   const role = user?.role || "user";
 
   // State to differentiate between email verification and password reset
-  const [pendingUserType, setPendingUserType] = useState<"none" | "verification" | "passwordReset" | null>(null);
+  const [pendingUserType, setPendingUserType] = useState<
+    "none" | "verification" | "passwordReset" | null
+  >(null);
 
   // Track if verification was just completed to prevent redirect loop
-  const [verificationJustCompleted, setVerificationJustCompleted] = useState(false);
+  const [verificationJustCompleted, setVerificationJustCompleted] =
+    useState(false);
 
   // Check for pending user (during email verification or password reset)
   useEffect(() => {
     const checkPendingUser = async () => {
       // Check if verification was just completed - skip redirect to otp-screen
-      const verificationComplete = await AsyncStorage.getItem(VERIFICATION_COMPLETE_KEY);
+      const verificationComplete = await AsyncStorage.getItem(
+        VERIFICATION_COMPLETE_KEY,
+      );
       if (verificationComplete) {
         // Clear the flag after reading
         await AsyncStorage.removeItem(VERIFICATION_COMPLETE_KEY);
@@ -76,7 +86,8 @@ function InnerLayout() {
         if (pendingUser.createdAt) {
           const createdAt = new Date(pendingUser.createdAt);
           const now = new Date();
-          const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+          const diffMinutes =
+            (now.getTime() - createdAt.getTime()) / (1000 * 60);
 
           if (diffMinutes > 10) {
             // Expired - clear the data
@@ -117,24 +128,33 @@ function InnerLayout() {
   }, [user?.uid, user?.profileCompleted]);
 
   // Safe navigation helper
-  const safeNavigate = useCallback((route: string) => {
-    // Prevent duplicate navigations
-    if (lastNavigationRef.current === route) {
-      return;
-    }
-    lastNavigationRef.current = route;
+  const safeNavigate = useCallback(
+    (route: string) => {
+      // Prevent duplicate navigations
+      if (lastNavigationRef.current === route) {
+        return;
+      }
+      lastNavigationRef.current = route;
 
-    // Use setTimeout to ensure navigation happens after current render cycle
-    setTimeout(() => {
-      router.replace(route as any);
-    }, 0);
-  }, [router]);
+      // Use setTimeout to ensure navigation happens after current render cycle
+      setTimeout(() => {
+        router.replace(route as any);
+      }, 0);
+    },
+    [router],
+  );
 
   // Navigation logic
   useEffect(() => {
     // Wait for navigation state to be ready
     if (!rootNavigationState?.key) return;
-    if (!fontsLoaded || isLoading || hasPendingUser === null || pendingUserType === null) return;
+    if (
+      !fontsLoaded ||
+      isLoading ||
+      hasPendingUser === null ||
+      pendingUserType === null
+    )
+      return;
 
     const currentGroup = segments[0] as string | undefined;
     const currentScreen = segments[1] as string | undefined;
@@ -154,19 +174,26 @@ function InnerLayout() {
       }
 
       // If there's a pending user awaiting email verification, go to OTP screen
-      // But don't redirect if we're on sign-up screen (user is still signing up)
+      // But don't redirect if we're on sign-up or education screens (in-lab delivery onboarding).
       if (pendingUserType === "verification") {
-        // Only redirect to OTP screen if not already there and not on sign-up
-        if (currentScreen !== "otp-screen" && currentScreen !== "sign-up") {
+        // Only redirect to OTP if not already on signup/otp/education flow
+        if (
+          currentScreen !== "otp-screen" &&
+          currentScreen !== "sign-up" &&
+          currentScreen !== "education"
+        ) {
           safeNavigate("/(auth)/otp-screen");
           return;
         }
-        // If on sign-up or otp-screen, don't redirect anywhere
+        // If on sign-up, otp-screen, or education, don't redirect anywhere
         return;
       }
 
       // If password reset flow, allow them to stay on reset-password screen
-      if (pendingUserType === "passwordReset" && currentScreen !== "reset-password") {
+      if (
+        pendingUserType === "passwordReset" &&
+        currentScreen !== "reset-password"
+      ) {
         // Don't force redirect - they might be on forgot-password navigating to reset-password
         if (currentScreen !== "forgot-password") {
           safeNavigate("/(auth)/reset-password");
@@ -186,7 +213,8 @@ function InnerLayout() {
 
     // User IS logged in - check if profile is completed (skip for admin)
     // Check both segment positions for additional-info (could be at different positions)
-    const isOnAdditionalInfo = currentScreen === "additional-info" ||
+    const isOnAdditionalInfo =
+      currentScreen === "additional-info" ||
       fullPath.includes("additional-info");
 
     if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo) {
@@ -225,10 +253,25 @@ function InnerLayout() {
       safeNavigate("/(protected)/(tabs)");
       return;
     }
-  }, [user, isLoading, fontsLoaded, segments, hasPendingUser, pendingUserType, role, rootNavigationState?.key, safeNavigate]);
+  }, [
+    user,
+    isLoading,
+    fontsLoaded,
+    segments,
+    hasPendingUser,
+    pendingUserType,
+    role,
+    rootNavigationState?.key,
+    safeNavigate,
+  ]);
 
   // Show loading while initializing
-  if (!fontsLoaded || isLoading || hasPendingUser === null || pendingUserType === null) {
+  if (
+    !fontsLoaded ||
+    isLoading ||
+    hasPendingUser === null ||
+    pendingUserType === null
+  ) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#009963" />

@@ -15,13 +15,14 @@ export interface DeliveryPerson {
   distance: string;
   deliveryType?: "medicine" | "lab";
   qualification?: string;
+  uid: string;
 }
 
 interface DeliveryPersonCardProps extends DeliveryPerson {
   onPress: () => void;
   onViewProfile?: () => void;
   onBook?: () => void;
-  hasActiveAppointment?: boolean;
+  isActive?: boolean;
 }
 
 const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({

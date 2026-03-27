@@ -28,6 +28,8 @@ export const colors = {
   textSecondary: "#666",
   background: "#F8F8F8",
   border: "#E5E5E5",
+  grayText: "#666",
+  textDark: "#000000",
 };
 
 export const useAppFonts = () =>
