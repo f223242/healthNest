@@ -134,15 +134,10 @@ export default function SignupScreen() {
         const payload = { ...values, phoneNumber: formattedPhone };
         const res = await register(payload);
 
-        // After successful register, navigate based on delivery type
-        if (res && (res.requiresVerification || res.success !== false)) {
-          if (values.role === "Delivery Boy" && values.deliveryType === "lab") {
-            // Navigate to education screen for lab delivery boys
-            router.push("/(auth)/education");
-          } else {
-            // Navigate to OTP verification screen for other users
-            router.push("/(auth)/otp-screen");
-          }
+        // After successful register, always navigate to OTP verification
+        // The education screen will be triggered after OTP verification if needed
+        if (res && (res.success || res.requiresVerification)) {
+          router.push("/(auth)/otp-screen");
         }
       } catch (error: any) {
         showToast(error?.text2 || "Failed to sign up", "error");

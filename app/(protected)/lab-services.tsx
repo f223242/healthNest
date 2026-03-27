@@ -119,6 +119,9 @@ const LabServices = () => {
 
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [serviceMode, setServiceMode] = useState<"center" | "home" | null>(
+    null,
+  );
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -139,7 +142,10 @@ const LabServices = () => {
     ]).start();
   }, []);
 
-  const categories = ["All", ...Array.from(new Set(servicesData.map((s) => s.category)))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(servicesData.map((s) => s.category))),
+  ];
 
   const filteredServices =
     selectedCategory === "All"
@@ -150,12 +156,14 @@ const LabServices = () => {
     setSelectedServices((prev) =>
       prev.includes(serviceId)
         ? prev.filter((id) => id !== serviceId)
-        : [...prev, serviceId]
+        : [...prev, serviceId],
     );
   };
 
   const handleContinue = () => {
-    const services = servicesData.filter((s) => selectedServices.includes(s.id));
+    const services = servicesData.filter((s) =>
+      selectedServices.includes(s.id),
+    );
     router.push({
       pathname: "/(protected)/lab-booking-form",
       params: {
@@ -175,7 +183,7 @@ const LabServices = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00C853"]}
@@ -201,109 +209,173 @@ const LabServices = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
           }}
         >
-
-      {/* Category Filter */}
-      <View style={styles.categoryContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category && styles.categoryChipActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category && styles.categoryTextActive,
-                ]}
-              >
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Services List */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredServices.map((service) => (
-          <TouchableOpacity
-            key={service.id}
-            activeOpacity={0.8}
-            onPress={() => toggleService(service.id)}
-            style={[
-              styles.serviceCard,
-              selectedServices.includes(service.id) && styles.serviceCardSelected,
-            ]}
-          >
-            <View style={styles.serviceHeader}>
-              <View style={styles.serviceInfo}>
-                <View style={styles.serviceTitleRow}>
-                  <Text style={appStyles.cardTitle}>{service.name}</Text>
-                  {service.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularText}>Popular</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={appStyles.bodyText}>{service.description}</Text>
-                
-                <View style={styles.serviceMeta}>
-                  <View style={styles.metaItem}>
-                    <Text style={styles.metaLabel}>Duration:</Text>
-                    <Text style={styles.metaValue}>{service.duration}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Text style={styles.metaLabel}>Category:</Text>
-                    <Text style={styles.metaValue}>{service.category}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.servicePricing}>
-                <Text style={styles.servicePrice}>{service.price}</Text>
-                <View
-                  style={[
-                    styles.checkbox,
-                    selectedServices.includes(service.id) && styles.checkboxSelected,
-                  ]}
+          {/* Service Mode Selection */}
+          {!serviceMode ? (
+            <View style={styles.serviceModeContainer}>
+              <Text style={styles.serviceModeTitle}>Select Service Type</Text>
+              <View style={styles.serviceModeButtonsRow}>
+                <TouchableOpacity
+                  style={styles.serviceModeButton}
+                  onPress={() => setServiceMode("center")}
                 >
-                  {selectedServices.includes(service.id) && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </View>
+                  <Ionicons name="business" size={32} color={colors.primary} />
+                  <Text style={styles.serviceModeButtonText}>
+                    Lab at Center
+                  </Text>
+                  <Text style={styles.serviceModeButtonSubtext}>
+                    Visit our lab
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.serviceModeButton}
+                  onPress={() => {
+                    // Navigate to lab delivery person selection
+                    router.push({
+                      pathname: "/(protected)/request-lab-home-service",
+                      params: {
+                        labId,
+                        labName,
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="home" size={32} color="#4CAF50" />
+                  <Text
+                    style={[styles.serviceModeButtonText, { color: "#4CAF50" }]}
+                  >
+                    Home Service
+                  </Text>
+                  <Text style={styles.serviceModeButtonSubtext}>
+                    Sample at home
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+          ) : (
+            <>
+              {/* Category Filter */}
+              <View style={styles.categoryContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {categories.map((category) => (
+                    <TouchableOpacity
+                      key={category}
+                      onPress={() => setSelectedCategory(category)}
+                      style={[
+                        styles.categoryChip,
+                        selectedCategory === category &&
+                          styles.categoryChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          selectedCategory === category &&
+                            styles.categoryTextActive,
+                        ]}
+                      >
+                        {category}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
-      {/* Bottom Summary */}
-      {selectedServices.length > 0 && (
-          <View style={styles.bottomContainer}>
-            <View style={styles.summaryRow}>
-              <Text style={appStyles.bodyText}>
-                {selectedServices.length} test{selectedServices.length > 1 ? "s" : ""} selected
-              </Text>
-              <Text style={styles.totalPrice}>Total: ${calculateTotal()}</Text>
-            </View>
-            <AppButton title="Continue to Booking" onPress={handleContinue} />
-          </View>
-        )}
+              {/* Services List */}
+              <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {filteredServices.map((service) => (
+                  <TouchableOpacity
+                    key={service.id}
+                    activeOpacity={0.8}
+                    onPress={() => toggleService(service.id)}
+                    style={[
+                      styles.serviceCard,
+                      selectedServices.includes(service.id) &&
+                        styles.serviceCardSelected,
+                    ]}
+                  >
+                    <View style={styles.serviceHeader}>
+                      <View style={styles.serviceInfo}>
+                        <View style={styles.serviceTitleRow}>
+                          <Text style={appStyles.cardTitle}>
+                            {service.name}
+                          </Text>
+                          {service.popular && (
+                            <View style={styles.popularBadge}>
+                              <Text style={styles.popularText}>Popular</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={appStyles.bodyText}>
+                          {service.description}
+                        </Text>
+
+                        <View style={styles.serviceMeta}>
+                          <View style={styles.metaItem}>
+                            <Text style={styles.metaLabel}>Duration:</Text>
+                            <Text style={styles.metaValue}>
+                              {service.duration}
+                            </Text>
+                          </View>
+                          <View style={styles.metaItem}>
+                            <Text style={styles.metaLabel}>Category:</Text>
+                            <Text style={styles.metaValue}>
+                              {service.category}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.servicePricing}>
+                        <Text style={styles.servicePrice}>{service.price}</Text>
+                        <View
+                          style={[
+                            styles.checkbox,
+                            selectedServices.includes(service.id) &&
+                              styles.checkboxSelected,
+                          ]}
+                        >
+                          {selectedServices.includes(service.id) && (
+                            <Text style={styles.checkmark}>✓</Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Bottom Summary */}
+              {selectedServices.length > 0 && (
+                <View style={styles.bottomContainer}>
+                  <View style={styles.summaryRow}>
+                    <Text style={appStyles.bodyText}>
+                      {selectedServices.length} test
+                      {selectedServices.length > 1 ? "s" : ""} selected
+                    </Text>
+                    <Text style={styles.totalPrice}>
+                      Total: ${calculateTotal()}
+                    </Text>
+                  </View>
+                  <AppButton
+                    title="Continue to Booking"
+                    onPress={handleContinue}
+                  />
+                </View>
+              )}
+            </>
+          )}
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -316,6 +388,47 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: colors.primary,
+  },
+  serviceModeContainer: {
+    paddingHorizontal: sizes.paddingHorizontal,
+    paddingVertical: 24,
+  },
+  serviceModeTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.textDark,
+    marginBottom: 16,
+  },
+  serviceModeButtonsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  serviceModeButton: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  serviceModeButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: colors.primary,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  serviceModeButtonSubtext: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.grayText,
+    marginTop: 4,
+    textAlign: "center",
   },
   headerGradient: {
     paddingTop: 50,

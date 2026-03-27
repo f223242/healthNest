@@ -157,6 +157,7 @@ interface AuthContextType {
 
   // Submit education details for Lab Delivery Boys
   submitEducationDetails: (values: {
+    uid?: string;
     matricType: string;
     certificateUrl: string;
     certificateName: string;
@@ -380,7 +381,7 @@ export const AuthProvider = ({ children }: any) => {
       await sendEmailVerification(userCredential.user);
 
       // Save to pendingUsers collection
-      await setDoc(doc(db, "pendingUsers", userCredential.user.uid), {
+      const pendingUserPayload = {
         uid: userCredential.user.uid,
         email: values.email,
         firstname: values.firstname,
@@ -389,48 +390,75 @@ export const AuthProvider = ({ children }: any) => {
         deliveryType:
           values.deliveryType ||
           (values.role === "Medicine Delivery" ? "medicine" : undefined),
-        qualification: values.qualification || undefined,
+        qualification: values.qualification,
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
         createdAt: new Date().toISOString(),
         verified: false,
         verificationStatus:
           values.deliveryType === "lab" ? "pending_education" : "pending",
-      });
+      };
+
+      const cleanPendingUserPayload = Object.fromEntries(
+        Object.entries(pendingUserPayload).filter(([_, v]) => v !== undefined),
+      );
+
+      console.log("[register] pendingUserPayload", pendingUserPayload);
+      console.log(
+        "[register] cleanPendingUserPayload",
+        cleanPendingUserPayload,
+      );
+
+      await setDoc(
+        doc(db, "pendingUsers", userCredential.user.uid),
+        cleanPendingUserPayload,
+      );
 
       // Sign out so user must verify email
       await signOut(auth);
 
       // Store pending locally for verification screen
+      const pendingUserStore = {
+        email: values.email,
+        password: values.password,
+        uid: userCredential.user.uid,
+        role: values.role,
+        deliveryType:
+          values.deliveryType ||
+          (values.role === "Medicine Delivery" ? "medicine" : undefined),
+        qualification: values.qualification,
+        firstname: values.firstname,
+        lastname: values.lastname,
+        phoneNumber: values.phoneNumber,
+        dateOfBirth: values.dateOfBirth,
+      };
+
+      const cleanPendingUserStore = Object.fromEntries(
+        Object.entries(pendingUserStore).filter(([_, v]) => v !== undefined),
+      );
+
       await AsyncStorage.setItem(
         PENDING_USER_KEY,
-        JSON.stringify({
-          email: values.email,
-          password: values.password,
-          uid: userCredential.user.uid,
-          role: values.role,
-          deliveryType:
-            values.deliveryType ||
-            (values.role === "Medicine Delivery" ? "medicine" : undefined),
-          qualification: values.qualification || undefined,
-          firstname: values.firstname,
-          lastname: values.lastname,
-          phoneNumber: values.phoneNumber,
-          dateOfBirth: values.dateOfBirth,
-        }),
+        JSON.stringify(cleanPendingUserStore),
       );
 
       toast.show(firebaseMessages.registerSuccess as any);
 
       return {
+        success: true,
         requiresVerification: true,
         requiresEducation: values.deliveryType === "lab",
       };
     } catch (err: any) {
-      const msg =
-        err?.message ||
-        (firebaseMessages.errors as any)[err.code as string] ||
-        firebaseMessages.errors["auth/internal-error"];
+      const firebaseError = (firebaseMessages.errors as any)[
+        err?.code as string
+      ];
+      const msg = firebaseError || {
+        type: "error",
+        text1: "Registration Failed",
+        text2: err?.message || "Failed to register.",
+      };
+
       toast.show(msg as any);
       return { success: false };
     } finally {
@@ -469,16 +497,16 @@ export const AuthProvider = ({ children }: any) => {
   // SUBMIT EDUCATION DETAILS (for Lab Delivery Boys)
   // ---------------------------------------------------
   const submitEducationDetails = async (values: {
+    uid?: string;
     matricType: string;
     certificateUrl: string;
     certificateName: string;
   }) => {
     try {
-      if (!auth.currentUser) {
-        throw new Error("User not authenticated");
+      const uid = values.uid || auth.currentUser?.uid;
+      if (!uid) {
+        throw new Error("User not authenticated for education submission");
       }
-
-      const uid = auth.currentUser.uid;
 
       // Update pending user document with education details
       await setDoc(
