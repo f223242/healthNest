@@ -4,6 +4,13 @@ import FormInput from "@/component/FormInput";
 import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
 
+import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
+import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
+import FeedbackComplaintService from "@/services/FeedbackComplaintService";
+import AppointmentService from "@/services/AppointmentService";
+import LabTestService from "@/services/LabTestService";
+import PaymentService from "@/services/PaymentService";
+
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -63,10 +70,15 @@ const homeSamplingSchema = bookingSchema.concat(
 const LabBookingForm = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { labName, selectedServices } = params;
+  const { labId, labName, selectedServices } = params;
 
   const services = selectedServices ? JSON.parse(selectedServices as string) : [];
   const [selectedTestType, setSelectedTestType] = useState<"Home" | "Lab">("Lab");
+  const { user, getAllUsers } = useAuthContext();
+  const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
+  const [loadingDelivery, setLoadingDelivery] = useState(false);
+  const [activeAppointments, setActiveAppointments] = useState<Set<string>>(new Set());
+  const [selectedDeliveryPerson, setSelectedDeliveryPerson] = useState<DeliveryPerson | null>(null);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -75,6 +87,7 @@ const LabBookingForm = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -150,6 +163,95 @@ const LabBookingForm = () => {
     },
   });
 
+  // Listen to user's active lab delivery appointments
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = AppointmentService.listenToUserAppointments(
+      user.uid,
+      (appointments) => {
+        const activeDeliveryIds = new Set<string>();
+        appointments.forEach((apt) => {
+          if (
+            apt.providerType === "delivery" &&
+            apt.status === "accepted" &&
+            apt.deliveryId
+          ) {
+            activeDeliveryIds.add(apt.deliveryId);
+          }
+        });
+        setActiveAppointments(activeDeliveryIds);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch lab delivery boys from Firebase with dynamic ratings
+  const fetchLabDeliveryPersons = React.useCallback(async () => {
+    if (selectedTestType !== "Home") return;
+    setLoadingDelivery(true);
+    try {
+      const users = await getAllUsers("Lab Delivery");
+      const deliveryData: DeliveryPerson[] = await Promise.all(
+        users
+          .filter((u: User) => u.profileCompleted && u.additionalInfo)
+          .map(async (u: User, index: number) => {
+            const info = u.additionalInfo as DeliveryInfo;
+            const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Lab Delivery Person";
+
+            const isAvailable =
+              !info.availability ||
+              (info.availability.toLowerCase() !== "unavailable" &&
+                info.availability.toLowerCase() !== "part-time");
+
+            let rating = 0;
+            let totalDeliveries = 0;
+            try {
+              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(u.uid);
+              rating = ratingStats.averageRating || 0;
+              totalDeliveries = ratingStats.totalReviews || 0;
+            } catch (err) {
+              console.log("No ratings for lab delivery person:", u.uid);
+            }
+
+            return {
+              id: index + 1,
+              name: fullName,
+              avatar: info.profileImage || "https://via.placeholder.com/100",
+              rating,
+              totalDeliveries,
+              isAvailable,
+              deliveryTime: "15-25 min",
+              distance: info.city || "N/A",
+              vehicleType: info.vehicleType || "Bike",
+              vehicleNumber: info.vehicleNumber || "",
+              deliveryType: (u as any).deliveryType || "lab",
+              qualification: (u as any).qualification || "",
+              uid: u.uid,
+            } as DeliveryPerson;
+          }),
+      );
+      setDeliveryPersons(deliveryData);
+    } catch (error) {
+      console.error("Error fetching lab delivery persons:", error);
+    } finally {
+      setLoadingDelivery(false);
+    }
+  }, [getAllUsers, selectedTestType]);
+
+  useEffect(() => {
+    if (selectedTestType === "Home") {
+      fetchLabDeliveryPersons();
+    } else {
+      setSelectedDeliveryPerson(null);
+    }
+  }, [selectedTestType, fetchLabDeliveryPersons]);
+
+  const availableDeliveryPersons = deliveryPersons.filter(
+    (p) => p.isAvailable && !activeAppointments.has(p.uid)
+  );
+
   // Get current location for home sampling
   const handleGetCurrentLocation = async () => {
     try {
@@ -223,17 +325,125 @@ const LabBookingForm = () => {
       return baseFieldsFilled &&
         formik.values.address.length >= 10 &&
         formik.values.city !== "" &&
-        formik.values.zipCode.length >= 5;
+        formik.values.zipCode.length >= 5 &&
+        selectedDeliveryPerson !== null;
     }
 
     return baseFieldsFilled;
   };
 
-  const handlePaymentConfirm = (paymentMethod: string, paymentDetails?: any) => {
+  const handlePaymentConfirm = async (paymentMethod: string, paymentDetails?: any) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setSelectedPaymentMethod(paymentMethod);
     setShowPaymentModal(false);
-    // Show success modal after payment method selection
-    setShowSuccessModal(true);
+
+    try {
+      const fullName = `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || formik.values.fullName;
+      const testNames = services.map((s: any) => s.name || s.title || s.id);
+      const totalAmount = services.reduce(
+        (sum: number, s: any) => sum + parseInt((s.price || "0").toString().replace(/[^0-9]/g, "")),
+        0
+      );
+
+      // Build clean lab test request data — no undefined fields
+      const labTestData: Record<string, any> = {
+        userId: user?.uid || "",
+        userName: fullName,
+        userPhone: formik.values.phone,
+        labId: (labId as string) || "",
+        labName: (labName as string) || "",
+        testType: testNames.join(", "),
+        tests: testNames,
+        sampleType: "blood",
+        collectionType: selectedTestType === "Home" ? "home_sampling" : "lab_visit",
+        scheduledDate: formik.values.preferredDate,
+        scheduledTime: formik.values.preferredTime,
+        priority: "normal",
+        notes: formik.values.notes || "",
+        doctorName: formik.values.referringDoctor || "",
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentMethod === "cash" ? "pending" : "paid_to_admin",
+      };
+
+      // Add address for home collection
+      if (selectedTestType === "Home") {
+        labTestData.address = `${formik.values.address}, ${formik.values.city} ${formik.values.zipCode}`;
+      }
+
+      // Add delivery info for home collection
+      if (selectedTestType === "Home" && selectedDeliveryPerson) {
+        labTestData.deliveryId = selectedDeliveryPerson.uid;
+        labTestData.deliveryName = selectedDeliveryPerson.name;
+      }
+
+      // 1. Create lab test request in Firestore
+      const testRequestId = await LabTestService.createTestRequest(labTestData as any);
+
+      // 2. Track in Admin Wallet (Escrow)
+      try {
+        await PaymentService.trackInternalPayment(
+          totalAmount,
+          "lab_test",
+          testRequestId,
+          user?.uid || "",
+          fullName,
+          (labId as string) || "", // Lab gets the main payment
+          paymentMethod as any
+        );
+      } catch (escrowErr) {
+        console.warn("Escrow tracking error:", escrowErr);
+      }
+
+      // 3. Process payment (if not cash)
+      if (paymentMethod !== "cash" && totalAmount > 0) {
+        try {
+          await PaymentService.processPayment(
+            user?.uid || "",
+            fullName,
+            totalAmount,
+            paymentMethod as any,
+            "lab_test",
+            testRequestId,
+            `Lab test booking: ${testNames.join(", ")}`,
+            paymentDetails
+          );
+        } catch (payErr) {
+          console.warn("Payment processing error (order still created):", payErr);
+        }
+      }
+
+      // 3. If home collection, create an appointment for the delivery boy
+      if (selectedTestType === "Home" && selectedDeliveryPerson) {
+        try {
+          await AppointmentService.createAppointment({
+            userId: user?.uid || "",
+            userName: fullName,
+            deliveryId: selectedDeliveryPerson.uid,
+            deliveryName: selectedDeliveryPerson.name,
+            providerType: "delivery",
+            appointmentDate: formik.values.preferredDate,
+            appointmentTime: formik.values.preferredTime,
+            status: "pending",
+            serviceType: "Lab Home Sampling",
+            notes: `Lab: ${labName}. Tests: ${testNames.join(", ")}. Order ID: ${testRequestId}`,
+            address: labTestData.address || "",
+            // New fields for payment tracking
+            paymentMethod: paymentMethod as any,
+            labTestRequestId: testRequestId,
+          });
+        } catch (aptErr) {
+          console.warn("Appointment creation error:", aptErr);
+        }
+      }
+
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("Error saving booking:", error);
+      alert("Failed to save booking. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSuccessClose = () => {
@@ -451,6 +661,32 @@ const LabBookingForm = () => {
                     maxLength={6}
                   />
                 </View>
+              </View>
+            )}
+
+            {/* Delivery Person Selection */}
+            {selectedTestType === "Home" && (
+              <View style={styles.section}>
+                <Text style={appStyles.sectionTitle}>Select Delivery Person</Text>
+                {loadingDelivery ? (
+                  <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
+                ) : deliveryPersons.length === 0 ? (
+                  <Text style={{ textAlign: "center", color: colors.grayText, marginTop: 16 }}>
+                    No delivery persons available at the moment.
+                  </Text>
+                ) : (
+                  <View style={{ gap: 12, marginTop: 12 }}>
+                    {deliveryPersons.map((person) => (
+                      <DeliveryPersonCard
+                        key={person.uid}
+                        {...person}
+                        mode="booking"
+                        isSelected={selectedDeliveryPerson?.uid === person.uid}
+                        onPress={() => setSelectedDeliveryPerson(person)}
+                      />
+                    ))}
+                  </View>
+                )}
               </View>
             )}
 

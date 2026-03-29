@@ -119,9 +119,6 @@ const LabServices = () => {
 
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [serviceMode, setServiceMode] = useState<"center" | "home" | null>(
-    null,
-  );
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -216,51 +213,6 @@ const LabServices = () => {
             transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* Service Mode Selection */}
-          {!serviceMode ? (
-            <View style={styles.serviceModeContainer}>
-              <Text style={styles.serviceModeTitle}>Select Service Type</Text>
-              <View style={styles.serviceModeButtonsRow}>
-                <TouchableOpacity
-                  style={styles.serviceModeButton}
-                  onPress={() => setServiceMode("center")}
-                >
-                  <Ionicons name="business" size={32} color={colors.primary} />
-                  <Text style={styles.serviceModeButtonText}>
-                    Lab at Center
-                  </Text>
-                  <Text style={styles.serviceModeButtonSubtext}>
-                    Visit our lab
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.serviceModeButton}
-                  onPress={() => {
-                    // Navigate to lab delivery person selection
-                    router.push({
-                      pathname: "/(protected)/request-lab-home-service",
-                      params: {
-                        labId,
-                        labName,
-                      },
-                    });
-                  }}
-                >
-                  <Ionicons name="home" size={32} color="#4CAF50" />
-                  <Text
-                    style={[styles.serviceModeButtonText, { color: "#4CAF50" }]}
-                  >
-                    Home Service
-                  </Text>
-                  <Text style={styles.serviceModeButtonSubtext}>
-                    Sample at home
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <>
               {/* Category Filter */}
               <View style={styles.categoryContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -374,8 +326,7 @@ const LabServices = () => {
                   />
                 </View>
               )}
-            </>
-          )}
+
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -389,47 +340,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.primary,
   },
-  serviceModeContainer: {
-    paddingHorizontal: sizes.paddingHorizontal,
-    paddingVertical: 24,
-  },
-  serviceModeTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: colors.textDark,
-    marginBottom: 16,
-  },
-  serviceModeButtonsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  serviceModeButton: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  serviceModeButtonText: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary,
-    marginTop: 8,
-    textAlign: "center",
-  },
-  serviceModeButtonSubtext: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: colors.grayText,
-    marginTop: 4,
-    textAlign: "center",
-  },
+
   headerGradient: {
     paddingTop: 50,
     paddingBottom: 30,

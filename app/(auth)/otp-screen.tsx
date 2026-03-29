@@ -135,24 +135,7 @@ const OtpScreen = () => {
           text2: "Your email has been verified successfully.",
         });
 
-        // Check if user needs to complete education verification
-        const pendingUserRaw = await AsyncStorage.getItem(
-          "@healthnest_pending_user",
-        );
-        if (pendingUserRaw) {
-          try {
-            const pendingUser = JSON.parse(pendingUserRaw);
-            // If on lab delivery path, redirect to education screen
-            if (pendingUser.deliveryType === "lab") {
-              safeNavigate("/(auth)/education");
-              return;
-            }
-          } catch {
-            // ignore JSON error
-          }
-        }
-
-        // Otherwise, auto-login user and redirect to their dashboard
+        // Redirect user to login so they can proceed with their profile completion
         safeNavigate("/(auth)");
       } else {
         toast.show({

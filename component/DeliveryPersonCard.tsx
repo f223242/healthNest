@@ -23,6 +23,9 @@ interface DeliveryPersonCardProps extends DeliveryPerson {
   onViewProfile?: () => void;
   onBook?: () => void;
   isActive?: boolean;
+  isSelected?: boolean;
+  hasActiveAppointment?: boolean;
+  mode?: "booking" | "chat";
 }
 
 const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
@@ -36,6 +39,8 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
   onPress,
   onViewProfile,
   onBook,
+  isSelected = false,
+  mode = "chat",
   hasActiveAppointment = false,
 }) => {
   // Chat is only enabled if user has an active/accepted appointment with this delivery person
@@ -135,58 +140,105 @@ const DeliveryPersonCard: React.FC<DeliveryPersonCardProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* Book Button */}
-          {onBook && (
+          {mode === "booking" ? (
+            /* Booking mode: Select/Selected/Unavailable */
             <TouchableOpacity
-              style={[styles.bookButton, !isAvailable && styles.buttonDisabled]}
-              onPress={isAvailable ? onBook : undefined}
+              style={[
+                styles.bookButton,
+                !isAvailable && styles.buttonDisabled,
+              ]}
+              onPress={isAvailable ? onPress : undefined}
               activeOpacity={isAvailable ? 0.7 : 1}
               disabled={!isAvailable}
             >
               <LinearGradient
                 colors={
-                  isAvailable
-                    ? [colors.primary, "#00D68F"]
-                    : [colors.gray, colors.gray]
+                  !isAvailable
+                    ? [colors.gray, colors.gray]
+                    : isSelected
+                    ? ["#00C853", "#00E676"]
+                    : [colors.primary, "#00D68F"]
                 }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.bookButtonGradient}
               >
-                <Ionicons name="calendar" size={16} color={colors.white} />
-                <Text style={styles.bookButtonText}>Book</Text>
+                <Ionicons
+                  name={
+                    !isAvailable
+                      ? "close-circle"
+                      : isSelected
+                      ? "checkmark-circle"
+                      : "add-circle"
+                  }
+                  size={16}
+                  color={colors.white}
+                />
+                <Text style={styles.bookButtonText}>
+                  {!isAvailable
+                    ? "Unavailable"
+                    : isSelected
+                    ? "Selected"
+                    : "Select"}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
-          )}
+          ) : (
+            /* Chat mode: original Book + Chat buttons */
+            <>
+              {onBook && (
+                <TouchableOpacity
+                  style={[styles.bookButton, !isAvailable && styles.buttonDisabled]}
+                  onPress={isAvailable ? onBook : undefined}
+                  activeOpacity={isAvailable ? 0.7 : 1}
+                  disabled={!isAvailable}
+                >
+                  <LinearGradient
+                    colors={
+                      isAvailable
+                        ? [colors.primary, "#00D68F"]
+                        : [colors.gray, colors.gray]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.bookButtonGradient}
+                  >
+                    <Ionicons name="calendar" size={16} color={colors.white} />
+                    <Text style={styles.bookButtonText}>Book</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
 
-          {/* Chat Button - Locked until appointment is booked */}
-          <TouchableOpacity
-            style={[styles.chatButton, !canChat && styles.buttonDisabled]}
-            onPress={canChat ? onPress : undefined}
-            activeOpacity={canChat ? 0.7 : 1}
-            disabled={!canChat}
-          >
-            <View
-              style={[
-                styles.chatButtonInner,
-                !canChat && styles.chatButtonLocked,
-              ]}
-            >
-              <Ionicons
-                name={canChat ? "chatbubbles" : "lock-closed"}
-                size={16}
-                color={canChat ? colors.primary : colors.gray}
-              />
-              <Text
-                style={[
-                  styles.chatButtonTextOutline,
-                  !canChat && styles.chatButtonTextLocked,
-                ]}
+              {/* Chat Button - Locked until appointment is booked */}
+              <TouchableOpacity
+                style={[styles.chatButton, !canChat && styles.buttonDisabled]}
+                onPress={canChat ? onPress : undefined}
+                activeOpacity={canChat ? 0.7 : 1}
+                disabled={!canChat}
               >
-                {canChat ? "Chat" : "Locked"}
-              </Text>
-            </View>
-          </TouchableOpacity>
+                <View
+                  style={[
+                    styles.chatButtonInner,
+                    !canChat && styles.chatButtonLocked,
+                  ]}
+                >
+                  <Ionicons
+                    name="chatbubbles"
+                    size={16}
+                    color={canChat ? colors.primary : colors.gray}
+                  />
+                  <Text
+                    style={[
+                      styles.chatButtonTextOutline,
+                      !canChat && styles.chatButtonTextLocked,
+                    ]}
+                  >
+                    Chat
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </LinearGradient>
     </View>

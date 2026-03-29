@@ -20,6 +20,7 @@ interface AppointmentCardProps {
     onReject?: () => void;
     onCancel?: () => void;
     onComplete?: () => void;
+    onMarkCashCollected?: () => void;
     onPress?: () => void;
 }
 
@@ -32,6 +33,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
     onReject,
     onCancel,
     onComplete,
+    onMarkCashCollected,
     onPress,
 }) => {
     // Determine if viewing as provider (supports both old and new interface)
@@ -209,8 +211,19 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
                     {/* Complete Button for Provider with accepted appointments */}
                     {isProviderView && appointment.status === "accepted" && onComplete && (
                         <View style={styles.actionsContainer}>
+                            {/* Cash Collection Button - Only for cash payments */}
+                            {appointment.paymentMethod === "cash" && onMarkCashCollected && (
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.cashButton]}
+                                    onPress={onMarkCashCollected}
+                                >
+                                    <Ionicons name="cash" size={18} color="#2E7D32" />
+                                    <Text style={styles.cashButtonText}>Mark Cash Collected</Text>
+                                </TouchableOpacity>
+                            )}
+                            
                             <TouchableOpacity
-                                style={[styles.actionButton, styles.acceptButton, { flex: 1 }]}
+                                style={[styles.actionButton, styles.acceptButton, { flex: 1.5 }]}
                                 onPress={onComplete}
                             >
                                 <Ionicons name="checkmark-done" size={18} color={colors.white} />
@@ -429,5 +442,16 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: Fonts.bold,
         color: colors.success,
+    },
+    cashButton: {
+        backgroundColor: "#E8F5E9",
+        borderWidth: 1,
+        borderColor: "#2E7D32",
+        flex: 1,
+    },
+    cashButtonText: {
+        fontSize: 13,
+        fontFamily: Fonts.semiBold,
+        color: "#2E7D32",
     },
 });

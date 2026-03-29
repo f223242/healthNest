@@ -17,6 +17,15 @@
     "file:///c%3A/Users/Malik%20zubair/.vscode/extensions/continue.continue-1.2.17-win32-x64/config-yaml-schema.json": [
       ".continue/**/*.yaml"
     ],
-    "file:///c:/Users/Malik%20zubair/.vscode/extensions/continue.continue-1.2.17-win32-x64/config-yaml-schema.json": "file:///c%3A/Users/Malik%20zubair/.continue/config.yaml"
+    "file:///c%3A/Users/Malik%20zubair/.vscode/extensions/continue.continue-1.3.37-win32-x64/config-yaml-schema.json": [
+      ".continue/**/*.yaml"
+    ],
+    "file:///c%3A/Users/Malik%20zubair/.vscode/extensions/continue.continue-1.3.38-win32-x64/config-yaml-schema.json": [
+      ".continue/**/*.yaml"
+    ],
+    "file:///c%3A/Users/Malik%20zubair/.vscode/extensions/continue.continue-1.2.22-win32-x64/config-yaml-schema.json": [
+      ".continue/**/*.yaml"
+    ],
+    "file:///c:/Users/Malik%20zubair/.vscode/extensions/continue.continue-1.3.38-win32-x64/config-yaml-schema.json": "file:///c%3A/Users/Malik%20zubair/.continue/config.yaml"
   }
 }

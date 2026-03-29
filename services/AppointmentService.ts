@@ -36,6 +36,9 @@ export interface Appointment {
     address?: string; // Service location
     duration?: string; // e.g., "2 hours", "Full day"
     hourlyRate?: string;
+    // Payment & Order Tracking
+    paymentMethod?: "card" | "cash" | "wallet" | "bnpl";
+    labTestRequestId?: string;
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
