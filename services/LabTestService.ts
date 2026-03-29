@@ -16,7 +16,7 @@ import PaymentService from "./PaymentService";
 
 export type TestRequestStatus =
   | "pending"
-  | "confirmed"
+  | "accepted"
   | "sample_collected"
   | "processing"
   | "report_ready"
@@ -145,9 +145,9 @@ class LabTestService {
       let body = "";
 
       switch (status) {
-        case "confirmed":
-          title = "Test Request Confirmed";
-          body = `${request.labName} has confirmed your ${request.testType} test for ${request.scheduledDate}`;
+        case "accepted":
+          title = "Test Request Accepted";
+          body = `${request.labName} has accepted your ${request.testType} test for ${request.scheduledDate}`;
           break;
         case "sample_collected":
           title = "Sample Collected";

@@ -88,6 +88,17 @@ const LabBookingForm = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const sanitizePayload = (obj: any) => {
+    const cleaned: any = {};
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        cleaned[key] = obj[key];
+      }
+    });
+    return cleaned;
+  };
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -311,10 +322,10 @@ const LabBookingForm = () => {
     }
   };
 
-  // Check if form is valid for submission
+  // Check if form is valid for current step
   const isFormValid = () => {
     const baseFieldsFilled =
-      formik.values.fullName.length >= 2 &&
+      formik.values.fullName.trim().length >= 2 &&
       formik.values.email.includes("@") &&
       formik.values.phone.length >= 10 &&
       formik.values.age !== "" &&
@@ -322,14 +333,44 @@ const LabBookingForm = () => {
       formik.values.preferredTime !== "";
 
     if (selectedTestType === "Home") {
-      return baseFieldsFilled &&
-        formik.values.address.length >= 10 &&
-        formik.values.city !== "" &&
-        formik.values.zipCode.length >= 5 &&
-        selectedDeliveryPerson !== null;
+      const addressFieldsFilled = 
+        formik.values.address.trim().length >= 10 &&
+        formik.values.city.trim() !== "" &&
+        formik.values.zipCode.trim().length >= 5;
+
+      if (currentStep === 1) {
+        return baseFieldsFilled && addressFieldsFilled;
+      } else {
+        return baseFieldsFilled && addressFieldsFilled && selectedDeliveryPerson !== null;
+      }
     }
 
     return baseFieldsFilled;
+  };
+
+  const handleNextStep = async () => {
+    const errors = await formik.validateForm();
+    if (Object.keys(errors).length === 0) {
+      if (selectedTestType === "Home" && currentStep === 1) {
+        setCurrentStep(2);
+      } else {
+        // Validation passed, show payment modal
+        setShowPaymentModal(true);
+      }
+    } else {
+      // Mark all as touched to show errors
+      formik.setTouched({
+        fullName: true,
+        email: true,
+        phone: true,
+        age: true,
+        preferredDate: true,
+        preferredTime: true,
+        address: true,
+        city: true,
+        zipCode: true
+      });
+    }
   };
 
   const handlePaymentConfirm = async (paymentMethod: string, paymentDetails?: any) => {
@@ -346,8 +387,8 @@ const LabBookingForm = () => {
         0
       );
 
-      // Build clean lab test request data — no undefined fields
-      const labTestData: Record<string, any> = {
+      // Build clean lab test request data
+      let labTestData: any = {
         userId: user?.uid || "",
         userName: fullName,
         userPhone: formik.values.phone,
@@ -366,81 +407,71 @@ const LabBookingForm = () => {
         paymentStatus: paymentMethod === "cash" ? "pending" : "paid_to_admin",
       };
 
-      // Add address for home collection
       if (selectedTestType === "Home") {
         labTestData.address = `${formik.values.address}, ${formik.values.city} ${formik.values.zipCode}`;
+        if (selectedDeliveryPerson) {
+          labTestData.deliveryId = selectedDeliveryPerson.uid;
+          labTestData.deliveryName = selectedDeliveryPerson.name;
+        }
       }
 
-      // Add delivery info for home collection
-      if (selectedTestType === "Home" && selectedDeliveryPerson) {
-        labTestData.deliveryId = selectedDeliveryPerson.uid;
-        labTestData.deliveryName = selectedDeliveryPerson.name;
-      }
+      // Sanitize before any operations
+      labTestData = sanitizePayload(labTestData);
 
-      // 1. Create lab test request in Firestore
-      const testRequestId = await LabTestService.createTestRequest(labTestData as any);
-
-      // 2. Track in Admin Wallet (Escrow)
-      try {
-        await PaymentService.trackInternalPayment(
-          totalAmount,
-          "lab_test",
-          testRequestId,
+      // 1. Process external payment first (if not cash)
+      if (paymentMethod !== "cash" && totalAmount > 0) {
+        await PaymentService.processPayment(
           user?.uid || "",
           fullName,
-          (labId as string) || "", // Lab gets the main payment
-          paymentMethod as any
+          totalAmount,
+          paymentMethod as any,
+          "lab_test",
+          "pending_ref_" + Date.now(), // Temporary ref
+          `Lab test booking: ${testNames.join(", ")}`,
+          paymentDetails
         );
-      } catch (escrowErr) {
-        console.warn("Escrow tracking error:", escrowErr);
       }
 
-      // 3. Process payment (if not cash)
-      if (paymentMethod !== "cash" && totalAmount > 0) {
-        try {
-          await PaymentService.processPayment(
-            user?.uid || "",
-            fullName,
-            totalAmount,
-            paymentMethod as any,
-            "lab_test",
-            testRequestId,
-            `Lab test booking: ${testNames.join(", ")}`,
-            paymentDetails
-          );
-        } catch (payErr) {
-          console.warn("Payment processing error (order still created):", payErr);
-        }
-      }
+      // 2. Create the order in Firestore ONLY after payment succeeds
+      const testRequestId = await LabTestService.createTestRequest({
+        ...labTestData,
+        status: "pending"
+      } as any);
 
-      // 3. If home collection, create an appointment for the delivery boy
+      // 3. Track in Admin Wallet (Escrow)
+      await PaymentService.trackInternalPayment(
+        totalAmount,
+        "lab_test",
+        testRequestId,
+        user?.uid || "",
+        fullName,
+        (labId as string) || "",
+        paymentMethod as any
+      );
+
+      // 4. Create appointment for delivery boy if home collection
       if (selectedTestType === "Home" && selectedDeliveryPerson) {
-        try {
-          await AppointmentService.createAppointment({
-            userId: user?.uid || "",
-            userName: fullName,
-            deliveryId: selectedDeliveryPerson.uid,
-            deliveryName: selectedDeliveryPerson.name,
-            providerType: "delivery",
-            appointmentDate: formik.values.preferredDate,
-            appointmentTime: formik.values.preferredTime,
-            status: "pending",
-            serviceType: "Lab Home Sampling",
-            notes: `Lab: ${labName}. Tests: ${testNames.join(", ")}. Order ID: ${testRequestId}`,
-            address: labTestData.address || "",
-            // New fields for payment tracking
-            paymentMethod: paymentMethod as any,
-            labTestRequestId: testRequestId,
-          });
-        } catch (aptErr) {
-          console.warn("Appointment creation error:", aptErr);
-        }
+        await AppointmentService.createAppointment(sanitizePayload({
+          userId: user?.uid || "",
+          userName: fullName,
+          deliveryId: selectedDeliveryPerson.uid,
+          deliveryName: selectedDeliveryPerson.name,
+          providerType: "delivery",
+          appointmentDate: formik.values.preferredDate,
+          appointmentTime: formik.values.preferredTime,
+          status: "pending",
+          serviceType: "Lab Home Sampling",
+          notes: `Lab: ${labName}. Tests: ${testNames.join(", ")}. Order ID: ${testRequestId}`,
+          address: labTestData.address || "",
+          paymentMethod: paymentMethod as any,
+          labTestRequestId: testRequestId,
+        }));
       }
 
       setShowSuccessModal(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving booking:", error);
-      alert("Failed to save booking. Please try again.");
+      alert(error.message || "Failed to save booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -562,121 +593,169 @@ const LabBookingForm = () => {
               </View>
             </View>
 
-            {/* Personal Information */}
-            <View style={{ ...styles.section, gap: 8 }}>
-              <Text style={appStyles.sectionTitle}>Personal Information</Text>
-              <FormInput
-                placeholder="Full Name"
-                value={formik.values.fullName}
-                onChangeText={formik.handleChange("fullName")}
-                onBlur={formik.handleBlur("fullName")}
-                error={formik.touched.fullName ? formik.errors.fullName : undefined}
-              />
-              <FormInput
-                placeholder="Email Address"
-                value={formik.values.email}
-                onChangeText={formik.handleChange("email")}
-                onBlur={formik.handleBlur("email")}
-                error={formik.touched.email ? formik.errors.email : undefined}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <FormInput
-                placeholder="Phone Number"
-                value={formik.values.phone}
-                onChangeText={formik.handleChange("phone")}
-                onBlur={formik.handleBlur("phone")}
-                error={formik.touched.phone ? formik.errors.phone : undefined}
-                keyboardType="phone-pad"
-                maxLength={11}
-              />
-              <FormInput
-                placeholder="Age"
-                value={formik.values.age}
-                onChangeText={formik.handleChange("age")}
-                onBlur={formik.handleBlur("age")}
-                error={formik.touched.age ? formik.errors.age : undefined}
-                keyboardType="number-pad"
-                maxLength={3}
-              />
-            </View>
+            {/* Conditional Rendering based on Steps */}
+            {currentStep === 1 ? (
+              <>
+                {/* Personal Information */}
+                <View style={{ ...styles.section, gap: 8 }}>
+                  <Text style={appStyles.sectionTitle}>Personal Information</Text>
+                  <FormInput
+                    placeholder="Full Name"
+                    value={formik.values.fullName}
+                    onChangeText={formik.handleChange("fullName")}
+                    onBlur={formik.handleBlur("fullName")}
+                    error={formik.touched.fullName ? formik.errors.fullName : undefined}
+                  />
+                  <FormInput
+                    placeholder="Email Address"
+                    value={formik.values.email}
+                    onChangeText={formik.handleChange("email")}
+                    onBlur={formik.handleBlur("email")}
+                    error={formik.touched.email ? formik.errors.email : undefined}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  <FormInput
+                    placeholder="Phone Number"
+                    value={formik.values.phone}
+                    onChangeText={formik.handleChange("phone")}
+                    onBlur={formik.handleBlur("phone")}
+                    error={formik.touched.phone ? formik.errors.phone : undefined}
+                    keyboardType="phone-pad"
+                    maxLength={11}
+                  />
+                  <FormInput
+                    placeholder="Age"
+                    value={formik.values.age}
+                    onChangeText={formik.handleChange("age")}
+                    onBlur={formik.handleBlur("age")}
+                    error={formik.touched.age ? formik.errors.age : undefined}
+                    keyboardType="number-pad"
+                    maxLength={3}
+                  />
+                </View>
 
-            {/* Referring Doctor */}
-            <View style={{ ...styles.section, gap: 8 }}>
-              <Text style={appStyles.sectionTitle}>Referring Doctor (Optional)</Text>
-              <FormInput
-                placeholder="Enter doctor's name who referred you"
-                value={formik.values.referringDoctor}
-                onChangeText={formik.handleChange("referringDoctor")}
-                onBlur={formik.handleBlur("referringDoctor")}
-                error={formik.touched.referringDoctor ? formik.errors.referringDoctor : undefined}
-              />
-            </View>
+                {/* Referring Doctor */}
+                <View style={{ ...styles.section, gap: 8 }}>
+                  <Text style={appStyles.sectionTitle}>Referring Doctor (Optional)</Text>
+                  <FormInput
+                    placeholder="Enter doctor's name who referred you"
+                    value={formik.values.referringDoctor}
+                    onChangeText={formik.handleChange("referringDoctor")}
+                    onBlur={formik.handleBlur("referringDoctor")}
+                    error={formik.touched.referringDoctor ? formik.errors.referringDoctor : undefined}
+                  />
+                </View>
 
-            {/* Address Information */}
-            {selectedTestType === "Home" && (
-              <View style={styles.section}>
-                <View style={styles.addressHeader}>
-                  <Text style={appStyles.sectionTitle}>Home Address</Text>
-                  <TouchableOpacity 
-                    style={styles.locationButton}
-                    onPress={handleGetCurrentLocation}
-                    disabled={isLocationLoading}
-                  >
-                    {isLocationLoading ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <>
-                        <Ionicons name="location" size={16} color={colors.primary} />
-                        <Text style={styles.locationButtonText}>Use Current Location</Text>
-                      </>
-                    )}
+                {/* Address Information */}
+                {selectedTestType === "Home" && (
+                  <View style={styles.section}>
+                    <View style={styles.addressHeader}>
+                      <Text style={appStyles.sectionTitle}>Home Address</Text>
+                      <TouchableOpacity 
+                        style={styles.locationButton}
+                        onPress={handleGetCurrentLocation}
+                        disabled={isLocationLoading}
+                      >
+                        {isLocationLoading ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <>
+                            <Ionicons name="location" size={16} color={colors.primary} />
+                            <Text style={styles.locationButtonText}>Use Current Location</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    <FormInput
+                      placeholder="Street Address"
+                      value={formik.values.address}
+                      onChangeText={formik.handleChange("address")}
+                      onBlur={formik.handleBlur("address")}
+                      error={formik.touched.address ? formik.errors.address : undefined}
+                      multiline
+                    />
+                    <View style={styles.row}>
+                      <FormInput
+                        placeholder="City"
+                        value={formik.values.city}
+                        onChangeText={formik.handleChange("city")}
+                        onBlur={formik.handleBlur("city")}
+                        error={formik.touched.city ? formik.errors.city : undefined}
+                        containerStyle={styles.halfInput}
+                      />
+                      <FormInput
+                        placeholder="Zip Code"
+                        value={formik.values.zipCode}
+                        onChangeText={formik.handleChange("zipCode")}
+                        onBlur={formik.handleBlur("zipCode")}
+                        error={formik.touched.zipCode ? formik.errors.zipCode : undefined}
+                        keyboardType="number-pad"
+                        containerStyle={styles.halfInput}
+                        maxLength={6}
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* Appointment Schedule */}
+                <View style={[styles.section, { gap: 8 }]}>
+                  <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
+                  <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
+                    <FormInput
+                      placeholder="Preferred Date (MM/DD/YYYY)"
+                      value={formik.values.preferredDate}
+                      editable={false}
+                      pointerEvents="none"
+                      error={formik.touched.preferredDate ? formik.errors.preferredDate : undefined}
+                      RightIcon={CalendarIcon}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
+                    <FormInput
+                      placeholder="Preferred Time (HH:MM AM/PM)"
+                      value={formik.values.preferredTime}
+                      editable={false}
+                      pointerEvents="none"
+                      error={formik.touched.preferredTime ? formik.errors.preferredTime : undefined}
+                      RightIcon={ClockIcon}
+                    />
                   </TouchableOpacity>
                 </View>
-                <FormInput
-                  placeholder="Street Address"
-                  value={formik.values.address}
-                  onChangeText={formik.handleChange("address")}
-                  onBlur={formik.handleBlur("address")}
-                  error={formik.touched.address ? formik.errors.address : undefined}
-                  multiline
-                />
-                <View style={styles.row}>
+
+                {/* Additional Notes */}
+                <View style={styles.section}>
+                  <Text style={appStyles.sectionTitle}>Additional Notes (Optional)</Text>
                   <FormInput
-                    placeholder="City"
-                    value={formik.values.city}
-                    onChangeText={formik.handleChange("city")}
-                    onBlur={formik.handleBlur("city")}
-                    error={formik.touched.city ? formik.errors.city : undefined}
-                    containerStyle={styles.halfInput}
-                  />
-                  <FormInput
-                    placeholder="Zip Code"
-                    value={formik.values.zipCode}
-                    onChangeText={formik.handleChange("zipCode")}
-                    onBlur={formik.handleBlur("zipCode")}
-                    error={formik.touched.zipCode ? formik.errors.zipCode : undefined}
-                    keyboardType="number-pad"
-                    containerStyle={styles.halfInput}
-                    maxLength={6}
+                    placeholder="Any special instructions or medical conditions..."
+                    value={formik.values.notes}
+                    onChangeText={formik.handleChange("notes")}
+                    onBlur={formik.handleBlur("notes")}
+                    multiline
+                    numberOfLines={10}
+                    containerStyle={styles.notesInput}
                   />
                 </View>
-              </View>
-            )}
-
-            {/* Delivery Person Selection */}
-            {selectedTestType === "Home" && (
+              </>
+            ) : (
+              /* Step 2: Delivery Person Selection */
               <View style={styles.section}>
-                <Text style={appStyles.sectionTitle}>Select Delivery Person</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                  <TouchableOpacity onPress={() => setCurrentStep(1)} style={{ marginRight: 12 }}>
+                    <Ionicons name="arrow-back-circle" size={28} color={colors.primary} />
+                  </TouchableOpacity>
+                  <Text style={appStyles.sectionTitle}>Select Delivery Person</Text>
+                </View>
+                
                 {loadingDelivery ? (
                   <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
-                ) : deliveryPersons.length === 0 ? (
+                ) : availableDeliveryPersons.length === 0 ? (
                   <Text style={{ textAlign: "center", color: colors.grayText, marginTop: 16 }}>
                     No delivery persons available at the moment.
                   </Text>
                 ) : (
-                  <View style={{ gap: 12, marginTop: 12 }}>
-                    {deliveryPersons.map((person) => (
+                  <View style={{ gap: 12 }}>
+                    {availableDeliveryPersons.map((person) => (
                       <DeliveryPersonCard
                         key={person.uid}
                         {...person}
@@ -689,47 +768,6 @@ const LabBookingForm = () => {
                 )}
               </View>
             )}
-
-            {/* Appointment Schedule */}
-            <View style={[styles.section, { gap: 8 }]}>
-              <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
-              <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
-                <FormInput
-                  placeholder="Preferred Date (MM/DD/YYYY)"
-                  value={formik.values.preferredDate}
-                  editable={false}
-                  pointerEvents="none"
-                  error={formik.touched.preferredDate ? formik.errors.preferredDate : undefined}
-                  RightIcon={CalendarIcon}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
-                <FormInput
-                  placeholder="Preferred Time (HH:MM AM/PM)"
-                  value={formik.values.preferredTime}
-                  editable={false}
-                  pointerEvents="none"
-                  error={formik.touched.preferredTime ? formik.errors.preferredTime : undefined}
-                  RightIcon={ClockIcon}
-                />
-              </TouchableOpacity>
-
-
-            </View>
-
-            {/* Additional Notes */}
-            <View style={styles.section}>
-              <Text style={appStyles.sectionTitle}>Additional Notes (Optional)</Text>
-              <FormInput
-                placeholder="Any special instructions or medical conditions..."
-                value={formik.values.notes}
-                onChangeText={formik.handleChange("notes")}
-                onBlur={formik.handleBlur("notes")}
-                multiline
-                numberOfLines={20}
-                containerStyle={styles.notesInput}
-              />
-            </View>
 
             {/* Important Information */}
             <View style={styles.infoBox}>
@@ -752,9 +790,10 @@ const LabBookingForm = () => {
           {/* Bottom Button */}
           <View style={styles.bottomContainer}>
             <AppButton
-              title="Confirm Booking"
-              onPress={formik.handleSubmit}
-              disabled={!isFormValid()}
+              title={selectedTestType === "Home" && currentStep === 1 ? "Next: Select Delivery" : "Confirm Booking"}
+              onPress={handleNextStep}
+              disabled={!isFormValid() || isSubmitting}
+              loading={isSubmitting}
             />
           </View>
 

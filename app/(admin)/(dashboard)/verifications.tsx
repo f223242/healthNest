@@ -22,7 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Tab type
-type TabType = "identity" | "bnpl";
+type TabType = "identity" | "bnpl" | "lab";
 
 // Status display mapping
 const statusConfig: Record<VerificationStatus, { label: string; color: string; icon: string }> = {
@@ -61,6 +61,13 @@ const VerificationsManagement = () => {
   const [approvedAmount, setApprovedAmount] = useState("");
   const [bnplRejectionReason, setBnplRejectionReason] = useState("");
 
+  // Lab onboarding states
+  const [labRequests, setLabRequests] = useState<any[]>([]);
+  const [labLoading, setLabLoading] = useState(true);
+  const [selectedLabUser, setSelectedLabUser] = useState<any | null>(null);
+  const [showLabModal, setShowLabModal] = useState(false);
+  const [labRejectionReason, setLabRejectionReason] = useState("");
+
   // Listen to verification requests
   useEffect(() => {
     const statusFilter = filterStatus === "all" ? undefined : filterStatus;
@@ -80,6 +87,16 @@ const VerificationsManagement = () => {
     const unsubscribe = PaymentService.listenToAllBNPLApplications((apps) => {
       setBnplApplications(apps);
       setBnplLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Listen to Lab Onboarding requests
+  useEffect(() => {
+    const unsubscribe = VerificationService.listenToLabDeliveryOnboarding((users) => {
+      setLabRequests(users);
+      setLabLoading(false);
     });
 
     return () => unsubscribe();
@@ -131,17 +148,25 @@ const VerificationsManagement = () => {
     rejected: bnplApplications.filter((a) => a.status === "rejected").length,
   };
 
+  // Lab onboarding stats
+  const labStats = {
+    total: labRequests.length,
+    pending: labRequests.filter((u) => !u.isApproved && u.status !== "rejected").length,
+    approved: labRequests.filter((u) => u.isApproved).length,
+    rejected: labRequests.filter((u) => u.status === "rejected").length,
+  };
+
   // Filter requests
   const filteredRequests = requests.filter((req) => {
     if (!searchQuery) return true;
     return (
-      req.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.userPhone?.includes(searchQuery)
+      (req.userName && req.userName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (req.userEmail && req.userEmail.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (req.userPhone && req.userPhone.includes(searchQuery))
     );
   });
 
-  // Handle approve
+  // Handle Approve Identity
   const handleApprove = async () => {
     if (!selectedRequest) return;
     setActionLoading(true);
@@ -159,7 +184,7 @@ const VerificationsManagement = () => {
     setActionLoading(false);
   };
 
-  // Handle reject
+  // Handle Reject Identity
   const handleReject = async () => {
     if (!selectedRequest || !rejectionReason.trim()) {
       toast.error("Please provide a rejection reason");
@@ -181,8 +206,39 @@ const VerificationsManagement = () => {
     setActionLoading(false);
   };
 
+  // Lab onboarding handlers
+  const handleApproveLab = async () => {
+    if (!selectedLabUser) return;
+    setActionLoading(true);
+    try {
+      await VerificationService.approveLabDelivery(selectedLabUser.uid, user?.uid || "admin");
+      toast.success("Lab Delivery Boy approved");
+      setShowLabModal(false);
+    } catch (error) {
+      toast.error("Failed to approve");
+    }
+    setActionLoading(false);
+  };
+
+  const handleRejectLab = async () => {
+    if (!selectedLabUser || !labRejectionReason.trim()) {
+      toast.error("Please provide a reason");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await VerificationService.rejectLabDelivery(selectedLabUser.uid, user?.uid || "admin", labRejectionReason);
+      toast.success("Lab Delivery Boy rejected");
+      setShowLabModal(false);
+    } catch (error) {
+      toast.error("Failed to reject");
+    }
+    setActionLoading(false);
+  };
+
   // View document image
   const viewImage = (url: string) => {
+    if (!url) return;
     setSelectedImage(url);
     setShowImageModal(true);
   };
@@ -230,7 +286,7 @@ const VerificationsManagement = () => {
     rejected: requests.filter((r) => r.status === "rejected").length,
   };
 
-  if (loading && bnplLoading) {
+  if (loading && bnplLoading && labLoading) {
     return (
       <View style={[styles.mainContainer, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -240,7 +296,7 @@ const VerificationsManagement = () => {
   }
 
   // Current stats based on active tab
-  const currentStats = activeTab === "identity" ? stats : bnplStats;
+  const currentStats = activeTab === "identity" ? stats : activeTab === "bnpl" ? bnplStats : labStats;
 
   return (
     <View style={styles.mainContainer}>
@@ -256,7 +312,7 @@ const VerificationsManagement = () => {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Verifications & BNPL</Text>
           <Text style={styles.headerSubtitle}>
-            {activeTab === "identity" ? "Review identity verification requests" : "Manage Buy Now Pay Later applications"}
+            {activeTab === "identity" ? "Review identity verification requests" : activeTab === "bnpl" ? "Manage BNPL applications" : "Approve Lab Delivery Boys"}
           </Text>
 
           {/* Tab Switcher */}
@@ -277,6 +333,15 @@ const VerificationsManagement = () => {
               <Ionicons name="card" size={18} color={activeTab === "bnpl" ? "#1E293B" : colors.white} />
               <Text style={[styles.tabButtonText, activeTab === "bnpl" && styles.tabButtonTextActive]}>
                 BNPL ({bnplStats.pending})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "lab" && styles.tabButtonActive]}
+              onPress={() => setActiveTab("lab")}
+            >
+              <Ionicons name="flask" size={18} color={activeTab === "lab" ? "#1E293B" : colors.white} />
+              <Text style={[styles.tabButtonText, activeTab === "lab" && styles.tabButtonTextActive]}>
+                Lab Delivery ({labStats.pending})
               </Text>
             </TouchableOpacity>
           </View>
@@ -418,7 +483,7 @@ const VerificationsManagement = () => {
           )}
         </ScrollView>
           </>
-        ) : (
+        ) : activeTab === "bnpl" ? (
           /* BNPL Applications Tab */
           <ScrollView
             style={styles.listContainer}
@@ -500,6 +565,99 @@ const VerificationsManagement = () => {
                       <TouchableOpacity
                         style={[styles.bnplActionBtn, styles.rejectBtn]}
                         onPress={() => handleBnplAction(app, "reject")}
+                      >
+                        <Ionicons name="close" size={16} color={colors.white} />
+                        <Text style={styles.bnplActionText}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        ) : (
+          /* Lab Delivery Tab */
+          <ScrollView
+            style={styles.listContainer}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {labLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : labRequests.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="flask-outline" size={48} color={colors.gray} />
+                <Text style={styles.emptyText}>No Lab Delivery requests found</Text>
+              </View>
+            ) : (
+              labRequests.map((req) => (
+                <TouchableOpacity
+                  key={req.uid}
+                  style={styles.requestCard}
+                  onPress={() => {
+                    setSelectedLabUser(req);
+                    setShowLabModal(true);
+                  }}
+                >
+                  <View style={styles.cardHeader}>
+                    <View style={styles.userInfo}>
+                      <View style={styles.avatarContainer}>
+                        <Ionicons name="person" size={20} color={colors.white} />
+                      </View>
+                      <View>
+                        <Text style={styles.userName}>{`${req.firstname || ""} ${req.lastname || ""}`}</Text>
+                        <Text style={styles.userEmail}>{req.email}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: req.isApproved ? '#4CAF5020' : req.status === 'rejected' ? '#F4433620' : '#FF980020' }]}>
+                      <View style={[styles.statusDot, { backgroundColor: req.isApproved ? '#4CAF50' : req.status === 'rejected' ? '#F44336' : '#FF9800' }]} />
+                      <Text style={[styles.statusText, { color: req.isApproved ? '#4CAF50' : req.status === 'rejected' ? '#F44336' : '#FF9800' }]}>
+                        {req.isApproved ? 'Approved' : req.status === 'rejected' ? 'Rejected' : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardDetails}>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="school-outline" size={14} color={colors.gray} />
+                      <Text style={styles.detailText}>
+                        Matric Type: {req.matricType}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="document-text-outline" size={14} color={colors.gray} />
+                      <Text style={styles.detailText}>
+                        Certificate: {req.certificateName}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="time-outline" size={14} color={colors.gray} />
+                      <Text style={styles.detailText}>
+                        Submitted: {req.updatedAt ? new Date(req.updatedAt).toLocaleDateString() : 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {!req.isApproved && req.status !== 'rejected' && (
+                    <View style={styles.bnplActions}>
+                      <TouchableOpacity
+                        style={[styles.bnplActionBtn, styles.approveBtn]}
+                        onPress={() => {
+                          setSelectedLabUser(req);
+                          handleApproveLab();
+                        }}
+                      >
+                        <Ionicons name="checkmark" size={16} color={colors.white} />
+                        <Text style={styles.bnplActionText}>Approve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.bnplActionBtn, styles.rejectBtn]}
+                        onPress={() => {
+                          setSelectedLabUser(req);
+                          setShowLabModal(true);
+                        }}
                       >
                         <Ionicons name="close" size={16} color={colors.white} />
                         <Text style={styles.bnplActionText}>Reject</Text>
@@ -621,10 +779,10 @@ const VerificationsManagement = () => {
                   </View>
 
                   {/* Verification Scores */}
-                  {(selectedRequest.faceMatchScore || selectedRequest.documentAuthenticityScore) && (
+                  {(selectedRequest.faceMatchScore !== undefined || selectedRequest.documentAuthenticityScore !== undefined) && (
                     <View style={styles.modalSection}>
                       <Text style={styles.sectionTitle}>Verification Scores</Text>
-                      {selectedRequest.faceMatchScore && (
+                      {selectedRequest.faceMatchScore !== undefined && (
                         <View style={styles.scoreRow}>
                           <Text style={styles.scoreLabel}>Face Match</Text>
                           <View style={styles.scoreBar}>
@@ -642,7 +800,7 @@ const VerificationsManagement = () => {
                           <Text style={styles.scoreValue}>{selectedRequest.faceMatchScore}%</Text>
                         </View>
                       )}
-                      {selectedRequest.documentAuthenticityScore && (
+                      {selectedRequest.documentAuthenticityScore !== undefined && (
                         <View style={styles.scoreRow}>
                           <Text style={styles.scoreLabel}>Document Auth</Text>
                           <View style={styles.scoreBar}>
@@ -671,12 +829,12 @@ const VerificationsManagement = () => {
                   {selectedRequest.extractedData && (
                     <View style={styles.modalSection}>
                       <Text style={styles.sectionTitle}>Extracted Information</Text>
-                      {Object.entries(selectedRequest.extractedData).map(([key, value]) => (
+                      {Object.entries(selectedRequest.extractedData || {}).map(([key, value]) => (
                         <View key={key} style={styles.infoRow}>
                           <Text style={styles.infoLabel}>
                             {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}:
                           </Text>
-                          <Text style={styles.infoValue}>{value}</Text>
+                          <Text style={styles.infoValue}>{String(value)}</Text>
                         </View>
                       ))}
                     </View>
@@ -686,7 +844,7 @@ const VerificationsManagement = () => {
                   <View style={styles.modalSection}>
                     <Text style={styles.sectionTitle}>Documents</Text>
                     <View style={styles.documentsGrid}>
-                      {selectedRequest.documents.map((doc, index) => (
+                      {(selectedRequest.documents || []).map((doc, index) => (
                         <TouchableOpacity
                           key={index}
                           style={styles.documentCard}
@@ -760,6 +918,70 @@ const VerificationsManagement = () => {
                 </>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Lab Action Modal */}
+      <Modal visible={showLabModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Lab Delivery Onboarding</Text>
+              <TouchableOpacity onPress={() => setShowLabModal(false)}>
+                <Ionicons name="close" size={24} color={colors.black} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedLabUser && (
+              <ScrollView style={styles.modalSection}>
+                <Text style={styles.sectionTitle}>Verification Details</Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Name:</Text>
+                  <Text style={styles.infoValue}>{`${selectedLabUser.firstname || ""} ${selectedLabUser.lastname || ""}`}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Matric Type:</Text>
+                  <Text style={[styles.infoValue, { color: colors.primary, fontWeight: 'bold' }]}>{selectedLabUser.matricType}</Text>
+                </View>
+                
+                <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Certificate</Text>
+                <TouchableOpacity onPress={() => viewImage(selectedLabUser.certificateUrl)}>
+                  <Image source={{ uri: selectedLabUser.certificateUrl }} style={styles.modalCertificate} resizeMode="cover" />
+                  <View style={styles.viewDocOverlay}>
+                    <Ionicons name="expand" size={24} color={colors.white} />
+                  </View>
+                </TouchableOpacity>
+
+                <View style={{ marginTop: 20 }}>
+                  <Text style={styles.infoLabel}>Rejection Reason (if rejecting):</Text>
+                  <TextInput
+                    style={[styles.bnplInput, { height: 80, textAlignVertical: "top" }]}
+                    value={labRejectionReason}
+                    onChangeText={setLabRejectionReason}
+                    multiline
+                    placeholder="Enter reason for rejection"
+                  />
+                </View>
+
+                <View style={styles.modalActionButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalActionBtn, styles.rejectBtn]}
+                    onPress={handleRejectLab}
+                    disabled={actionLoading}
+                  >
+                    <Text style={styles.modalActionText}>Reject Application</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalActionBtn, styles.approveBtn]}
+                    onPress={handleApproveLab}
+                    disabled={actionLoading}
+                  >
+                    <Text style={styles.modalActionText}>Approve & Activate</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -1152,6 +1374,37 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.9)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  modalCertificate: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  viewDocOverlay: {
+    position: 'absolute',
+    top: 10,
+    right: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 8,
+    padding: 8,
+  },
+  modalActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+    marginBottom: 40,
+  },
+  modalActionBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalActionText: {
+    color: colors.white,
+    fontFamily: Fonts.bold,
+    fontSize: 14,
   },
   imageModalClose: {
     position: "absolute",

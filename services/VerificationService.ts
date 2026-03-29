@@ -438,14 +438,79 @@ class VerificationService {
     return this.listenToVerificationRequests(callback);
   }
 
-  // Admin approve verification
-  async adminApproveVerification(requestId: string, adminId: string, notes?: string): Promise<void> {
-    return this.approveVerification(requestId, adminId, notes);
+  // ==================== LAB DELIVERY ONBOARDING ====================
+
+  // Admin: Listen to all lab delivery onboarding requests
+  listenToLabDeliveryOnboarding(
+    callback: (users: any[]) => void
+  ) {
+    // Query users with role lab-delivery-boy and educationSubmitted true
+    const q = query(
+      collection(db, "users"),
+      where("role", "==", "lab-delivery-boy"),
+      where("educationSubmitted", "==", true)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const users = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(users);
+    });
   }
 
-  // Admin reject verification
-  async adminRejectVerification(requestId: string, adminId: string, reason: string): Promise<void> {
-    return this.rejectVerification(requestId, adminId, reason);
+  // Admin: Approve lab delivery boy
+  async approveLabDelivery(userId: string, adminId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, "users", userId), {
+        isApproved: true,
+        status: "approved",
+        verificationStatus: "approved",
+        reviewedBy: adminId,
+        reviewedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notify user
+      await NotificationService.createNotification(
+        userId,
+        "status",
+        "Account Approved!",
+        "Your Lab Delivery Boy account has been approved. You can now start receiving orders.",
+        { type: "onboarding_approval" }
+      );
+    } catch (error) {
+      console.error("Error approving lab delivery:", error);
+      throw error;
+    }
+  }
+
+  // Admin: Reject lab delivery boy
+  async rejectLabDelivery(userId: string, adminId: string, reason: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, "users", userId), {
+        isApproved: false,
+        status: "rejected",
+        verificationStatus: "rejected",
+        rejectionReason: reason,
+        reviewedBy: adminId,
+        reviewedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notify user
+      await NotificationService.createNotification(
+        userId,
+        "status",
+        "Onboarding Update",
+        `Your Lab Delivery Boy application was not approved. Reason: ${reason}`,
+        { type: "onboarding_rejection" }
+      );
+    } catch (error) {
+      console.error("Error rejecting lab delivery:", error);
+      throw error;
+    }
   }
 }
 

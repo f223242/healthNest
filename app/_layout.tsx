@@ -232,6 +232,15 @@ function InnerLayout() {
       return;
     }
 
+    if (role === "lab-delivery-boy" && !user.educationSubmitted && !isOnEducation) {
+      safeNavigate("/(auth)/education");
+      return;
+    }
+
+    if (role === "lab-delivery-boy" && !user.educationSubmitted) {
+      return;
+    }
+
     // User IS logged in and profile is completed - redirect based on role
     if (role === "admin" && currentGroup !== "(admin)") {
       safeNavigate("/(admin)/(dashboard)");
@@ -244,6 +253,11 @@ function InnerLayout() {
     }
 
     if (role === "delivery" && currentGroup !== "(delivery)") {
+      safeNavigate("/(delivery)/(tabs)");
+      return;
+    }
+
+    if (role === "lab-delivery-boy" && currentGroup !== "(delivery)") {
       safeNavigate("/(delivery)/(tabs)");
       return;
     }
