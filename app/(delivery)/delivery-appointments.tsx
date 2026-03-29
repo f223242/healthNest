@@ -75,7 +75,7 @@ const DeliveryAppointments = () => {
                             if (labTestDoc) {
                                 await LabTestService.updateTestRequestStatus(
                                     appointment.labTestRequestId,
-                                    "confirmed",
+                                    "accepted",
                                     labTestDoc
                                 );
                             }

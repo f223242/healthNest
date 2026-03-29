@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type TestStatus = "New" | "Confirmed" | "Sample Collected" | "Processing" | "Report Ready" | "Sent";
+type TestStatus = "New" | "Accepted" | "Sample Collected" | "Processing" | "Report Ready" | "Sent";
 
 interface TestDetail {
   id: string;
@@ -86,7 +86,7 @@ const TestDetailScreen = () => {
 
   const statusFlow: TestStatus[] = [
     "New",
-    "Confirmed",
+    "Accepted",
     "Sample Collected",
     "Processing",
     "Report Ready",
@@ -96,7 +96,7 @@ const TestDetailScreen = () => {
   const getStatusColor = (status: TestStatus) => {
     switch (status) {
       case "New": return colors.primary;
-      case "Confirmed": return "#00BCD4";
+      case "Accepted": return "#00BCD4";
       case "Sample Collected": return "#FF9800";
       case "Processing": return "#9C27B0";
       case "Report Ready": return colors.primary;
@@ -115,8 +115,8 @@ const TestDetailScreen = () => {
 
   const getNextActionLabel = () => {
     switch (testDetail.status) {
-      case "New": return "Confirm Request";
-      case "Confirmed": return "Mark Sample Collected";
+      case "New": return "Accept Request";
+      case "Accepted": return "Mark Sample Collected";
       case "Sample Collected": return "Start Processing";
       case "Processing": return "Mark Report Ready";
       case "Report Ready": return "Send to Patient";
@@ -133,7 +133,7 @@ const TestDetailScreen = () => {
     if (!nextStatus) return;
 
     const actionMessages: Record<string, string> = {
-      Confirmed: "Request confirmed. Patient will be notified.",
+      Accepted: "Request accepted. Patient will be notified.",
       "Sample Collected": "Sample marked as collected.",
       Processing: "Test is now being processed.",
       "Report Ready": "Report is ready for review.",

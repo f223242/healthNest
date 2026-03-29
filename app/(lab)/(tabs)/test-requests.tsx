@@ -64,7 +64,7 @@ const TestRequests = () => {
   const getStatusColor = (status: TestRequestStatus) => {
     switch (status) {
       case "pending": return "#2196F3";
-      case "confirmed": return "#00BCD4";
+      case "accepted": return "#00BCD4";
       case "sample_collected": return "#FF9800";
       case "processing": return "#9C27B0";
       case "report_ready": return colors.primary;
@@ -77,7 +77,7 @@ const TestRequests = () => {
   const getStatusLabel = (status: TestRequestStatus) => {
     switch (status) {
       case "pending": return "Pending";
-      case "confirmed": return "Confirmed";
+      case "accepted": return "Accepted";
       case "sample_collected": return "Sample Collected";
       case "processing": return "Processing";
       case "report_ready": return "Report Ready";
@@ -109,7 +109,7 @@ const TestRequests = () => {
   const statusFilterOptions: Array<{ label: string; icon: keyof typeof Ionicons.glyphMap }> = [
     { label: "All", icon: "grid" },
     { label: "Pending", icon: "alert-circle" },
-    { label: "Confirmed", icon: "checkmark-circle" },
+    { label: "Accepted", icon: "checkmark-circle" },
     { label: "Sample Collected", icon: "flask" },
     { label: "Processing", icon: "hourglass" },
     { label: "Report Ready", icon: "document-text" },

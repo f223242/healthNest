@@ -122,7 +122,7 @@ export default function EducationScreen() {
 
         if (values.matricType !== "science") {
           showToast(
-            "Only Science matric is accepted for Lab Delivery",
+            "Only Matric Science is accepted for Lab Delivery role",
             "error",
           );
           return;
@@ -161,14 +161,12 @@ export default function EducationScreen() {
         });
 
         showToast(
-          "Education details submitted successfully! Your account is pending verification.",
+          "Education details submitted successfully! Your account is now under review.",
           "success",
         );
 
-        await logout();
-
-        // Navigate back to login
-        router.replace("/(auth)");
+        // Navigate to dashboard where they will see "Under Review" state
+        router.replace("/(delivery)/(tabs)");
       } catch (error: any) {
         console.error("Education submission error:", error);
         showToast(

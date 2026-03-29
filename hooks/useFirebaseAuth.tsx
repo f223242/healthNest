@@ -44,6 +44,9 @@ export interface UserProfile {
   additionalInfo?: AdditionalInfo;
   dateOfBirth?: string;
   emailVerified?: boolean;
+  isApproved?: boolean;
+  educationSubmitted?: boolean;
+  verificationStatus?: string;
 }
 
 // Additional role-specific info (lightweight definitions used across the app)
@@ -200,6 +203,10 @@ const normalizeRole = (r?: string) => {
     "delivery boy": "delivery",
     Delivery: "delivery",
     delivery: "delivery",
+    "Lab Delivery Boy": "lab-delivery-boy",
+    "Lab delivery boy": "lab-delivery-boy",
+    "lab-delivery-boy": "lab-delivery-boy",
+    "Lab Delivery": "lab-delivery-boy",
   };
   return map[r] || r.toLowerCase();
 };
@@ -351,7 +358,8 @@ export const AuthProvider = ({ children }: any) => {
     }
 
     // Normalize display role to internal role value
-    const mapRoleToInternal = (r: string) => {
+    const mapRoleToInternal = (r: string, deliveryType?: string) => {
+      if (deliveryType === "lab") return "lab-delivery-boy";
       const lookup: { [k: string]: string } = {
         User: "user",
         user: "user",
@@ -365,6 +373,8 @@ export const AuthProvider = ({ children }: any) => {
         "delivery boy": "delivery",
         Delivery: "delivery",
         delivery: "delivery",
+        "Lab Delivery": "lab-delivery-boy",
+        "Lab delivery": "lab-delivery-boy",
       };
       return lookup[r] || r.toLowerCase();
     };
@@ -386,7 +396,7 @@ export const AuthProvider = ({ children }: any) => {
         email: values.email,
         firstname: values.firstname,
         lastname: values.lastname,
-        role: mapRoleToInternal(values.role),
+        role: mapRoleToInternal(values.role, values.deliveryType),
         deliveryType:
           values.deliveryType ||
           (values.role === "Medicine Delivery" ? "medicine" : undefined),
@@ -508,9 +518,9 @@ export const AuthProvider = ({ children }: any) => {
         throw new Error("User not authenticated for education submission");
       }
 
-      // Update pending user document with education details
+      // Update user document with education details
       await setDoc(
-        doc(db, "pendingUsers", uid),
+        doc(db, "users", uid),
         {
           matricType: values.matricType,
           certificateUrl: values.certificateUrl,
@@ -574,8 +584,8 @@ export const AuthProvider = ({ children }: any) => {
         } else if (filter === "Lab Delivery") {
           q = query(
             usersRef,
-            where("role", "==", "delivery"),
-            where("deliveryType", "==", "lab"),
+            where("role", "==", "lab-delivery-boy"),
+            where("isApproved", "==", true),
           );
         } else {
           q = query(usersRef, where("role", "==", normalized));
@@ -812,6 +822,9 @@ export const AuthProvider = ({ children }: any) => {
                   emailVerified: true,
                   profileCompleted: false,
                   createdAt: new Date().toISOString(),
+                  isApproved: normalizedRole === "lab-delivery-boy" ? false : true,
+                  educationSubmitted: normalizedRole === "lab-delivery-boy" ? false : true,
+                  status: normalizedRole === "lab-delivery-boy" ? "pending" : "active",
                 };
 
                 // Only add delivery-specific fields if applicable
@@ -828,8 +841,9 @@ export const AuthProvider = ({ children }: any) => {
                 await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
                 await AsyncStorage.removeItem(PENDING_USER_KEY);
                 await AsyncStorage.setItem("@healthnest_verification_complete", "true");
-
+                
                 // 3. Clear transient skip flag and manually trigger user fetch to update state
+                // We DON'T signOut here anymore to allow "Auto-Login"
                 skipAuthHandlingRef.current = false;
                 
                 // Manually record that we are verified and profile is not completed
@@ -838,6 +852,11 @@ export const AuthProvider = ({ children }: any) => {
                   emailVerified: true,
                 };
                 setUser(fullUser as any);
+                
+                // Mark verification complete and remove pending flag
+                await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
+                await AsyncStorage.removeItem(PENDING_USER_KEY);
+                await AsyncStorage.removeItem("@healthnest_otp");
 
                 // Create publicPhoneIndex entry
                 const digitsOnly = (pendingUser.phoneNumber || "").replace(
@@ -851,28 +870,23 @@ export const AuthProvider = ({ children }: any) => {
                   });
                 }
 
-                // Mark verification complete and remove pending flag
-                await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
-                await AsyncStorage.removeItem(PENDING_USER_KEY);
-
-                // Navigate to login screen
-                try {
-                  router.replace("/(auth)");
-                } catch (navErr) {
-                  console.warn(
-                    "Router navigation failed after verification:",
-                    navErr,
-                  );
-                }
+                // Navigate will be handled by UI or Auth listener, but we can do a push if needed
+                // router.replace("/(auth)") is usually Login, but since we are LOGGED IN now, 
+                // the _layout will see user and redirect out of (auth).
 
                 return true;
               }
 
               return false;
             } finally {
-              // Always sign out the temporary session and resume normal auth handling
+              // Sign out ONLY if NOT verified (this was a transient check)
+              // If verified, we stay signed in to provide Auto-Login
               try {
-                if (userCredential) await signOut(auth);
+                // Fetch latest state to be sure
+                const isVerifiedAfterCheck = userCredential?.user?.emailVerified;
+                if (userCredential && !isVerifiedAfterCheck) {
+                  await signOut(auth);
+                }
               } catch (e) {
                 /* ignore */
               }

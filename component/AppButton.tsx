@@ -2,6 +2,7 @@ import { colors } from "@/constant/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
+  ActivityIndicator,
   StyleProp,
   StyleSheet,
   Text,
@@ -21,6 +22,7 @@ type Props = {
   gradientColors?: string[];
   gradientStart?: { x: number; y: number };
   gradientEnd?: { x: number; y: number };
+  loading?: boolean;
 };
 
 const AppButton = ({
@@ -34,6 +36,7 @@ const AppButton = ({
   gradientColors,
   gradientStart,
   gradientEnd,
+  loading,
 }: Props) => {
   const useGradient = !!gradientColors && !disabled;
   const effectiveGradient = gradientColors ?? [colors.primary, "#00D68F"];
@@ -61,14 +64,24 @@ const AppButton = ({
       ) : null}
 
       <View style={styles.contentContainer}>
-        {children}
-        {title ? (
-          typeof title === 'string' ? (
-            <Text style={[styles.buttonTextStyle, styles.buttonText, textStyle]}>{title}</Text>
-          ) : (
-            title
-          )
-        ) : null}
+        {loading ? (
+          <ActivityIndicator color={colors.white} size="small" />
+        ) : (
+          <>
+            {children}
+            {title ? (
+              typeof title === "string" ? (
+                <Text
+                  style={[styles.buttonTextStyle, styles.buttonText, textStyle]}
+                >
+                  {title}
+                </Text>
+              ) : (
+                title
+              )
+            ) : null}
+          </>
+        )}
       </View>
     </TouchableOpacity>
   );

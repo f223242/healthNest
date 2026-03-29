@@ -98,7 +98,43 @@ const OtpScreen = () => {
     return () => clearInterval(timer);
   }, [seconds, minutes]);
 
-  // REMOVED: Auto-check email verification - user should click button to verify
+  // Auto-check email verification every 4 seconds
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout;
+
+    const performCheck = async () => {
+      if (hasNavigatedRef.current) return;
+      
+      try {
+        setIsChecking(true);
+        const isVerified = await checkEmailVerification();
+        if (isVerified) {
+          toast.show({
+            type: "success",
+            text1: "Email Verified",
+            text2: "Your email has been verified! Redirecting...",
+          });
+          // Redirect is now handled by AuthContext updating user state 
+          // and _layout.tsx responding to that state change
+          hasNavigatedRef.current = true;
+        }
+      } catch (error) {
+        console.warn("Polling verification check failed:", error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    // Delay start of polling to give user time to read
+    const startDelay = setTimeout(() => {
+      pollingInterval = setInterval(performCheck, 4000);
+    }, 2000);
+
+    return () => {
+      clearTimeout(startDelay);
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
+  }, []);
 
   const handleResend = async () => {
     try {
@@ -124,6 +160,7 @@ const OtpScreen = () => {
   };
 
   const handleCheckVerification = async () => {
+    if (isChecking) return;
     try {
       setIsChecking(true);
       const isVerified = await checkEmailVerification();
@@ -134,9 +171,8 @@ const OtpScreen = () => {
           text1: "Email Verified",
           text2: "Your email has been verified successfully.",
         });
-
-        // Redirect user to login so they can proceed with their profile completion
-        safeNavigate("/(auth)");
+        hasNavigatedRef.current = true;
+        // Navigation will be handled by layout because user state changed in checkEmailVerification
       } else {
         toast.show({
           type: "warning",
@@ -263,22 +299,21 @@ const OtpScreen = () => {
                 isChecking ? styles.submitButtonDisabled : undefined,
               ]}
               gradientColors={[colors.primary, "#00D68F"]}
+              loading={isChecking}
             >
-              {isChecking ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.submitButtonText}>
-                    {"I've Verified My Email"}
-                  </Text>
+              <View style={styles.buttonContent}>
+                <Text style={styles.submitButtonText}>
+                  {isChecking ? "Checking Verification..." : "I've Verified My Email"}
+                </Text>
+                {!isChecking && (
                   <Ionicons
                     name="checkmark-circle"
                     size={20}
                     color="#fff"
                     style={{ marginLeft: 8 }}
                   />
-                </>
-              )}
+                )}
+              </View>
             </AppButton>
 
             <View style={styles.resendContainer}>
@@ -456,6 +491,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     color: colors.white,
     letterSpacing: 0.5,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   resendContainer: {
     alignItems: "center",
