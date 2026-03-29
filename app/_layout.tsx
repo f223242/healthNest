@@ -217,7 +217,11 @@ function InnerLayout() {
       currentScreen === "additional-info" ||
       fullPath.includes("additional-info");
 
-    if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo) {
+    const isOnEducation =
+      currentScreen === "education" ||
+      fullPath.includes("education");
+
+    if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo && !isOnEducation) {
       // Redirect to additional info screen
       safeNavigate("/(protected)/additional-info");
       return;

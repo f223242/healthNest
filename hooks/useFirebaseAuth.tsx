@@ -799,50 +799,45 @@ export const AuthProvider = ({ children }: any) => {
               const isVerified = userCredential.user.emailVerified;
 
               if (isVerified) {
-                // Move to users collection
-                // Ensure role is normalized when moving to users collection
-                const normalizedRole = ((): string => {
-                  const r = pendingUser.role || "user";
-                  const map: { [k: string]: string } = {
-                    User: "user",
-                    user: "user",
-                    Lab: "lab",
-                    lab: "lab",
-                    Nurse: "nurse",
-                    nurse: "nurse",
-                    "Medicine Delivery": "delivery",
-                    "Medicine delivery": "delivery",
-                    "Delivery Boy": "delivery",
-                    "delivery boy": "delivery",
-                    Delivery: "delivery",
-                    delivery: "delivery",
-                  };
-                  return (
-                    map[r] || (typeof r === "string" ? r.toLowerCase() : "user")
-                  );
-                })();
-
-                await setDoc(doc(db, "users", userCredential.user.uid), {
+                // 1. Move to users collection
+                const normalizedRole = normalizeRole(pendingUser.role) || "user";
+                const userPayload: Record<string, any> = {
                   uid: userCredential.user.uid,
                   email: pendingUser.email,
-                  firstname: pendingUser.firstname,
-                  lastname: pendingUser.lastname,
+                  firstname: pendingUser.firstname || "",
+                  lastname: pendingUser.lastname || "",
                   role: normalizedRole,
-                  deliveryType:
-                    pendingUser.deliveryType ||
-                    (normalizedRole === "delivery" ? "medicine" : undefined),
-                  qualification: pendingUser.qualification || undefined,
-                  phoneNumber: pendingUser.phoneNumber,
-                  dateOfBirth: pendingUser.dateOfBirth,
+                  phoneNumber: pendingUser.phoneNumber || "",
+                  dateOfBirth: pendingUser.dateOfBirth || "",
                   emailVerified: true,
                   profileCompleted: false,
                   createdAt: new Date().toISOString(),
-                });
+                };
 
-                // Delete pending user doc
-                await deleteDoc(
-                  doc(db, "pendingUsers", userCredential.user.uid),
-                );
+                // Only add delivery-specific fields if applicable
+                if (normalizedRole === "delivery") {
+                  userPayload.deliveryType = pendingUser.deliveryType || "medicine";
+                }
+                if (pendingUser.qualification) {
+                  userPayload.qualification = pendingUser.qualification;
+                }
+
+                await setDoc(doc(db, "users", userCredential.user.uid), userPayload);
+
+                // 2. Clear pending records
+                await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+                await AsyncStorage.removeItem(PENDING_USER_KEY);
+                await AsyncStorage.setItem("@healthnest_verification_complete", "true");
+
+                // 3. Clear transient skip flag and manually trigger user fetch to update state
+                skipAuthHandlingRef.current = false;
+                
+                // Manually record that we are verified and profile is not completed
+                const fullUser = {
+                  ...userPayload,
+                  emailVerified: true,
+                };
+                setUser(fullUser as any);
 
                 // Create publicPhoneIndex entry
                 const digitsOnly = (pendingUser.phoneNumber || "").replace(

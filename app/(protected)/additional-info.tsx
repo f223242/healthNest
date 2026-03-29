@@ -231,7 +231,11 @@ const AdditionalInfoScreen = () => {
         } else if (role === "lab") {
           router.replace("/(lab)/(tabs)");
         } else if (role === "delivery") {
-          router.replace("/(delivery)/(tabs)");
+          if ((user as any)?.deliveryType === "lab" && !(user as any)?.educationVerified) {
+            router.replace("/(auth)/education");
+          } else {
+            router.replace("/(delivery)/(tabs)");
+          }
         } else {
           router.replace("/(protected)/(tabs)");
         }

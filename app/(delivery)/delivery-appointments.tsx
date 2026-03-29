@@ -4,6 +4,8 @@ import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import AppointmentService, { Appointment } from "@/services/AppointmentService";
+import PaymentService from "@/services/PaymentService";
+import LabTestService from "@/services/LabTestService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -65,6 +67,23 @@ const DeliveryAppointments = () => {
                         "accepted",
                         appointment
                     );
+
+                    // Also update lab test request status if it exists
+                    if (appointment.labTestRequestId) {
+                        try {
+                            const labTestDoc = await LabTestService.getTestRequestById(appointment.labTestRequestId);
+                            if (labTestDoc) {
+                                await LabTestService.updateTestRequestStatus(
+                                    appointment.labTestRequestId,
+                                    "confirmed",
+                                    labTestDoc
+                                );
+                            }
+                        } catch (err) {
+                            console.warn("Sync error with labTestRequest:", err);
+                        }
+                    }
+
                     setConfirmModal(prev => ({ ...prev, visible: false }));
                     toast.success("Request accepted successfully");
                 } catch (error) {
@@ -100,6 +119,32 @@ const DeliveryAppointments = () => {
         });
     };
 
+    const handleMarkCashCollected = async (appointment: Appointment) => {
+        setConfirmModal({
+            visible: true,
+            title: "Cash Collection",
+            message: `Confirm that you have collected cash from ${appointment.userName}?`,
+            type: "warning",
+            onConfirm: async () => {
+                try {
+                    const orderId = appointment.labTestRequestId || appointment.id;
+                    await PaymentService.markCashCollected(orderId, user?.uid || "");
+                    
+                    if (appointment.labTestRequestId) {
+                        await LabTestService.updatePaymentStatus(appointment.labTestRequestId, "cash_collected");
+                    }
+                    
+                    setConfirmModal(prev => ({ ...prev, visible: false }));
+                    toast.success("Cash collection recorded");
+                } catch (error) {
+                    console.error("Error marking cash collected:", error);
+                    setConfirmModal(prev => ({ ...prev, visible: false }));
+                    toast.error("Failed to record collection");
+                }
+            }
+        });
+    };
+
     const handleCompleteAppointment = async (appointment: Appointment) => {
         setConfirmModal({
             visible: true,
@@ -113,6 +158,23 @@ const DeliveryAppointments = () => {
                         "completed",
                         appointment
                     );
+
+                    // Also update lab test request status to trigger payment release/stats
+                    if (appointment.labTestRequestId) {
+                        try {
+                            const labTestDoc = await LabTestService.getTestRequestById(appointment.labTestRequestId);
+                            if (labTestDoc) {
+                                await LabTestService.updateTestRequestStatus(
+                                    appointment.labTestRequestId,
+                                    "completed",
+                                    labTestDoc
+                                );
+                            }
+                        } catch (err) {
+                            console.warn("Sync error with labTestRequest on completion:", err);
+                        }
+                    }
+
                     setConfirmModal(prev => ({ ...prev, visible: false }));
                     toast.success("Delivery completed!");
                 } catch (error) {
@@ -248,6 +310,7 @@ const DeliveryAppointments = () => {
                             onAccept={() => handleAcceptAppointment(appointment)}
                             onReject={() => handleRejectAppointment(appointment)}
                             onComplete={() => handleCompleteAppointment(appointment)}
+                            onMarkCashCollected={() => handleMarkCashCollected(appointment)}
                         />
                     ))
                 )}

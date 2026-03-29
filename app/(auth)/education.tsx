@@ -51,7 +51,7 @@ const EducationSchema = Yup.object().shape({
 // Component
 // ----------------------
 export default function EducationScreen() {
-  const { user, submitEducationDetails } = useAuthContext();
+  const { user, submitEducationDetails, logout } = useAuthContext();
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -164,6 +164,8 @@ export default function EducationScreen() {
           "Education details submitted successfully! Your account is pending verification.",
           "success",
         );
+
+        await logout();
 
         // Navigate back to login
         router.replace("/(auth)");
