@@ -632,6 +632,17 @@ const VerificationsManagement = () => {
                         Certificate: {req.certificateName}
                       </Text>
                     </View>
+                    {req.certificateUrl && (
+                      <TouchableOpacity 
+                        style={[styles.detailRow, { marginTop: 4, paddingVertical: 4 }]} 
+                        onPress={() => viewImage(req.certificateUrl)}
+                      >
+                        <Ionicons name="eye-outline" size={14} color={colors.primary} />
+                        <Text style={[styles.detailText, { color: colors.primary, textDecorationLine: 'underline', fontWeight: 'bold' }]}>
+                          View Certificate Document
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                     <View style={styles.detailRow}>
                       <Ionicons name="time-outline" size={14} color={colors.gray} />
                       <Text style={styles.detailText}>

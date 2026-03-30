@@ -221,7 +221,11 @@ function InnerLayout() {
       currentScreen === "education" ||
       fullPath.includes("education");
 
-    if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo && !isOnEducation) {
+    const isOnPendingVerification =
+      currentScreen === "pending-verification" ||
+      fullPath.includes("pending-verification");
+
+    if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo && !isOnEducation && !isOnPendingVerification) {
       // Redirect to additional info screen
       safeNavigate("/(protected)/additional-info");
       return;
@@ -241,6 +245,15 @@ function InnerLayout() {
       return;
     }
 
+    if (role === "lab-delivery-boy" && user.educationSubmitted && !user.isApproved && !isOnPendingVerification && !isOnEducation) {
+      safeNavigate("/(delivery)/pending-verification");
+      return;
+    }
+
+    if (role === "lab-delivery-boy" && user.educationSubmitted && !user.isApproved) {
+      return;
+    }
+
     // User IS logged in and profile is completed - redirect based on role
     if (role === "admin" && currentGroup !== "(admin)") {
       safeNavigate("/(admin)/(dashboard)");
@@ -257,7 +270,7 @@ function InnerLayout() {
       return;
     }
 
-    if (role === "lab-delivery-boy" && currentGroup !== "(delivery)") {
+    if (role === "lab-delivery-boy" && user.isApproved && currentGroup !== "(delivery)") {
       safeNavigate("/(delivery)/(tabs)");
       return;
     }

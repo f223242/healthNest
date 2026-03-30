@@ -161,12 +161,13 @@ export default function EducationScreen() {
         });
 
         showToast(
-          "Education details submitted successfully! Your account is now under review.",
+          "Certificate submitted! Your account is now under review by our admin team.",
           "success",
         );
 
-        // Navigate to dashboard where they will see "Under Review" state
-        router.replace("/(delivery)/(tabs)");
+        // Navigate directly to pending-verification screen.
+        // Do NOT go to (delivery)/(tabs) — that triggers a redirect loop via _layout.tsx.
+        router.replace("/(delivery)/pending-verification" as any);
       } catch (error: any) {
         console.error("Education submission error:", error);
         showToast(
