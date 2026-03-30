@@ -15,6 +15,7 @@ const DeliveryLayout = () => {
       <Stack.Screen name="delete-account" options={{ headerShown: false }} />
       <Stack.Screen name="help" options={{ headerShown: false }} />
       <Stack.Screen name="about" options={{ headerShown: false }} />
+      <Stack.Screen name="pending-verification" options={{ headerShown: false }} />
     </Stack>
   );
 };
