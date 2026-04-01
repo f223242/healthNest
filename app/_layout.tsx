@@ -174,18 +174,18 @@ function InnerLayout() {
       }
 
       // If there's a pending user awaiting email verification, go to OTP screen
-      // But don't redirect if we're on sign-up or education screens (in-lab delivery onboarding).
+      // But don't redirect if we're on sign-up or additional-info screens (for onboarding).
       if (pendingUserType === "verification") {
-        // Only redirect to OTP if not already on signup/otp/education flow
+        // Only redirect to OTP if not already on signup/otp/additional-info flow
         if (
           currentScreen !== "otp-screen" &&
           currentScreen !== "sign-up" &&
-          currentScreen !== "education"
+          currentScreen !== "additional-info"
         ) {
           safeNavigate("/(auth)/otp-screen");
           return;
         }
-        // If on sign-up, otp-screen, or education, don't redirect anywhere
+        // If on sign-up, otp-screen, or additional-info, don't redirect anywhere
         return;
       }
 
@@ -217,72 +217,114 @@ function InnerLayout() {
       currentScreen === "additional-info" ||
       fullPath.includes("additional-info");
 
-    const isOnEducation =
-      currentScreen === "education" ||
-      fullPath.includes("education");
-
     const isOnPendingVerification =
       currentScreen === "pending-verification" ||
       fullPath.includes("pending-verification");
 
-    if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo && !isOnEducation && !isOnPendingVerification) {
+    // Priority 1: Profile completion (applies to all non-admin users)
+    if (
+      role.toLowerCase() !== "admin" &&
+      !user.profileCompleted &&
+      !isOnAdditionalInfo &&
+      !isOnPendingVerification
+    ) {
       // Redirect to additional info screen
       safeNavigate("/(protected)/additional-info");
       return;
     }
 
-    // If profile is not completed, don't redirect to role-specific screens
-    if (role !== "admin" && !user.profileCompleted) {
+    // If profile is not completed, don't proceed to role-specific logic
+    if (role.toLowerCase() !== "admin" && !user.profileCompleted) {
       return;
     }
 
-    if (role === "lab-delivery-boy" && !user.educationSubmitted && !isOnEducation) {
-      safeNavigate("/(auth)/education");
-      return;
-    }
+    // Priority 2: Lab onboarding flow (Delivery Boys and Technicians)
+    const normalizedRole = role.toLowerCase().trim().replace(/\s+/g, "-");
+    const isLabDeliveryBoy =
+      normalizedRole === "lab-delivery-boy" ||
+      normalizedRole === "delivery-boy" ||
+      role === "Lab Delivery Boy" ||
+      role === "Delivery Boy";
+    const isLabTechnician = normalizedRole === "lab" || role === "Lab" || role === "Lab Technician";
 
-    if (role === "lab-delivery-boy" && !user.educationSubmitted) {
-      return;
-    }
+    const isLabRole = isLabDeliveryBoy || isLabTechnician;
 
-    if (role === "lab-delivery-boy" && user.educationSubmitted && !user.isApproved && !isOnPendingVerification && !isOnEducation) {
-      safeNavigate("/(delivery)/pending-verification");
-      return;
-    }
+    if (isLabRole) {
+      console.log(
+        `🔍 [NavigationGuard] ${role} - Approved: ${user.isApproved}, Education: ${user.educationSubmitted}, Profile: ${user.profileCompleted}`,
+      );
 
-    if (role === "lab-delivery-boy" && user.educationSubmitted && !user.isApproved) {
-      return;
-    }
+      // 1. Force Additional Info if profile is not completed or education not submitted
+      if ((!user.profileCompleted || !user.educationSubmitted) && !isOnAdditionalInfo) {
+        console.log("🔄 Redirecting to additional-info");
+        safeNavigate("/(protected)/additional-info");
+        return;
+      }
 
-    // User IS logged in and profile is completed - redirect based on role
-    if (role === "admin" && currentGroup !== "(admin)") {
-      safeNavigate("/(admin)/(dashboard)");
-      return;
-    }
+      if ((!user.profileCompleted || !user.educationSubmitted) && isOnAdditionalInfo) {
+        return;
+      }
 
-    if (role === "nurse" && currentGroup !== "(nurse)") {
-      safeNavigate("/(nurse)/(tabs)");
-      return;
-    }
+      // 2. Force Pending Verification if profile is completed but not approved (or isApproved is still undefined during load)
+      if (user.isApproved === false || user.isApproved === undefined) {
+        if (!isOnPendingVerification) {
+          console.log("🔄 Redirecting to pending-verification (Not Approved)");
+          safeNavigate("/(delivery)/pending-verification");
+        }
+        return;
+      }
 
-    if (role === "delivery" && currentGroup !== "(delivery)") {
-      safeNavigate("/(delivery)/(tabs)");
-      return;
-    }
+      // 3. Move approved users out of pending-verification
+      if (user.isApproved === true && isOnPendingVerification) {
+        console.log("🔄 Approved! Moving from pending-verification to dashboard");
+        const approvedPath = isLabTechnician ? "/(lab)/(tabs)" : "/(delivery)/(tabs)";
+        safeNavigate(approvedPath);
+        return;
+      }
 
-    if (role === "lab-delivery-boy" && user.isApproved && currentGroup !== "(delivery)") {
-      safeNavigate("/(delivery)/(tabs)");
-      return;
-    }
+      // 4. Force correct Dashboard for approved users if not already there
+      const dashboardPath = isLabTechnician ? "/(lab)/(tabs)" : "/(delivery)/(tabs)";
+      const dashboardGroup = isLabTechnician ? "(lab)" : "(delivery)";
 
-    if (role === "lab" && currentGroup !== "(lab)") {
-      safeNavigate("/(lab)/(tabs)");
-      return;
-    }
+      if (user.isApproved === true && currentGroup !== dashboardGroup) {
+        console.log(`🔄 Redirecting approved ${role} to ${dashboardPath}`);
+        safeNavigate(dashboardPath);
+        return;
+      }
 
-    if (role === "user" && currentGroup !== "(protected)") {
-      safeNavigate("/(protected)/(tabs)");
-      return;
+      if (user.isApproved === true && currentGroup === dashboardGroup) {
+        return;
+      }
+
+      // Final fallback for safety
+      if (user.isApproved !== true) {
+        if (!isOnPendingVerification) {
+          safeNavigate("/(delivery)/pending-verification");
+        }
+        return;
+      }
+    } else {
+      // Priority 3: Other roles navigation
+      if (role.toLowerCase() === "admin" && currentGroup !== "(admin)") {
+        console.log("🔄 Redirecting admin to (admin)/(dashboard)");
+        safeNavigate("/(admin)/(dashboard)");
+        return;
+      }
+
+      if (role === "nurse" && currentGroup !== "(nurse)") {
+        safeNavigate("/(nurse)/(tabs)");
+        return;
+      }
+
+      if ((role === "delivery" || role === "Medicine Delivery") && currentGroup !== "(delivery)") {
+        safeNavigate("/(delivery)/(tabs)");
+        return;
+      }
+
+      if (role === "user" && currentGroup !== "(protected)") {
+        safeNavigate("/(protected)/(tabs)");
+        return;
+      }
     }
   }, [
     user,

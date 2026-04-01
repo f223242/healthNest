@@ -795,6 +795,18 @@ class PaymentService {
       throw error;
     }
   }
+
+  // Admin: Listen to count of pending BNPL applications
+  listenToPendingBNPLCount(callback: (count: number) => void) {
+    const q = query(
+      collection(db, this.bnplCollection),
+      where("status", "==", "pending"),
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.size);
+    });
+  }
 }
 
 export default new PaymentService();

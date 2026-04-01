@@ -15,12 +15,31 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PendingVerificationScreen = () => {
-  const { getUserProfile, logout } = useAuthContext();
+  const { refreshUser, logout, user } = useAuthContext();
   const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Simple scale animation for the icon
+  // Animation refs
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+
+  // Real-time listener for approval status
+  React.useEffect(() => {
+    if (!user?.uid) return;
+
+    // Use onSnapshot for real-time updates from Firebase
+    const { db } = require("@/config/firebase");
+    const { doc, onSnapshot } = require("firebase/firestore");
+
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (doc: any) => {
+      const data = doc.data();
+      if (data?.isApproved === true) {
+        console.log("🎊 User approved in real-time! Refreshing state...");
+        refreshUser();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   React.useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -35,7 +54,7 @@ const PendingVerificationScreen = () => {
     setIsRefreshing(true);
     try {
       // Re-fetches the user from firestore to check if Admin has approved them
-      await getUserProfile();
+      await refreshUser();
     } catch (error) {
       console.error("Refresh failed", error);
     } finally {
@@ -48,38 +67,83 @@ const PendingVerificationScreen = () => {
     // After logout, _layout.tsx will redirect to /(auth) automatically
   };
 
+  const getStatusDisplay = () => {
+    const status = user?.status;
+    if (status === "approved") {
+      return {
+        icon: "checkmark-circle" as const,
+        color: "#4CAF50",
+        title: "Account Approved!",
+        description:
+          "Your account has been approved. You can now access the dashboard and accept delivery requests.",
+        showRefresh: false,
+      };
+    } else if (status === "rejected") {
+      return {
+        icon: "close-circle" as const,
+        color: "#F44336",
+        title: "Account Rejected",
+        description:
+          user?.rejectionReason ||
+          "Your application has been rejected. Please contact support for more information.",
+        showRefresh: false,
+      };
+    } else {
+      return {
+        icon: "time" as const,
+        color: "#FFA500",
+        title: "Account Under Review",
+        description:
+          "Thank you for submitting your certification details. Our admin team is currently reviewing your documents.",
+        showRefresh: true,
+      };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <View style={styles.content}>
-        <Animated.View style={[styles.iconContainer, { transform: [{ scale: scaleAnim }] }]}>
+        <Animated.View
+          style={[styles.iconContainer, { transform: [{ scale: scaleAnim }] }]}
+        >
           <View style={styles.iconCircle}>
-            <Ionicons name="time" size={64} color="#FFA500" />
+            <Ionicons
+              name={statusDisplay.icon}
+              size={64}
+              color={statusDisplay.color}
+            />
           </View>
         </Animated.View>
 
-        <Text style={styles.title}>Account Under Review</Text>
-        <Text style={styles.description}>
-          Thank you for submitting your certification details. Our admin team is
-          currently reviewing your documents.
-        </Text>
+        <Text style={styles.title}>{statusDisplay.title}</Text>
+        <Text style={styles.description}>{statusDisplay.description}</Text>
         <Text style={styles.descriptionSub}>
-          You will be able to access the dashboard and accept delivery requests
-          once your account is approved.
+          {statusDisplay.showRefresh
+            ? "You will be able to access the dashboard and accept delivery requests once your account is approved."
+            : ""}
         </Text>
 
         <View style={styles.actionContainer}>
-          <AppButton
-            title={isRefreshing ? "Checking status..." : "Refresh Status"}
-            onPress={handleRefresh}
-            disabled={isRefreshing}
-            containerStyle={styles.refreshButton}
-            textStyle={styles.refreshText}
-          >
-            {isRefreshing && (
-              <ActivityIndicator size="small" color={colors.white} style={{ marginRight: 8 }} />
-            )}
-          </AppButton>
+          {statusDisplay.showRefresh && (
+            <AppButton
+              title={isRefreshing ? "Checking status..." : "Refresh Status"}
+              onPress={handleRefresh}
+              disabled={isRefreshing}
+              containerStyle={styles.refreshButton}
+              textStyle={styles.refreshText}
+            >
+              {isRefreshing && (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.white}
+                  style={{ marginRight: 8 }}
+                />
+              )}
+            </AppButton>
+          )}
 
           <AppButton
             title="Log Out"

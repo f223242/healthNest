@@ -8,16 +8,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -36,10 +36,10 @@ const statusConfig: Record<VerificationStatus, { label: string; color: string; i
 const VerificationsManagement = () => {
   const { user } = useAuthContext();
   const toast = useToast();
-  
+
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>("identity");
-  
+
   // Identity verification states
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,8 +214,9 @@ const VerificationsManagement = () => {
       await VerificationService.approveLabDelivery(selectedLabUser.uid, user?.uid || "admin");
       toast.success("Lab Delivery Boy approved");
       setShowLabModal(false);
-    } catch (error) {
-      toast.error("Failed to approve");
+    } catch (error: any) {
+      console.error("❌ Approval Error:", error);
+      toast.error(`Approval Failed: ${error.message || "Action not performed"}`);
     }
     setActionLoading(false);
   };
@@ -230,8 +231,9 @@ const VerificationsManagement = () => {
       await VerificationService.rejectLabDelivery(selectedLabUser.uid, user?.uid || "admin", labRejectionReason);
       toast.success("Lab Delivery Boy rejected");
       setShowLabModal(false);
-    } catch (error) {
-      toast.error("Failed to reject");
+    } catch (error: any) {
+      console.error("❌ Rejection Error:", error);
+      toast.error(`Rejection Failed: ${error.message || "Action not performed"}`);
     }
     setActionLoading(false);
   };
@@ -399,89 +401,89 @@ const VerificationsManagement = () => {
                         filterStatus === status && styles.filterTabTextActive,
                       ]}
                     >
-                  {status === "all" ? "All" : statusConfig[status as VerificationStatus]?.label || status}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Requests List */}
-        <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {filteredRequests.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="shield-checkmark-outline" size={60} color={colors.gray} />
-              <Text style={styles.emptyText}>No verification requests found</Text>
+                      {status === "all" ? "All" : statusConfig[status as VerificationStatus]?.label || status}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-          ) : (
-            filteredRequests.map((request) => (
-              <TouchableOpacity
-                key={request.id}
-                style={styles.requestCard}
-                onPress={() => {
-                  setSelectedRequest(request);
-                  setShowDetailModal(true);
-                }}
-              >
-                <View style={styles.requestHeader}>
-                  <View style={styles.userInfo}>
-                    <View style={styles.userAvatar}>
-                      <Ionicons name="person" size={20} color={colors.white} />
-                    </View>
-                    <View>
-                      <Text style={styles.userName}>{request.userName}</Text>
-                      <Text style={styles.userEmail}>{request.userEmail}</Text>
-                    </View>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: statusConfig[request.status].color + "20" },
-                    ]}
+
+            {/* Requests List */}
+            <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
+              {filteredRequests.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="shield-checkmark-outline" size={60} color={colors.gray} />
+                  <Text style={styles.emptyText}>No verification requests found</Text>
+                </View>
+              ) : (
+                filteredRequests.map((request) => (
+                  <TouchableOpacity
+                    key={request.id}
+                    style={styles.requestCard}
+                    onPress={() => {
+                      setSelectedRequest(request);
+                      setShowDetailModal(true);
+                    }}
                   >
-                    <Ionicons
-                      name={statusConfig[request.status].icon as any}
-                      size={14}
-                      color={statusConfig[request.status].color}
-                    />
-                    <Text style={[styles.statusText, { color: statusConfig[request.status].color }]}>
-                      {statusConfig[request.status].label}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.requestDetails}>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="call-outline" size={14} color={colors.gray} />
-                    <Text style={styles.detailText}>{request.userPhone || "N/A"}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="calendar-outline" size={14} color={colors.gray} />
-                    <Text style={styles.detailText}>
-                      {request.createdAt.toDate().toLocaleDateString()}
-                    </Text>
-                  </View>
-                  {request.faceMatchScore && (
-                    <View style={styles.detailRow}>
-                      <Ionicons name="scan-outline" size={14} color={colors.gray} />
-                      <Text style={styles.detailText}>
-                        Face Match: {request.faceMatchScore}%
-                      </Text>
+                    <View style={styles.requestHeader}>
+                      <View style={styles.userInfo}>
+                        <View style={styles.userAvatar}>
+                          <Ionicons name="person" size={20} color={colors.white} />
+                        </View>
+                        <View>
+                          <Text style={styles.userName}>{request.userName}</Text>
+                          <Text style={styles.userEmail}>{request.userEmail}</Text>
+                        </View>
+                      </View>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: statusConfig[request.status].color + "20" },
+                        ]}
+                      >
+                        <Ionicons
+                          name={statusConfig[request.status].icon as any}
+                          size={14}
+                          color={statusConfig[request.status].color}
+                        />
+                        <Text style={[styles.statusText, { color: statusConfig[request.status].color }]}>
+                          {statusConfig[request.status].label}
+                        </Text>
+                      </View>
                     </View>
-                  )}
-                </View>
 
-                <View style={styles.documentsPreview}>
-                  {request.documents.slice(0, 3).map((doc, index) => (
-                    <View key={index} style={styles.docPreview}>
-                      <Image source={{ uri: doc.imageUrl }} style={styles.docThumb} />
+                    <View style={styles.requestDetails}>
+                      <View style={styles.detailRow}>
+                        <Ionicons name="call-outline" size={14} color={colors.gray} />
+                        <Text style={styles.detailText}>{request.userPhone || "N/A"}</Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Ionicons name="calendar-outline" size={14} color={colors.gray} />
+                        <Text style={styles.detailText}>
+                          {request.createdAt.toDate().toLocaleDateString()}
+                        </Text>
+                      </View>
+                      {request.faceMatchScore && (
+                        <View style={styles.detailRow}>
+                          <Ionicons name="scan-outline" size={14} color={colors.gray} />
+                          <Text style={styles.detailText}>
+                            Face Match: {request.faceMatchScore}%
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                  ))}
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
+
+                    <View style={styles.documentsPreview}>
+                      {request.documents.slice(0, 3).map((doc, index) => (
+                        <View key={index} style={styles.docPreview}>
+                          <Image source={{ uri: doc.imageUrl }} style={styles.docThumb} />
+                        </View>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
           </>
         ) : activeTab === "bnpl" ? (
           /* BNPL Applications Tab */
@@ -609,6 +611,11 @@ const VerificationsManagement = () => {
                       <View>
                         <Text style={styles.userName}>{`${req.firstname || ""} ${req.lastname || ""}`}</Text>
                         <Text style={styles.userEmail}>{req.email}</Text>
+                        <View style={styles.roleTag}>
+                           <Text style={styles.roleTagText}>
+                              {req.role === 'lab' ? 'Lab Technician' : 'Lab Delivery Boy'}
+                           </Text>
+                        </View>
                       </View>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: req.isApproved ? '#4CAF5020' : req.status === 'rejected' ? '#F4433620' : '#FF980020' }]}>
@@ -632,10 +639,10 @@ const VerificationsManagement = () => {
                         Certificate: {req.certificateName}
                       </Text>
                     </View>
-                    {req.certificateUrl && (
-                      <TouchableOpacity 
-                        style={[styles.detailRow, { marginTop: 4, paddingVertical: 4 }]} 
-                        onPress={() => viewImage(req.certificateUrl)}
+                    {(req.certificateUrl || req.matricCertificate) && (
+                      <TouchableOpacity
+                        style={[styles.detailRow, { marginTop: 4, paddingVertical: 4 }]}
+                        onPress={() => viewImage(req.certificateUrl || (req.matricCertificate ? `data:image/jpeg;base64,${req.matricCertificate}` : ''))}
                       >
                         <Ionicons name="eye-outline" size={14} color={colors.primary} />
                         <Text style={[styles.detailText, { color: colors.primary, textDecorationLine: 'underline', fontWeight: 'bold' }]}>
@@ -871,51 +878,51 @@ const VerificationsManagement = () => {
                   {/* Actions */}
                   {(selectedRequest.status === "pending" ||
                     selectedRequest.status === "under_review") && (
-                    <View style={styles.modalSection}>
-                      <Text style={styles.sectionTitle}>Actions</Text>
+                      <View style={styles.modalSection}>
+                        <Text style={styles.sectionTitle}>Actions</Text>
 
-                      <TextInput
-                        style={styles.rejectionInput}
-                        placeholder="Rejection reason (required for rejection)"
-                        value={rejectionReason}
-                        onChangeText={setRejectionReason}
-                        multiline
-                        numberOfLines={3}
-                      />
+                        <TextInput
+                          style={styles.rejectionInput}
+                          placeholder="Rejection reason (required for rejection)"
+                          value={rejectionReason}
+                          onChangeText={setRejectionReason}
+                          multiline
+                          numberOfLines={3}
+                        />
 
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                          style={[styles.actionBtn, styles.rejectBtn]}
-                          onPress={handleReject}
-                          disabled={actionLoading}
-                        >
-                          {actionLoading ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <>
-                              <Ionicons name="close-circle" size={18} color="#fff" />
-                              <Text style={styles.actionBtnText}>Reject</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity
+                            style={[styles.actionBtn, styles.rejectBtn]}
+                            onPress={handleReject}
+                            disabled={actionLoading}
+                          >
+                            {actionLoading ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <>
+                                <Ionicons name="close-circle" size={18} color="#fff" />
+                                <Text style={styles.actionBtnText}>Reject</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={[styles.actionBtn, styles.approveBtn]}
-                          onPress={handleApprove}
-                          disabled={actionLoading}
-                        >
-                          {actionLoading ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <>
-                              <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                              <Text style={styles.actionBtnText}>Approve</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.actionBtn, styles.approveBtn]}
+                            onPress={handleApprove}
+                            disabled={actionLoading}
+                          >
+                            {actionLoading ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <>
+                                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                                <Text style={styles.actionBtnText}>Approve</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
 
                   {/* Rejection Reason if rejected */}
                   {selectedRequest.status === "rejected" && selectedRequest.rejectionReason && (
@@ -955,7 +962,7 @@ const VerificationsManagement = () => {
                   <Text style={styles.infoLabel}>Matric Type:</Text>
                   <Text style={[styles.infoValue, { color: colors.primary, fontWeight: 'bold' }]}>{selectedLabUser.matricType}</Text>
                 </View>
-                
+
                 <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Certificate</Text>
                 <TouchableOpacity onPress={() => viewImage(selectedLabUser.certificateUrl)}>
                   <Image source={{ uri: selectedLabUser.certificateUrl }} style={styles.modalCertificate} resizeMode="cover" />
@@ -1399,6 +1406,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 8,
     padding: 8,
+  },
+  roleTag: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  roleTagText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+    textTransform: 'uppercase',
   },
   modalActionButtons: {
     flexDirection: 'row',

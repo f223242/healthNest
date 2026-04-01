@@ -87,13 +87,28 @@ const RequestLabHomeService = () => {
   }, [user]);
 
   // Fetch lab delivery boys from Firebase with dynamic ratings
+  // ONLY for lab technicians - patients should NOT see delivery boys
   const fetchLabDeliveryPersons = useCallback(async () => {
+    console.log(
+      "🔍 RequestLabHomeService - fetchLabDeliveryPersons called, user role:",
+      user?.role,
+    );
+    // Only lab technicians can see delivery boys for assignment
+    if (user?.role !== "lab") {
+      console.log(
+        "🚫 Not a lab user, skipping delivery fetch and showing patient UI",
+      );
+      setDeliveryPersons([]);
+      setLoading(false);
+      return;
+    }
+    console.log("✅ Lab user detected, fetching delivery persons");
     try {
       // Get all users with delivery role and lab delivery type
       const users = await getAllUsers("Lab Delivery");
       const deliveryData: DeliveryPerson[] = await Promise.all(
         users
-          .filter((user: User) => user.profileCompleted && user.additionalInfo)
+          .filter((user: User) => user.profileCompleted && user.additionalInfo && user.isApproved === true)
           .map(async (user: User, index: number) => {
             const info = user.additionalInfo as DeliveryInfo;
             const fullName =
@@ -144,7 +159,7 @@ const RequestLabHomeService = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getAllUsers]);
+  }, [getAllUsers, user?.role]);
 
   useEffect(() => {
     fetchLabDeliveryPersons();
@@ -240,54 +255,109 @@ const RequestLabHomeService = () => {
             </View>
           </View>
 
-          {filteredDeliveryPersons.length === 0 ? (
-            <View style={styles.emptyStateContainer}>
-              <Ionicons name="sad-outline" size={60} color={colors.lightGray} />
-              <Text style={styles.emptyStateTitle}>
-                No Lab Delivery Available
-              </Text>
-              <Text style={styles.emptyStateText}>
-                No lab delivery persons are currently available in your area.
-                Please try again later.
-              </Text>
-            </View>
+          {/* Debug Info */}
+          <View style={{ padding: 10, backgroundColor: "yellow" }}>
+            <Text>DEBUG: User Role = {user?.role || "undefined"}</Text>
+            <Text>
+              DEBUG: Delivery Persons Count = {filteredDeliveryPersons.length}
+            </Text>
+          </View>
+
+          {user?.role === "lab" ? (
+            /* For lab technicians - show delivery boy selection for assignment */
+            filteredDeliveryPersons.length === 0 ? (
+              <View style={styles.emptyStateContainer}>
+                <Ionicons name="sad-outline" size={60} color={colors.lightGray} />
+                <Text style={styles.emptyStateTitle}>
+                  No Lab Delivery Available
+                </Text>
+                <Text style={styles.emptyStateText}>
+                  No lab delivery persons are currently available in your area.
+                  Please try again later.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredDeliveryPersons}
+                keyExtractor={(item) => item.uid}
+                renderItem={({ item }) => (
+                  <DeliveryPersonCard
+                    {...item}
+                    onPress={() => {
+                      // Navigate to booking with selected lab delivery person
+                      router.push({
+                        pathname: "/(protected)/lab-booking-form",
+                        params: {
+                          labId,
+                          labName,
+                          deliveryPersonId: item.uid,
+                          deliveryPersonName: item.name,
+                          serviceMode: "home",
+                          serviceType: "lab",
+                        },
+                      });
+                    }}
+                    isActive={activeAppointments.has(item.uid)}
+                  />
+                )}
+                scrollEnabled={false}
+                contentContainerStyle={styles.listContent}
+                ItemSeparatorComponent={() => (
+                  <View style={styles.itemSeparator} />
+                )}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={colors.primary}
+                  />
+                }
+              />
+            )
           ) : (
-            <FlatList
-              data={filteredDeliveryPersons}
-              keyExtractor={(item) => item.uid}
-              renderItem={({ item }) => (
-                <DeliveryPersonCard
-                  {...item}
-                  onPress={() => {
-                    // Navigate to booking with selected lab delivery person
-                    router.push({
-                      pathname: "/(protected)/lab-booking-form",
-                      params: {
-                        labId,
-                        labName,
-                        deliveryPersonId: item.uid,
-                        deliveryPersonName: item.name,
-                        serviceMode: "home",
-                        serviceType: "lab",
-                      },
-                    });
-                  }}
-                  isActive={activeAppointments.has(item.uid)}
-                />
-              )}
-              scrollEnabled={false}
-              contentContainerStyle={styles.listContent}
-              ItemSeparatorComponent={() => (
-                <View style={styles.itemSeparator} />
-              )}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={colors.primary}
-                />
-              }
-            />
+            /* For regular patients - show premium info view and direct to booking */
+            <View style={styles.patientHomeSamplingContainer}>
+              <View style={styles.infoIconCircle}>
+                <Ionicons name="home" size={40} color={colors.white} />
+              </View>
+              <Text style={styles.patientTitle}>Home Lab Sampling</Text>
+              <Text style={styles.patientDescription}>
+                Book a professional lab collection service from the comfort of your home.
+              </Text>
+
+              <View style={styles.processInfoCard}>
+                <Text style={styles.processInfoTitle}>How it works:</Text>
+                <View style={styles.processStep}>
+                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
+                  <Text style={styles.stepText}>Schedule your tests and collection time.</Text>
+                </View>
+                <View style={styles.processStep}>
+                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
+                  <Text style={styles.stepText}>The lab assigns a nearby certified delivery boy.</Text>
+                </View>
+                <View style={styles.processStep}>
+                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>3</Text></View>
+                  <Text style={styles.stepText}>Track and chat with your assigned person instantly.</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.bookNowButton}
+                onPress={() => {
+                  router.push({
+                    pathname: "/(protected)/lab-booking-form",
+                    params: {
+                      labId,
+                      labName,
+                      selectedTestType: "Home",
+                    },
+                  });
+                }}
+              >
+                <Text style={styles.bookNowButtonText}>Continue to Booking</Text>
+                <Ionicons name="arrow-forward" size={20} color={colors.white} />
+              </TouchableOpacity>
+            </View>
           )}
         </Animated.View>
       </SafeAreaView>
@@ -412,6 +482,106 @@ const styles = StyleSheet.create({
     color: colors.grayText,
     textAlign: "center",
     marginTop: 8,
+  },
+  patientHomeSamplingContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  infoIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  patientTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.bold,
+    color: colors.textDark,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  patientDescription: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: colors.grayText,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 32,
+    paddingHorizontal: 10,
+  },
+  processInfoCard: {
+    width: "100%",
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  processInfoTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: colors.textDark,
+    marginBottom: 20,
+  },
+  processStep: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary + "15",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  stepNumberText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: colors.text,
+  },
+  bookNowButton: {
+    flexDirection: "row",
+    backgroundColor: colors.primary,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: "center",
+    gap: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  bookNowButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: colors.white,
   },
 });
 

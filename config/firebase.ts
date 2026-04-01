@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyA7BreYpRvIjPA3cfyJ6bjRp0L8A5MwJ4Y",
   authDomain: "healthnest-812ab.firebaseapp.com",
   projectId: "healthnest-812ab",
-  storageBucket: "healthnest-812ab.firebasestorage.app",
+  storageBucket: "healthnest-812ab.appspot.com", // Fixed from firebasestorage.app
   messagingSenderId: "716753087878",
   appId: "1:716753087878:web:17436386b86070dcf29007"
 };
