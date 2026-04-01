@@ -139,7 +139,10 @@ const LabServices = () => {
     ]).start();
   }, []);
 
-  const categories = ["All", ...Array.from(new Set(servicesData.map((s) => s.category)))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(servicesData.map((s) => s.category))),
+  ];
 
   const filteredServices =
     selectedCategory === "All"
@@ -150,12 +153,14 @@ const LabServices = () => {
     setSelectedServices((prev) =>
       prev.includes(serviceId)
         ? prev.filter((id) => id !== serviceId)
-        : [...prev, serviceId]
+        : [...prev, serviceId],
     );
   };
 
   const handleContinue = () => {
-    const services = servicesData.filter((s) => selectedServices.includes(s.id));
+    const services = servicesData.filter((s) =>
+      selectedServices.includes(s.id),
+    );
     router.push({
       pathname: "/(protected)/lab-booking-form",
       params: {
@@ -175,7 +180,7 @@ const LabServices = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Premium Gradient Header */}
       <LinearGradient
         colors={[colors.primary, "#00C853"]}
@@ -201,109 +206,127 @@ const LabServices = () => {
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={styles.contentContainer}>
-        <Animated.View 
-          style={{ 
-            flex: 1, 
-            opacity: fadeAnim, 
-            transform: [{ translateY: slideAnim }] 
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
           }}
         >
+              {/* Category Filter */}
+              <View style={styles.categoryContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {categories.map((category) => (
+                    <TouchableOpacity
+                      key={category}
+                      onPress={() => setSelectedCategory(category)}
+                      style={[
+                        styles.categoryChip,
+                        selectedCategory === category &&
+                          styles.categoryChipActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          selectedCategory === category &&
+                            styles.categoryTextActive,
+                        ]}
+                      >
+                        {category}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
-      {/* Category Filter */}
-      <View style={styles.categoryContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category && styles.categoryChipActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category && styles.categoryTextActive,
-                ]}
+              {/* Services List */}
+              <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
               >
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+                {filteredServices.map((service) => (
+                  <TouchableOpacity
+                    key={service.id}
+                    activeOpacity={0.8}
+                    onPress={() => toggleService(service.id)}
+                    style={[
+                      styles.serviceCard,
+                      selectedServices.includes(service.id) &&
+                        styles.serviceCardSelected,
+                    ]}
+                  >
+                    <View style={styles.serviceHeader}>
+                      <View style={styles.serviceInfo}>
+                        <View style={styles.serviceTitleRow}>
+                          <Text style={appStyles.cardTitle}>
+                            {service.name}
+                          </Text>
+                          {service.popular && (
+                            <View style={styles.popularBadge}>
+                              <Text style={styles.popularText}>Popular</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={appStyles.bodyText}>
+                          {service.description}
+                        </Text>
 
-      {/* Services List */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredServices.map((service) => (
-          <TouchableOpacity
-            key={service.id}
-            activeOpacity={0.8}
-            onPress={() => toggleService(service.id)}
-            style={[
-              styles.serviceCard,
-              selectedServices.includes(service.id) && styles.serviceCardSelected,
-            ]}
-          >
-            <View style={styles.serviceHeader}>
-              <View style={styles.serviceInfo}>
-                <View style={styles.serviceTitleRow}>
-                  <Text style={appStyles.cardTitle}>{service.name}</Text>
-                  {service.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularText}>Popular</Text>
+                        <View style={styles.serviceMeta}>
+                          <View style={styles.metaItem}>
+                            <Text style={styles.metaLabel}>Duration:</Text>
+                            <Text style={styles.metaValue}>
+                              {service.duration}
+                            </Text>
+                          </View>
+                          <View style={styles.metaItem}>
+                            <Text style={styles.metaLabel}>Category:</Text>
+                            <Text style={styles.metaValue}>
+                              {service.category}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.servicePricing}>
+                        <Text style={styles.servicePrice}>{service.price}</Text>
+                        <View
+                          style={[
+                            styles.checkbox,
+                            selectedServices.includes(service.id) &&
+                              styles.checkboxSelected,
+                          ]}
+                        >
+                          {selectedServices.includes(service.id) && (
+                            <Text style={styles.checkmark}>✓</Text>
+                          )}
+                        </View>
+                      </View>
                     </View>
-                  )}
-                </View>
-                <Text style={appStyles.bodyText}>{service.description}</Text>
-                
-                <View style={styles.serviceMeta}>
-                  <View style={styles.metaItem}>
-                    <Text style={styles.metaLabel}>Duration:</Text>
-                    <Text style={styles.metaValue}>{service.duration}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Text style={styles.metaLabel}>Category:</Text>
-                    <Text style={styles.metaValue}>{service.category}</Text>
-                  </View>
-                </View>
-              </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-              <View style={styles.servicePricing}>
-                <Text style={styles.servicePrice}>{service.price}</Text>
-                <View
-                  style={[
-                    styles.checkbox,
-                    selectedServices.includes(service.id) && styles.checkboxSelected,
-                  ]}
-                >
-                  {selectedServices.includes(service.id) && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+              {/* Bottom Summary */}
+              {selectedServices.length > 0 && (
+                <View style={styles.bottomContainer}>
+                  <View style={styles.summaryRow}>
+                    <Text style={appStyles.bodyText}>
+                      {selectedServices.length} test
+                      {selectedServices.length > 1 ? "s" : ""} selected
+                    </Text>
+                    <Text style={styles.totalPrice}>
+                      Total: ${calculateTotal()}
+                    </Text>
+                  </View>
+                  <AppButton
+                    title="Continue to Booking"
+                    onPress={handleContinue}
+                  />
                 </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              )}
 
-      {/* Bottom Summary */}
-      {selectedServices.length > 0 && (
-          <View style={styles.bottomContainer}>
-            <View style={styles.summaryRow}>
-              <Text style={appStyles.bodyText}>
-                {selectedServices.length} test{selectedServices.length > 1 ? "s" : ""} selected
-              </Text>
-              <Text style={styles.totalPrice}>Total: ${calculateTotal()}</Text>
-            </View>
-            <AppButton title="Continue to Booking" onPress={handleContinue} />
-          </View>
-        )}
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -317,6 +340,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.primary,
   },
+
   headerGradient: {
     paddingTop: 50,
     paddingBottom: 30,

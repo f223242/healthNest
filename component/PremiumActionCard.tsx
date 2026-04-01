@@ -18,6 +18,7 @@ interface PremiumActionCardProps {
   delay?: number;
   badge?: string | number;
   chevron?: boolean;
+  disabled?: boolean;
 }
 
 const PremiumActionCard: React.FC<PremiumActionCardProps> = ({
@@ -33,6 +34,7 @@ const PremiumActionCard: React.FC<PremiumActionCardProps> = ({
   delay = 0,
   badge,
   chevron = true,
+  disabled = false,
 }) => {
   return (
     <Animatable.View
@@ -44,7 +46,8 @@ const PremiumActionCard: React.FC<PremiumActionCardProps> = ({
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onPress}
-        style={[styles.card, style]}
+        style={[styles.card, style, disabled && styles.disabled]}
+        disabled={disabled}
       >
         {gradient ? (
           <LinearGradient
@@ -126,6 +129,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.semiBold,
     color: colors.white,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });
 

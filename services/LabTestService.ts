@@ -3,6 +3,7 @@ import {
     addDoc,
     collection,
     doc,
+    getDoc,
     getDocs,
     onSnapshot,
     query,
@@ -11,10 +12,11 @@ import {
     where,
 } from "firebase/firestore";
 import NotificationService from "./NotificationService";
+import PaymentService from "./PaymentService";
 
 export type TestRequestStatus =
   | "pending"
-  | "confirmed"
+  | "accepted"
   | "sample_collected"
   | "processing"
   | "report_ready"
@@ -44,6 +46,12 @@ export interface LabTestRequest {
   scheduledTime: string;
   priority: Priority;
   status: TestRequestStatus;
+  // Delivery info (for home sampling)
+  deliveryId?: string;
+  deliveryName?: string;
+  // Payment info
+  paymentMethod?: string; // card | cash | wallet | bnpl
+  paymentStatus?: "pending" | "paid_to_admin" | "cash_collected" | "released_to_provider";
   // Additional info
   address?: string;
   notes?: string;
@@ -108,20 +116,38 @@ class LabTestService {
         ...additionalData,
       };
 
-      if (status === "completed") {
-        updateData.completedAt = Timestamp.now();
-      }
-
       await updateDoc(doc(db, this.collectionName, requestId), updateData);
+
+      // Handle escrow release schedule if completed
+      if (status === "completed") {
+        try {
+          const q = query(
+            collection(db, "adminWallet"),
+            where("entityId", "==", requestId),
+            where("status", "in", ["held_in_escrow", "cash_collected"])
+          );
+          const walletSnap = await getDocs(q);
+          for (const walletDoc of walletSnap.docs) {
+            await updateDoc(walletDoc.ref, {
+              status: "pending_auto_release",
+              completedAt: Timestamp.now(),
+              autoReleaseAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+              updatedAt: Timestamp.now(),
+            });
+          }
+        } catch (walletErr) {
+          console.error("Error updating wallet release schedule:", walletErr);
+        }
+      }
 
       // Send notification to patient based on status
       let title = "";
       let body = "";
 
       switch (status) {
-        case "confirmed":
-          title = "Test Request Confirmed";
-          body = `${request.labName} has confirmed your ${request.testType} test for ${request.scheduledDate}`;
+        case "accepted":
+          title = "Test Request Accepted";
+          body = `${request.labName} has accepted your ${request.testType} test for ${request.scheduledDate}`;
           break;
         case "sample_collected":
           title = "Sample Collected";
@@ -161,6 +187,23 @@ class LabTestService {
       }
     } catch (error) {
       console.error("Error updating test request status:", error);
+      throw error;
+    }
+  }
+
+  // Get a single test request by ID
+  async getTestRequestById(requestId: string): Promise<LabTestRequest | null> {
+    try {
+      const docSnap = await getDoc(doc(db, this.collectionName, requestId));
+      if (docSnap.exists()) {
+        return {
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<LabTestRequest, "id">),
+        } as LabTestRequest;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching test request:", error);
       throw error;
     }
   }
@@ -263,6 +306,113 @@ class LabTestService {
       await this.updateTestRequestStatus(requestId, "cancelled", request);
     } catch (error) {
       console.error("Error cancelling test request:", error);
+      throw error;
+    }
+  }
+
+  // Listen to delivery boy's assigned lab test requests (home sampling)
+  listenToDeliveryLabTestRequests(
+    deliveryId: string,
+    callback: (requests: LabTestRequest[]) => void
+  ) {
+    try {
+      const q = query(
+        collection(db, this.collectionName),
+        where("deliveryId", "==", deliveryId),
+        where("collectionType", "==", "home_sampling")
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const requests: LabTestRequest[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<LabTestRequest, "id">),
+          }))
+          .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        callback(requests);
+      });
+    } catch (error) {
+      console.error("Error listening to delivery lab test requests:", error);
+      throw error;
+    }
+  }
+
+  // Update payment status for a test request
+  async updatePaymentStatus(
+    requestId: string,
+    paymentStatus: LabTestRequest["paymentStatus"]
+  ): Promise<void> {
+    try {
+      await updateDoc(doc(db, this.collectionName, requestId), {
+        paymentStatus,
+        updatedAt: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      throw error;
+    }
+  }
+
+  // Assign delivery boy to a home sampling request
+  async assignDeliveryToRequest(
+    requestId: string,
+    request: LabTestRequest,
+    deliveryId: string,
+    deliveryName: string
+  ): Promise<void> {
+    try {
+      const updateData: any = {
+        deliveryId,
+        deliveryName,
+        updatedAt: Timestamp.now(),
+      };
+
+      // If it's pending, automatically mark as accepted when assigned
+      if (request.status === "pending") {
+        updateData.status = "accepted";
+      }
+
+      await updateDoc(doc(db, this.collectionName, requestId), updateData);
+
+      // Create appointment for the delivery boy
+      const appointmentData = {
+        userId: request.userId,
+        userName: request.userName,
+        deliveryId: deliveryId,
+        deliveryName: deliveryName,
+        providerType: "delivery" as const,
+        appointmentDate: request.scheduledDate,
+        appointmentTime: request.scheduledTime,
+        status: "pending" as const,
+        serviceType: "Lab Home Sampling",
+        notes: `Lab: ${request.labName}. Tests: ${request.testType}. Order ID: ${requestId}`,
+        address: request.address || "",
+        paymentMethod: (request.paymentMethod as any) || "cash",
+        labTestRequestId: requestId,
+      };
+
+      // We use a dynamic import or just call addDoc here to avoid circular dependency if AppointmentService imports LabTestService
+      await addDoc(collection(db, "appointments"), {
+        ...appointmentData,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notify the delivery boy
+      await NotificationService.createNotification(
+        deliveryId,
+        "appointment",
+        "New Lab Sampling Assignment",
+        `You have been assigned to collect samples for ${request.userName} (${request.testType})`,
+        {
+          testRequestId: requestId,
+          userId: request.userId,
+          userName: request.userName,
+          labName: request.labName,
+        }
+      );
+    } catch (error) {
+      console.error("Error assigning delivery boy:", error);
       throw error;
     }
   }

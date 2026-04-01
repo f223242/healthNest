@@ -1,5 +1,7 @@
 import DeliveryFilterButtons from "@/component/DeliveryFilterButtons";
-import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
+import DeliveryPersonCard, {
+    DeliveryPerson,
+} from "@/component/DeliveryPersonCard";
 import { appStyles, colors, Fonts, sizes } from "@/constant/theme";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import AppointmentService from "@/services/AppointmentService";
@@ -8,17 +10,23 @@ import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,7 +37,9 @@ const RequestMedicine = () => {
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeAppointments, setActiveAppointments] = useState<Set<string>>(new Set());
+  const [activeAppointments, setActiveAppointments] = useState<Set<string>>(
+    new Set(),
+  );
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -59,12 +69,16 @@ const RequestMedicine = () => {
         // Get delivery persons with accepted appointments
         const activeDeliveryIds = new Set<string>();
         appointments.forEach((apt) => {
-          if (apt.providerType === "delivery" && apt.status === "accepted" && apt.deliveryId) {
+          if (
+            apt.providerType === "delivery" &&
+            apt.status === "accepted" &&
+            apt.deliveryId
+          ) {
             activeDeliveryIds.add(apt.deliveryId);
           }
         });
         setActiveAppointments(activeDeliveryIds);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -79,7 +93,9 @@ const RequestMedicine = () => {
           .filter((user: User) => user.profileCompleted && user.additionalInfo)
           .map(async (user: User, index: number) => {
             const info = user.additionalInfo as DeliveryInfo;
-            const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Delivery Person";
+            const fullName =
+              `${user.firstname || ""} ${user.lastname || ""}`.trim() ||
+              "Delivery Person";
 
             // Default available UNLESS explicitly marked as unavailable
             const isAvailable =
@@ -91,7 +107,8 @@ const RequestMedicine = () => {
             let rating = 0;
             let totalDeliveries = 0;
             try {
-              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(user.uid);
+              const ratingStats =
+                await FeedbackComplaintService.getProviderRatingStats(user.uid);
               rating = ratingStats.averageRating || 0;
               // Use reviews count as proxy for deliveries
               totalDeliveries = ratingStats.totalReviews || 0;
@@ -110,9 +127,11 @@ const RequestMedicine = () => {
               distance: info.city || "N/A",
               vehicleType: info.vehicleType || "N/A",
               vehicleNumber: info.vehicleNumber || "",
+              deliveryType: (user as any).deliveryType || "medicine",
+              qualification: (user as any).qualification || "",
               uid: user.uid,
             };
-          })
+          }),
       );
 
       setDeliveryPersons(deliveryData);
@@ -132,8 +151,6 @@ const RequestMedicine = () => {
     setRefreshing(true);
     fetchDeliveryPersons();
   }, [fetchDeliveryPersons]);
-
-
 
   // Filter based on active filter
   const filteredPersons = useMemo(() => {
@@ -166,6 +183,8 @@ const RequestMedicine = () => {
         isAvailable: person.isAvailable.toString(),
         deliveryTime: person.deliveryTime,
         distance: person.distance,
+        deliveryType: person.deliveryType || "medicine",
+        qualification: person.qualification || "",
       },
     });
   };
@@ -183,6 +202,8 @@ const RequestMedicine = () => {
         isAvailable: person.isAvailable.toString(),
         deliveryTime: person.deliveryTime,
         distance: person.distance,
+        deliveryType: person.deliveryType || "medicine",
+        qualification: person.qualification || "",
         openBooking: "true",
       },
     });
@@ -217,11 +238,7 @@ const RequestMedicine = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Request Medicine</Text>
           <View style={styles.headerIcon}>
-            <Ionicons
-              name="medical"
-              size={22}
-              color="rgba(255,255,255,0.9)"
-            />
+            <Ionicons name="medical" size={22} color="rgba(255,255,255,0.9)" />
           </View>
         </View>
         <Text style={styles.headerSubtitle}>
@@ -250,7 +267,7 @@ const RequestMedicine = () => {
           </Text>
 
           {/* Delivery List */}
-            <FlatList
+          <FlatList
             data={filteredPersons}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
@@ -259,7 +276,9 @@ const RequestMedicine = () => {
                 onPress={() => handlePersonPress(item)}
                 onViewProfile={() => handleViewProfile(item)}
                 onBook={() => handleBook(item)}
-                hasActiveAppointment={activeAppointments.has((item as any).uid || "")}
+                hasActiveAppointment={activeAppointments.has(
+                  (item as any).uid || "",
+                )}
               />
             )}
             contentContainerStyle={styles.listContent}
@@ -277,8 +296,8 @@ const RequestMedicine = () => {
                   {deliveryPersons.length === 0
                     ? "No delivery persons registered"
                     : filter === "available"
-                    ? "No available delivery persons"
-                    : "No delivery persons found"}
+                      ? "No available delivery persons"
+                      : "No delivery persons found"}
                 </Text>
               </View>
             }

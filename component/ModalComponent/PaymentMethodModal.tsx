@@ -59,6 +59,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const [currentStep, setCurrentStep] = useState<ModalStep>("select");
   const [isBNPLApproved, setIsBNPLApproved] = useState(false);
   const [isBNPLCheckLoading, setIsBNPLCheckLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Card details
   const [cardNumber, setCardNumber] = useState("");
@@ -156,6 +157,8 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     
     switch (method) {
       case "cash":
+        // Single-click selection for cash
+        handleConfirmImmediate("cash");
         break;
       case "card":
         setCurrentStep("card_details");
@@ -173,7 +176,17 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     }
   };
 
+  const handleConfirmImmediate = (method: PaymentMethod) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    onConfirm(method);
+    // Don't reset/close yet, let parent handle it if needed or use resetModal if parent confirms
+  };
+
   const handleConfirm = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     if (selectedMethod === "cash") {
       onConfirm(selectedMethod);
     } else if (selectedMethod === "card") {
@@ -192,7 +205,6 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         employerName 
       } as PayLaterVerificationData);
     }
-    resetModal();
   };
 
   const resetModal = () => {
@@ -209,6 +221,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     setSelfieImage(null);
     setEmergencyContact("");
     setEmployerName("");
+    setIsProcessing(false);
   };
 
   const handleClose = () => {
@@ -472,9 +485,10 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
       </View>
 
       <AppButton
-        title={`Pay ${totalAmount}`}
+        title={isProcessing ? "Processing..." : `Pay ${totalAmount}`}
         onPress={handleConfirm}
-        disabled={!isCardValid}
+        disabled={!isCardValid || isProcessing}
+        loading={isProcessing}
       />
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -520,9 +534,10 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
       </View>
 
       <AppButton
-        title={`Pay ${totalAmount} via ${selectedMethod === "jazzcash" ? "JazzCash" : "Easypaisa"}`}
+        title={isProcessing ? "Processing..." : `Pay ${totalAmount} via ${selectedMethod === "jazzcash" ? "JazzCash" : "Easypaisa"}`}
         onPress={handleConfirm}
-        disabled={!isMobileValid}
+        disabled={!isMobileValid || isProcessing}
+        loading={isProcessing}
       />
       <View style={{ height: 30 }} />
     </ScrollView>

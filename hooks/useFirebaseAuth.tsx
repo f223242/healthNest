@@ -18,14 +18,16 @@ import {
   getDoc,
   getDocs,
   query,
+  serverTimestamp,
   setDoc,
-  where
+  where,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { useToast } from "@/component/Toast/ToastProvider";
 import { auth, db } from "@/config/firebase";
 import { firebaseMessages } from "@/constant/messages";
+import NotificationService from "@/services/NotificationService";
 
 // -------------------------------
 // User Type
@@ -37,11 +39,18 @@ export interface UserProfile {
   lastname?: string;
   phoneNumber?: string;
   role: string;
+  deliveryType?: "medicine" | "lab";
+  qualification?: string;
   createdAt: number;
   profileCompleted?: boolean;
   additionalInfo?: AdditionalInfo;
   dateOfBirth?: string;
   emailVerified?: boolean;
+  isApproved?: boolean;
+  educationSubmitted?: boolean;
+  verificationStatus?: string;
+  status?: string;
+  rejectionReason?: string;
 }
 
 // Additional role-specific info (lightweight definitions used across the app)
@@ -95,7 +104,12 @@ export interface AdminInfo {
   city?: string;
 }
 
-export type AdditionalInfo = PatientInfo | NurseInfo | LabInfo | DeliveryInfo | AdminInfo;
+export type AdditionalInfo =
+  | PatientInfo
+  | NurseInfo
+  | LabInfo
+  | DeliveryInfo
+  | AdminInfo;
 
 // Backwards-compatible exports expected elsewhere in the app
 export type User = UserProfile;
@@ -111,7 +125,7 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-    phone: string
+    phone: string,
   ) => Promise<any>;
 
   login: (values: { email: string; password: string }) => Promise<any>;
@@ -122,6 +136,8 @@ interface AuthContextType {
 
   getUserProfile: () => Promise<UserProfile | null>;
 
+  refreshUser: () => Promise<void>;
+
   getAllUsers: (filter?: string) => Promise<UserProfile[]>;
   findUserByPhone: (phone: string) => Promise<any>;
 
@@ -129,8 +145,12 @@ interface AuthContextType {
   saveAdditionalInfo: (info: AdditionalInfo) => Promise<void>;
 
   // Update basic profile fields (firstname, lastname, phoneNumber)
-  updateProfile: (data: { firstname?: string; lastname?: string; phoneNumber?: string }) => Promise<void>;
-  
+  updateProfile: (data: {
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+  }) => Promise<void>;
+
   // Backwards-compatible API used across the app
   register: (values: any) => Promise<any>;
   resendVerificationEmail: () => Promise<void>;
@@ -139,7 +159,20 @@ interface AuthContextType {
   verifyPasswordResetOTP: (otp: string) => Promise<boolean>;
   resendPasswordResetOTP: () => Promise<string>;
   updatePassword: (email: string) => Promise<void>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
+
+  // Submit education details for Lab Delivery Boys
+  submitEducationDetails: (values: {
+    uid?: string;
+    matricType: string;
+    certificateBase64: string;
+    certificateName: string;
+    userName?: string;
+  }) => Promise<{ success: boolean }>;
+
   isLoading?: boolean;
 }
 
@@ -173,8 +206,14 @@ const normalizeRole = (r?: string) => {
     nurse: "nurse",
     "Medicine Delivery": "delivery",
     "Medicine delivery": "delivery",
+    "Delivery Boy": "delivery",
+    "delivery boy": "delivery",
     Delivery: "delivery",
     delivery: "delivery",
+    "Lab Delivery Boy": "lab-delivery-boy",
+    "Lab delivery boy": "lab-delivery-boy",
+    "lab-delivery-boy": "lab-delivery-boy",
+    "Lab Delivery": "lab-delivery-boy",
   };
   return map[r] || r.toLowerCase();
 };
@@ -201,14 +240,50 @@ export const AuthProvider = ({ children }: any) => {
       const ref = doc(db, "users", auth.currentUser.uid);
       const snap = await getDoc(ref);
 
-      if (!snap.exists()) return null;
+      if (!snap.exists()) {
+        console.warn("⚠️ User authenticated but NO Firestore document found for:", auth.currentUser.uid);
+
+        // SECURE ADMIN FALLBACK: Only allow EXACT matches for known admin emails
+        // Replace these with your actual admin email address(es)
+        const allowedAdminEmails = ["admin@healthnest.com", "admin@gmail.com"];
+
+        if (auth.currentUser.email && allowedAdminEmails.includes(auth.currentUser.email.toLowerCase())) {
+          console.log("🛠️ Admin Fallback triggered securely for:", auth.currentUser.email);
+          return {
+            uid: auth.currentUser.uid,
+            email: auth.currentUser.email,
+            role: "admin",
+            profileCompleted: true,
+            firstname: "System",
+            lastname: "Admin"
+          } as UserProfile;
+        }
+
+        return null;
+      }
+
+      const data = snap.data();
+      console.log("✅ User profile loaded successfully. Role:", data.role);
 
       return {
         uid: auth.currentUser.uid,
-        ...snap.data(),
+        ...data,
       } as UserProfile;
     } catch (e) {
+      console.error("getUserProfile error:", e);
       return null;
+    }
+  };
+
+  // ---------------------------------------------------
+  // REFRESH USER PROFILE
+  // ---------------------------------------------------
+  const refreshUser = async () => {
+    try {
+      const profile = await getUserProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error("Error refreshing user profile:", error);
     }
   };
 
@@ -240,7 +315,7 @@ export const AuthProvider = ({ children }: any) => {
     email: string,
     password: string,
     fullName: string,
-    phone: string
+    phone: string,
   ) => {
     try {
       setLoading(true);
@@ -298,66 +373,159 @@ export const AuthProvider = ({ children }: any) => {
     firstname: string;
     lastname: string;
     role: string;
+    deliveryType?: "medicine" | "lab";
+    qualification?: string;
     dateOfBirth: string;
     phoneNumber: string;
   }) => {
+    // Backend validation: ensure correct fields for delivery boy registration
+    const isDeliveryRole = [
+      "Delivery Boy",
+      "delivery boy",
+      "Medicine Delivery",
+      "medicine delivery",
+      "Delivery",
+      "delivery",
+    ].includes(values.role);
+    if (isDeliveryRole) {
+      const deliveryType =
+        values.deliveryType ??
+        (values.role === "Medicine Delivery" ? "medicine" : undefined);
+      if (!deliveryType) {
+        throw new Error("Delivery type is required for Delivery Boy");
+      }
+      // Remove qualification validation for lab delivery - will be handled in education screen
+      if (deliveryType === "medicine") {
+        // Medicine delivery can proceed immediately
+      }
+    }
+
     // Normalize display role to internal role value
-    const mapRoleToInternal = (r: string) => {
+    const mapRoleToInternal = (r: string, deliveryType?: string) => {
+      // If delivery type is 'lab', it's always a lab delivery boy
+      if (deliveryType === "lab") return "lab-delivery-boy";
+      
       const lookup: { [k: string]: string } = {
         User: "user",
         user: "user",
+        // 'Lab' as a primary role usually refers to Technician
         Lab: "lab",
         lab: "lab",
+        "Lab Technician": "lab",
         Nurse: "nurse",
         nurse: "nurse",
         "Medicine Delivery": "delivery",
         "Medicine delivery": "delivery",
+        "Delivery Boy": "delivery",
+        "delivery boy": "delivery",
         Delivery: "delivery",
         delivery: "delivery",
+        "Lab Delivery": "lab-delivery-boy",
+        "Lab delivery": "lab-delivery-boy",
+        "Lab Delivery Boy": "lab-delivery-boy",
       };
-      return lookup[r] || r.toLowerCase();
+      
+      const mapped = lookup[r] || r.toLowerCase().trim().replace(/\s+/g, '-');
+      console.log(`[mapRoleToInternal] Input: "${r}", DeliveryType: "${deliveryType}" -> Mapped: "${mapped}"`);
+      return mapped;
     };
     try {
       setLoading(true);
       // Check if email already exists is skipped for brevity
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password,
+      );
 
       // Send verification email
       await sendEmailVerification(userCredential.user);
 
       // Save to pendingUsers collection
-      await setDoc(doc(db, "pendingUsers", userCredential.user.uid), {
+      const pendingUserPayload = {
         uid: userCredential.user.uid,
         email: values.email,
         firstname: values.firstname,
         lastname: values.lastname,
-        role: mapRoleToInternal(values.role),
+        role: mapRoleToInternal(values.role, values.deliveryType),
+        deliveryType:
+          values.deliveryType ||
+          (values.role === "Medicine Delivery" ? "medicine" : undefined),
+        qualification: values.qualification,
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
         createdAt: new Date().toISOString(),
         verified: false,
-      });
+        verificationStatus:
+          values.deliveryType === "lab" ? "pending_education" : "pending",
+        // Initialize approval fields for lab-delivery-boy
+        ...(values.deliveryType === "lab" && {
+          educationSubmitted: false,
+          isApproved: false,
+          status: "pending_verification",
+        }),
+      };
+
+      const cleanPendingUserPayload = Object.fromEntries(
+        Object.entries(pendingUserPayload).filter(([_, v]) => v !== undefined),
+      );
+
+      console.log("[register] pendingUserPayload", pendingUserPayload);
+      console.log(
+        "[register] cleanPendingUserPayload",
+        cleanPendingUserPayload,
+      );
+
+      await setDoc(
+        doc(db, "pendingUsers", userCredential.user.uid),
+        cleanPendingUserPayload,
+      );
 
       // Sign out so user must verify email
       await signOut(auth);
 
       // Store pending locally for verification screen
-      await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({
+      const pendingUserStore = {
         email: values.email,
         password: values.password,
         uid: userCredential.user.uid,
         role: values.role,
+        deliveryType:
+          values.deliveryType ||
+          (values.role === "Medicine Delivery" ? "medicine" : undefined),
+        qualification: values.qualification,
         firstname: values.firstname,
         lastname: values.lastname,
         phoneNumber: values.phoneNumber,
         dateOfBirth: values.dateOfBirth,
-      }));
+      };
+
+      const cleanPendingUserStore = Object.fromEntries(
+        Object.entries(pendingUserStore).filter(([_, v]) => v !== undefined),
+      );
+
+      await AsyncStorage.setItem(
+        PENDING_USER_KEY,
+        JSON.stringify(cleanPendingUserStore),
+      );
 
       toast.show(firebaseMessages.registerSuccess as any);
 
-      return { requiresVerification: true };
+      return {
+        success: true,
+        requiresVerification: true,
+        requiresEducation: values.deliveryType === "lab",
+      };
     } catch (err: any) {
-      const msg = (firebaseMessages.errors as any)[err.code as string] || firebaseMessages.errors["auth/internal-error"];
+      const firebaseError = (firebaseMessages.errors as any)[
+        err?.code as string
+      ];
+      const msg = firebaseError || {
+        type: "error",
+        text1: "Registration Failed",
+        text2: err?.message || "Failed to register.",
+      };
+
       toast.show(msg as any);
       return { success: false };
     } finally {
@@ -389,6 +557,65 @@ export const AuthProvider = ({ children }: any) => {
       return { success: false };
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ---------------------------------------------------
+  // SUBMIT EDUCATION DETAILS (for Lab Delivery Boys)
+  // ---------------------------------------------------
+  const submitEducationDetails = async (values: {
+    uid?: string;
+    matricType: string;
+    certificateBase64: string;
+    certificateName: string;
+    userName?: string;
+  }) => {
+    try {
+      const uid = values.uid || auth.currentUser?.uid;
+      if (!uid) {
+        throw new Error("User not authenticated for education submission");
+      }
+
+      // Update user document with education details
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          matricType: values.matricType,
+          matricCertificate: values.certificateBase64, // Base64 string directly in Firestore
+          certificateName: values.certificateName,
+          educationSubmitted: true,
+          isApproved: false,
+          profileCompleted: true, // Mark profile as completed once education is submitted
+          status: "pending_verification",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      // Add to pending_verifications collection for admin
+      await setDoc(doc(db, "pending_verifications", uid), {
+        uid,
+        matricType: values.matricType,
+        matricCertificate: values.certificateBase64,
+        certificateName: values.certificateName,
+        userName: values.userName || "Unknown User",
+        submittedAt: serverTimestamp(),
+        status: "pending",
+      });
+
+      // Notify admin
+      await NotificationService.notifyAllAdmins(
+        "status",
+        "New Lab Delivery Application",
+        `A new lab delivery boy application has been submitted by ${values.userName || "User"}`,
+        { type: "lab_delivery_onboarding", userId: uid },
+      );
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Education submission error:", error);
+      throw new Error(error.message || "Failed to submit education details");
     }
   };
 
@@ -427,7 +654,22 @@ export const AuthProvider = ({ children }: any) => {
 
       if (filter) {
         const normalized = normalizeRole(filter) || filter;
-        q = query(usersRef, where("role", "==", normalized));
+
+        if (filter === "Medicine Delivery") {
+          q = query(
+            usersRef,
+            where("role", "==", "delivery"),
+            where("deliveryType", "==", "medicine"),
+          );
+        } else if (filter === "Lab Delivery") {
+          q = query(
+            usersRef,
+            where("role", "==", "lab-delivery-boy"),
+            where("isApproved", "==", true),
+          );
+        } else {
+          q = query(usersRef, where("role", "==", normalized));
+        }
       } else {
         q = query(usersRef);
       }
@@ -439,20 +681,28 @@ export const AuthProvider = ({ children }: any) => {
       // 2) if still empty, fetch all and filter client-side using case-insensitive matching
       if (filter && snap.empty) {
         try {
-          console.warn("getAllUsers: normalized query returned 0 results for filter:", filter);
+          console.warn(
+            "getAllUsers: normalized query returned 0 results for filter:",
+            filter,
+          );
           // try raw filter
           const rawQ = query(usersRef, where("role", "==", filter));
           const rawSnap = await getDocs(rawQ);
           if (!rawSnap.empty) {
-            return rawSnap.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
+            return rawSnap.docs.map(
+              (d) => ({ uid: d.id, ...d.data() }) as UserProfile,
+            );
           }
 
           // final fallback: fetch all and filter client-side
-          console.warn("getAllUsers: trying client-side filtering fallback for filter:", filter);
+          console.warn(
+            "getAllUsers: trying client-side filtering fallback for filter:",
+            filter,
+          );
           const allSnap = await getDocs(query(usersRef));
           const lc = (filter || "").toLowerCase();
           const filtered = allSnap.docs
-            .map((d) => ({ uid: d.id, ...d.data() } as UserProfile))
+            .map((d) => ({ uid: d.id, ...d.data() }) as UserProfile)
             .filter((u) => {
               const role = (u.role || "").toString().toLowerCase();
               return role === lc || role.includes(lc) || lc.includes(role);
@@ -469,7 +719,7 @@ export const AuthProvider = ({ children }: any) => {
           ({
             uid: d.id,
             ...d.data(),
-          } as UserProfile)
+          }) as UserProfile,
       );
     } catch {
       return [];
@@ -484,14 +734,20 @@ export const AuthProvider = ({ children }: any) => {
       if (!auth.currentUser) throw new Error("Not authenticated");
       const uid = auth.currentUser.uid;
       const userDocRef = doc(db, "users", uid);
-      await setDoc(userDocRef, {
-        additionalInfo: info,
-        profileCompleted: true,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      await setDoc(
+        userDocRef,
+        {
+          additionalInfo: info,
+          profileCompleted: true,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
 
       // Update local state
-      setUser((prev) => prev ? { ...prev, additionalInfo: info, profileCompleted: true } : prev);
+      setUser((prev) =>
+        prev ? { ...prev, additionalInfo: info, profileCompleted: true } : prev,
+      );
     } catch (e) {
       console.error("saveAdditionalInfo error:", e);
       throw e;
@@ -501,25 +757,45 @@ export const AuthProvider = ({ children }: any) => {
   // ---------------------------------------------------
   // Update basic profile fields and maintain publicPhoneIndex
   // ---------------------------------------------------
-  const updateProfile = async (data: { firstname?: string; lastname?: string; phoneNumber?: string }): Promise<void> => {
+  const updateProfile = async (data: {
+    firstname?: string;
+    lastname?: string;
+    phoneNumber?: string;
+  }): Promise<void> => {
     try {
       if (!auth.currentUser) throw new Error("Not authenticated");
       const uid = auth.currentUser.uid;
       const userDocRef = doc(db, "users", uid);
-      await setDoc(userDocRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(
+        userDocRef,
+        { ...data, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
 
       // If phone changed, update publicPhoneIndex
       if (data.phoneNumber) {
         const newDigits = data.phoneNumber.replace(/\D+/g, "");
         try {
-          await setDoc(doc(db, "publicPhoneIndex", newDigits), { uid, email: auth.currentUser?.email || null });
+          await setDoc(doc(db, "publicPhoneIndex", newDigits), {
+            uid,
+            email: auth.currentUser?.email || null,
+          });
         } catch (e) {
           console.warn("Failed to set publicPhoneIndex:", e);
         }
       }
 
       // Update local state
-      setUser((prev) => prev ? { ...prev, firstname: data.firstname || prev.firstname, lastname: data.lastname || prev.lastname, phoneNumber: data.phoneNumber || prev.phoneNumber } : prev);
+      setUser((prev) =>
+        prev
+          ? {
+            ...prev,
+            firstname: data.firstname || prev.firstname,
+            lastname: data.lastname || prev.lastname,
+            phoneNumber: data.phoneNumber || prev.phoneNumber,
+          }
+          : prev,
+      );
     } catch (e) {
       console.error("updateProfile error:", e);
       throw e;
@@ -556,6 +832,7 @@ export const AuthProvider = ({ children }: any) => {
         logout,
         resetPassword,
         getUserProfile,
+        refreshUser,
         getAllUsers,
         findUserByPhone,
         saveAdditionalInfo,
@@ -573,12 +850,19 @@ export const AuthProvider = ({ children }: any) => {
             if (pendingStr) {
               const pending = safeJSONParse(pendingStr);
               if (pending && pending.email && pending.password) {
-                const userCredential = await signInWithEmailAndPassword(auth, pending.email, pending.password);
+                const userCredential = await signInWithEmailAndPassword(
+                  auth,
+                  pending.email,
+                  pending.password,
+                );
                 await sendEmailVerification(userCredential.user);
                 await signOut(auth);
                 return;
               } else {
-                console.warn("resendVerificationEmail: pending data invalid", pendingStr);
+                console.warn(
+                  "resendVerificationEmail: pending data invalid",
+                  pendingStr,
+                );
               }
             }
           } catch (e) {
@@ -597,75 +881,119 @@ export const AuthProvider = ({ children }: any) => {
             // Temporarily sign in to check verification; set skip flag so listener ignores this transient sign-in
             skipAuthHandlingRef.current = true;
             try {
-              userCredential = await signInWithEmailAndPassword(auth, pendingUser.email, pendingUser.password);
+              userCredential = await signInWithEmailAndPassword(
+                auth,
+                pendingUser.email,
+                pendingUser.password,
+              );
               await userCredential.user.reload();
               const isVerified = userCredential.user.emailVerified;
 
               if (isVerified) {
-                // Move to users collection
-                  // Ensure role is normalized when moving to users collection
-                  const normalizedRole = ((): string => {
-                    const r = pendingUser.role || "user";
-                    const map: { [k: string]: string } = {
-                      User: "user",
-                      user: "user",
-                      Lab: "lab",
-                      lab: "lab",
-                      Nurse: "nurse",
-                      nurse: "nurse",
-                      "Medicine Delivery": "delivery",
-                      "Medicine delivery": "delivery",
-                      Delivery: "delivery",
-                      delivery: "delivery",
-                    };
-                    return map[r] || (typeof r === "string" ? r.toLowerCase() : "user");
-                  })();
+                // 1. Move to users collection
+                const normalizedRole =
+                  normalizeRole(pendingUser.role) || "user";
+                const userPayload: Record<string, any> = {
+                  uid: userCredential.user.uid,
+                  email: pendingUser.email,
+                  firstname: pendingUser.firstname || "",
+                  lastname: pendingUser.lastname || "",
+                  role: normalizedRole,
+                  phoneNumber: pendingUser.phoneNumber || "",
+                  dateOfBirth: pendingUser.dateOfBirth || "",
+                  emailVerified: true,
+                  profileCompleted: false,
+                  createdAt: new Date().toISOString(),
+                  isApproved:
+                    normalizedRole === "lab-delivery-boy" ? false : true,
+                  educationSubmitted:
+                    normalizedRole === "lab-delivery-boy" ? false : true,
+                  status:
+                    normalizedRole === "lab-delivery-boy"
+                      ? "pending_verification"
+                      : "active",
+                };
 
-                  await setDoc(doc(db, "users", userCredential.user.uid), {
-                    uid: userCredential.user.uid,
-                    email: pendingUser.email,
-                    firstname: pendingUser.firstname,
-                    lastname: pendingUser.lastname,
-                    role: normalizedRole,
-                    phoneNumber: pendingUser.phoneNumber,
-                    dateOfBirth: pendingUser.dateOfBirth,
-                    emailVerified: true,
-                    profileCompleted: false,
-                    createdAt: new Date().toISOString(),
-                  });
-
-                // Delete pending user doc
-                await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
-
-                // Create publicPhoneIndex entry
-                const digitsOnly = (pendingUser.phoneNumber || "").replace(/\D+/g, "");
-                if (digitsOnly) {
-                  await setDoc(doc(db, "publicPhoneIndex", digitsOnly), { uid: userCredential.user.uid, email: pendingUser.email });
+                // Only add delivery-specific fields if applicable
+                if (normalizedRole === "delivery") {
+                  userPayload.deliveryType =
+                    pendingUser.deliveryType || "medicine";
                 }
+                if (pendingUser.qualification) {
+                  userPayload.qualification = pendingUser.qualification;
+                }
+
+                await setDoc(
+                  doc(db, "users", userCredential.user.uid),
+                  userPayload,
+                );
+
+                // 2. Clear pending records
+                await deleteDoc(
+                  doc(db, "pendingUsers", userCredential.user.uid),
+                );
+                await AsyncStorage.removeItem(PENDING_USER_KEY);
+                await AsyncStorage.setItem(
+                  "@healthnest_verification_complete",
+                  "true",
+                );
+
+                // 3. Clear transient skip flag and manually trigger user fetch to update state
+                // We DON'T signOut here anymore to allow "Auto-Login"
+                skipAuthHandlingRef.current = false;
+
+                // Manually record that we are verified and profile is not completed
+                const fullUser = {
+                  ...userPayload,
+                  emailVerified: true,
+                };
+                setUser(fullUser as any);
 
                 // Mark verification complete and remove pending flag
                 await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
                 await AsyncStorage.removeItem(PENDING_USER_KEY);
+                await AsyncStorage.removeItem("@healthnest_otp");
 
-                // Navigate to login screen
-                try {
-                  router.replace("/(auth)");
-                } catch (navErr) {
-                  console.warn("Router navigation failed after verification:", navErr);
+                // Create publicPhoneIndex entry
+                const digitsOnly = (pendingUser.phoneNumber || "").replace(
+                  /\D+/g,
+                  "",
+                );
+                if (digitsOnly) {
+                  await setDoc(doc(db, "publicPhoneIndex", digitsOnly), {
+                    uid: userCredential.user.uid,
+                    email: pendingUser.email,
+                  });
                 }
+
+                // Navigate will be handled by UI or Auth listener, but we can do a push if needed
+                // router.replace("/(auth)") is usually Login, but since we are LOGGED IN now,
+                // the _layout will see user and redirect out of (auth).
 
                 return true;
               }
 
               return false;
             } finally {
-              // Always sign out the temporary session and resume normal auth handling
-              try { if (userCredential) await signOut(auth); } catch (e) { /* ignore */ }
+              // Sign out ONLY if NOT verified (this was a transient check)
+              // If verified, we stay signed in to provide Auto-Login
+              try {
+                // Fetch latest state to be sure
+                const isVerifiedAfterCheck =
+                  userCredential?.user?.emailVerified;
+                if (userCredential && !isVerifiedAfterCheck) {
+                  await signOut(auth);
+                }
+              } catch (e) {
+                /* ignore */
+              }
               skipAuthHandlingRef.current = false;
             }
           } catch (e) {
             console.error("checkEmailVerification error:", e);
-            try { if (userCredential) await signOut(auth); } catch (_) {}
+            try {
+              if (userCredential) await signOut(auth);
+            } catch (_) { }
             skipAuthHandlingRef.current = false;
             return false;
           }
@@ -682,9 +1010,25 @@ export const AuthProvider = ({ children }: any) => {
             }
             const data: any = idx.data();
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            await setDoc(doc(db, "passwordResetOTPs", normalized), { phoneNumber, uid: data.uid, email: data.email || null, otp, verified: false, createdAt: new Date().toISOString() });
+            await setDoc(doc(db, "passwordResetOTPs", normalized), {
+              phoneNumber,
+              uid: data.uid,
+              email: data.email || null,
+              otp,
+              verified: false,
+              createdAt: new Date().toISOString(),
+            });
             await AsyncStorage.setItem(OTP_KEY, otp);
-            await AsyncStorage.setItem(PENDING_USER_KEY, JSON.stringify({ phoneNumber, isPasswordReset: true, uid: data.uid, email: data.email || null, createdAt: new Date().toISOString() }));
+            await AsyncStorage.setItem(
+              PENDING_USER_KEY,
+              JSON.stringify({
+                phoneNumber,
+                isPasswordReset: true,
+                uid: data.uid,
+                email: data.email || null,
+                createdAt: new Date().toISOString(),
+              }),
+            );
             console.log("Password reset OTP:", otp);
             return otp;
           } catch (e) {
@@ -692,16 +1036,24 @@ export const AuthProvider = ({ children }: any) => {
             throw e;
           }
         },
-        verifyPasswordResetOTP: async (enteredOTP: string): Promise<boolean> => {
+        verifyPasswordResetOTP: async (
+          enteredOTP: string,
+        ): Promise<boolean> => {
           const stored = await AsyncStorage.getItem(OTP_KEY);
           if (enteredOTP === stored) return true;
-          const err: any = new Error("Invalid OTP"); err.code = "invalid-otp"; throw err;
+          const err: any = new Error("Invalid OTP");
+          err.code = "invalid-otp";
+          throw err;
         },
         resendPasswordResetOTP: async (): Promise<string> => {
           const pendingStr = await AsyncStorage.getItem(PENDING_USER_KEY);
-          if (!pendingStr) { throw new Error("No pending reset"); }
+          if (!pendingStr) {
+            throw new Error("No pending reset");
+          }
           const pending = safeJSONParse(pendingStr);
-          if (!pending) { throw new Error("Invalid pending reset data"); }
+          if (!pending) {
+            throw new Error("Invalid pending reset data");
+          }
           const otp = Math.floor(100000 + Math.random() * 900000).toString();
           await AsyncStorage.setItem(OTP_KEY, otp);
           console.log("Resent OTP:", otp);
@@ -712,12 +1064,20 @@ export const AuthProvider = ({ children }: any) => {
           await AsyncStorage.removeItem(OTP_KEY);
           await AsyncStorage.removeItem(PENDING_USER_KEY);
         },
-        changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
-          if (!auth.currentUser || !auth.currentUser.email) throw new Error("Not authenticated");
-          const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        changePassword: async (
+          currentPassword: string,
+          newPassword: string,
+        ): Promise<void> => {
+          if (!auth.currentUser || !auth.currentUser.email)
+            throw new Error("Not authenticated");
+          const credential = EmailAuthProvider.credential(
+            auth.currentUser.email,
+            currentPassword,
+          );
           await reauthenticateWithCredential(auth.currentUser, credential);
           await firebaseUpdatePassword(auth.currentUser, newPassword);
         },
+        submitEducationDetails,
       }}
     >
       {children}
@@ -730,8 +1090,7 @@ export const AuthProvider = ({ children }: any) => {
 // -------------------------------
 export const useFirebaseAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx)
-    throw new Error("useFirebaseAuth must be used inside AuthProvider");
+  if (!ctx) throw new Error("useFirebaseAuth must be used inside AuthProvider");
   return ctx;
 };
 

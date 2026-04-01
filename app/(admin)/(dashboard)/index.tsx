@@ -7,6 +7,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import PaymentService from "@/services/PaymentService";
+import VerificationService from "@/services/VerificationService";
 import {
     ActivityIndicator,
     RefreshControl,
@@ -31,6 +33,7 @@ const AdminDashboard = () => {
     labs: 0,
     delivery: 0,
   });
+  const [pendingBadge, setPendingBadge] = useState(0);
 
   const adminInfo = user?.additionalInfo as AdminInfo | undefined;
   const fullName = `${user?.firstname || ''} ${user?.lastname || ''}`.trim() || 'Admin';
@@ -60,6 +63,27 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Listen for pending verifications badge
+  useEffect(() => {
+    let verificationCount = 0;
+    let bnplCount = 0;
+
+    const unsubVerifications = VerificationService.listenToPendingVerificationsCount((count) => {
+      verificationCount = count;
+      setPendingBadge(verificationCount + bnplCount);
+    });
+
+    const unsubBNPL = PaymentService.listenToPendingBNPLCount((count) => {
+      bnplCount = count;
+      setPendingBadge(verificationCount + bnplCount);
+    });
+
+    return () => {
+      unsubVerifications();
+      unsubBNPL();
+    };
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -237,6 +261,7 @@ const AdminDashboard = () => {
             subtitle="Review identity verifications and BNPL requests"
             icon="shield-checkmark"
             color="#4CAF50"
+            badge={pendingBadge > 0 ? pendingBadge : undefined}
             onPress={() => router.push("/(admin)/(dashboard)/verifications" as any)}
             animation="fadeInUp"
             delay={550}

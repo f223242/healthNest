@@ -129,6 +129,7 @@ class PaymentService {
   private paymentsCollection = "payments";
   private bnplCollection = "bnplApplications";
   private installmentsCollection = "bnplInstallments";
+  private adminWalletCollection = "adminWallet";
 
   // Test mode flag
   private isTestMode = true;
@@ -696,6 +697,115 @@ class PaymentService {
     reason: string,
   ): Promise<void> {
     return this.rejectBNPL(applicationId, reason, adminId);
+  }
+
+  // ==================== ADMIN WALLET & ESCROW ====================
+
+  /**
+   * Record a payment in the admin wallet (escrow).
+   * Used when a user pays via Card/Wallet/BNPL.
+   */
+  async trackInternalPayment(
+    amount: number,
+    entityType: "lab_test" | "medicine" | "appointment",
+    entityId: string,
+    userId: string,
+    userName: string,
+    providerId: string,
+    paymentMethod: PaymentMethod
+  ): Promise<string> {
+    try {
+      const docRef = await addDoc(collection(db, this.adminWalletCollection), {
+        amount,
+        entityType,
+        entityId,
+        userId,
+        userName,
+        providerId,
+        paymentMethod,
+        status: paymentMethod === "cash" ? "pending_collection" : "held_in_escrow",
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        // Schedule release for non-cash payments (simulated 24h delay)
+        autoReleaseAt: paymentMethod === "cash" 
+          ? null 
+          : Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error("Error tracking internal payment:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark cash as collected by the delivery boy.
+   */
+  async markCashCollected(entityId: string, deliveryId: string): Promise<void> {
+    try {
+      const q = query(
+        collection(db, this.adminWalletCollection),
+        where("entityId", "==", entityId),
+        where("status", "==", "pending_collection")
+      );
+      
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        // If not found in wallet yet, create it
+        await addDoc(collection(db, this.adminWalletCollection), {
+          amount: 0, // Should ideally fetch amount from order
+          entityType: "unknown",
+          entityId,
+          providerId: deliveryId,
+          paymentMethod: "cash",
+          status: "cash_collected",
+          collectedAt: Timestamp.now(),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          autoReleaseAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+        });
+      } else {
+        for (const doc of snapshot.docs) {
+          await updateDoc(doc.ref, {
+            status: "cash_collected",
+            collectedAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            autoReleaseAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error marking cash collected:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Release payment to the provider.
+   */
+  async releaseEscrowedPayment(walletEntryId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, this.adminWalletCollection, walletEntryId), {
+        status: "released_to_provider",
+        releasedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error("Error releasing payment:", error);
+      throw error;
+    }
+  }
+
+  // Admin: Listen to count of pending BNPL applications
+  listenToPendingBNPLCount(callback: (count: number) => void) {
+    const q = query(
+      collection(db, this.bnplCollection),
+      where("status", "==", "pending"),
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.size);
+    });
   }
 }
 

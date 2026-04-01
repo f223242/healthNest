@@ -7,19 +7,23 @@ import { colors, Fonts, sizes } from "@/constant/theme";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
+import {
+    useLocalSearchParams,
+    useRootNavigationState,
+    useRouter,
+} from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  BackHandler,
-  Dimensions,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    BackHandler,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,14 +35,15 @@ const verificationSteps = [
   { text: "Open your email inbox" },
   { text: "Find the email from HealthNest" },
   { text: "Click the verification link" },
-  { text: "Come back and tap \"I've Verified\"" },
+  { text: 'Come back and tap "I\'ve Verified"' },
 ];
 
 const OtpScreen = () => {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const { email } = useLocalSearchParams<{ email: string }>();
-  const { resendVerificationEmail, checkEmailVerification, logout } = useAuthContext();
+  const { resendVerificationEmail, checkEmailVerification, logout } =
+    useAuthContext();
   const toast = useToast();
   const hasNavigatedRef = useRef(false);
 
@@ -93,7 +98,43 @@ const OtpScreen = () => {
     return () => clearInterval(timer);
   }, [seconds, minutes]);
 
-  // REMOVED: Auto-check email verification - user should click button to verify
+  // Auto-check email verification every 4 seconds
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout;
+
+    const performCheck = async () => {
+      if (hasNavigatedRef.current) return;
+      
+      try {
+        setIsChecking(true);
+        const isVerified = await checkEmailVerification();
+        if (isVerified) {
+          toast.show({
+            type: "success",
+            text1: "Email Verified",
+            text2: "Your email has been verified! Redirecting...",
+          });
+          // Redirect is now handled by AuthContext updating user state 
+          // and _layout.tsx responding to that state change
+          hasNavigatedRef.current = true;
+        }
+      } catch (error) {
+        console.warn("Polling verification check failed:", error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    // Delay start of polling to give user time to read
+    const startDelay = setTimeout(() => {
+      pollingInterval = setInterval(performCheck, 4000);
+    }, 2000);
+
+    return () => {
+      clearTimeout(startDelay);
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
+  }, []);
 
   const handleResend = async () => {
     try {
@@ -119,6 +160,7 @@ const OtpScreen = () => {
   };
 
   const handleCheckVerification = async () => {
+    if (isChecking) return;
     try {
       setIsChecking(true);
       const isVerified = await checkEmailVerification();
@@ -127,9 +169,10 @@ const OtpScreen = () => {
         toast.show({
           type: "success",
           text1: "Email Verified",
-          text2: "Your email has been verified successfully. Please login.",
+          text2: "Your email has been verified successfully.",
         });
-        safeNavigate("/(auth)");
+        hasNavigatedRef.current = true;
+        // Navigation will be handled by layout because user state changed in checkEmailVerification
       } else {
         toast.show({
           type: "warning",
@@ -180,7 +223,10 @@ const OtpScreen = () => {
 
     if (Platform.OS !== "android") return;
 
-    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
     return () => {
       // subscription has a remove() method on modern RN
       if (subscription && typeof subscription.remove === "function") {
@@ -209,12 +255,16 @@ const OtpScreen = () => {
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
         >
-          <FormCard animatedStyle={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }} style={styles.formCard}>
+          <FormCard
+            animatedStyle={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+            style={styles.formCard}
+          >
             <Text style={styles.emailText}>
               We've sent a verification link to{"\n"}
-              <Text style={styles.emailHighlight}>
-                {email || "your email"}
-              </Text>
+              <Text style={styles.emailHighlight}>{email || "your email"}</Text>
             </Text>
 
             {/* Instructions */}
@@ -226,7 +276,11 @@ const OtpScreen = () => {
             {/* Timer */}
             <View style={styles.timerSection}>
               <View style={styles.timerBadge}>
-                <Ionicons name="time-outline" size={16} color={colors.primary} />
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={colors.primary}
+                />
                 <Text style={styles.timerText}>
                   {canResend
                     ? "You can resend now"
@@ -240,23 +294,30 @@ const OtpScreen = () => {
             <AppButton
               onPress={handleCheckVerification}
               disabled={isChecking}
-              containerStyle={[styles.submitButton, isChecking ? styles.submitButtonDisabled : undefined]}
+              containerStyle={[
+                styles.submitButton,
+                isChecking ? styles.submitButtonDisabled : undefined,
+              ]}
               gradientColors={[colors.primary, "#00D68F"]}
+              loading={isChecking}
             >
-              {isChecking ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.submitButtonText}>{"I've Verified My Email"}</Text>
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                </>
-              )}
+              <View style={styles.buttonContent}>
+                <Text style={styles.submitButtonText}>
+                  {isChecking ? "Checking Verification..." : "I've Verified My Email"}
+                </Text>
+                {!isChecking && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color="#fff"
+                    style={{ marginLeft: 8 }}
+                  />
+                )}
+              </View>
             </AppButton>
 
             <View style={styles.resendContainer}>
-              <Text style={styles.resendLabel}>
-                Didn't receive the email?
-              </Text>
+              <Text style={styles.resendLabel}>Didn't receive the email?</Text>
               <TouchableOpacity
                 onPress={handleResend}
                 disabled={!canResend || isResending}
@@ -268,7 +329,7 @@ const OtpScreen = () => {
                   <Text
                     style={[
                       styles.resendText,
-                      !canResend && styles.resendTextDisabled
+                      !canResend && styles.resendTextDisabled,
                     ]}
                   >
                     Resend Email
@@ -279,7 +340,11 @@ const OtpScreen = () => {
 
             {/* Check Spam Notice */}
             <View style={styles.spamNotice}>
-              <Ionicons name="information-circle-outline" size={18} color={colors.gray} />
+              <Ionicons
+                name="information-circle-outline"
+                size={18}
+                color={colors.gray}
+              />
               <Text style={styles.spamNoticeText}>
                 Check your spam folder if you don't see the email
               </Text>
@@ -290,9 +355,7 @@ const OtpScreen = () => {
               onPress={handleBackToLogin}
               style={styles.backToLoginButton}
             >
-              <Text style={styles.backToLoginText}>
-                Back to Login
-              </Text>
+              <Text style={styles.backToLoginText}>Back to Login</Text>
             </TouchableOpacity>
           </Animated.View>
         </KeyboardAwareScrollView>
@@ -309,7 +372,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 20 : 40,
+    paddingTop:
+      Platform.OS === "ios"
+        ? 60
+        : StatusBar.currentHeight
+          ? StatusBar.currentHeight + 20
+          : 40,
     paddingBottom: 35,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -424,6 +492,11 @@ const styles = StyleSheet.create({
     color: colors.white,
     letterSpacing: 0.5,
   },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   resendContainer: {
     alignItems: "center",
     marginTop: 24,
@@ -463,7 +536,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backToLoginText: {
-
     fontSize: 15,
     fontFamily: Fonts.bold,
     color: colors.black,

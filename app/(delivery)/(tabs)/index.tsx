@@ -31,6 +31,7 @@ const DeliveryDashboard = () => {
   }, [user]);
 
   const fullName = `${user?.firstname || ''} ${user?.lastname || ''}`.trim() || 'Delivery Partner';
+  const showUnderReview = user?.role === 'lab-delivery-boy' && !user?.isApproved;
 
   // Listen to appointments
   useEffect(() => {
@@ -101,12 +102,37 @@ const DeliveryDashboard = () => {
           />
         }
       >
+        {/* Under Review Banner */}
+        {user?.role === 'lab-delivery-boy' && !user?.isApproved && (
+          <Animatable.View animation="fadeInDown" style={styles.reviewBanner}>
+            <LinearGradient
+              colors={['#FFF3E0', '#FFE0B2']}
+              style={styles.reviewGradient}
+            >
+              <Ionicons name="alert-circle" size={24} color="#E65100" />
+              <View style={styles.reviewTextContainer}>
+                <Text style={styles.reviewTitle}>Account Under Review</Text>
+                <Text style={styles.reviewSubtitle}>
+                  Your account is being verified. You cannot receive orders until approved.
+                </Text>
+              </View>
+            </LinearGradient>
+          </Animatable.View>
+        )}
         {/* Stats Cards */}
-        <Animatable.View animation="fadeInUp" delay={200} style={styles.statsContainer}>
+        <Animatable.View 
+          animation="fadeInUp" 
+          delay={200} 
+          style={[
+            styles.statsContainer, 
+            user?.role === 'lab-delivery-boy' && !user?.isApproved && styles.disabledSection
+          ]}
+        >
           <TouchableOpacity 
             style={[styles.statCard, { backgroundColor: '#FFF3E0' }]}
-            onPress={() => router.push('/(delivery)/(tabs)/requests')}
+            onPress={() => !showUnderReview && router.push('/(delivery)/(tabs)/requests')}
             activeOpacity={0.8}
+            disabled={user?.role === 'lab-delivery-boy' && !user?.isApproved}
           >
             <View style={[styles.statIconContainer, { backgroundColor: '#FFE0B2' }]}>
               <Ionicons name="time" size={24} color="#FF9800" />
@@ -117,8 +143,9 @@ const DeliveryDashboard = () => {
           
           <TouchableOpacity 
             style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}
-            onPress={() => router.push('/(delivery)/(tabs)/requests')}
+            onPress={() => !showUnderReview && router.push('/(delivery)/(tabs)/requests')}
             activeOpacity={0.8}
+            disabled={user?.role === 'lab-delivery-boy' && !user?.isApproved}
           >
             <View style={[styles.statIconContainer, { backgroundColor: '#C8E6C9' }]}>
               <Ionicons name="bicycle" size={24} color="#4CAF50" />
@@ -129,8 +156,9 @@ const DeliveryDashboard = () => {
           
           <TouchableOpacity 
             style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}
-            onPress={() => router.push('/(delivery)/(tabs)/requests')}
+            onPress={() => !showUnderReview && router.push('/(delivery)/(tabs)/requests')}
             activeOpacity={0.8}
+            disabled={user?.role === 'lab-delivery-boy' && !user?.isApproved}
           >
             <View style={[styles.statIconContainer, { backgroundColor: '#BBDEFB' }]}>
               <Ionicons name="checkmark-done" size={24} color="#2196F3" />
@@ -172,7 +200,10 @@ const DeliveryDashboard = () => {
         )}
 
         {/* Quick Actions */}
-        <View style={styles.section}>
+        <View style={[
+            styles.section,
+            user?.role === 'lab-delivery-boy' && !user?.isApproved && styles.disabledSection
+          ]}>
           <SectionHeader
             title="Quick Actions"
             icon="flash"
@@ -188,6 +219,7 @@ const DeliveryDashboard = () => {
             onPress={() => router.push('/(delivery)/(tabs)/requests')}
             animation="fadeInUp"
             delay={450}
+            disabled={user?.role === 'lab-delivery-boy' && !user?.isApproved}
           />
 
           <PremiumActionCard
@@ -198,6 +230,7 @@ const DeliveryDashboard = () => {
             onPress={() => router.push('/(delivery)/(tabs)/delivery-chats')}
             animation="fadeInUp"
             delay={500}
+            disabled={user?.role === 'lab-delivery-boy' && !user?.isApproved}
           />
 
           <PremiumActionCard
@@ -360,5 +393,36 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#795548',
     lineHeight: 18,
+  },
+  reviewBanner: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  reviewGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  reviewTextContainer: {
+    flex: 1,
+  },
+  reviewTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: '#E65100',
+  },
+  reviewSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#BF360C',
+    marginTop: 2,
+  },
+  disabledSection: {
+    opacity: 0.6,
   },
 });

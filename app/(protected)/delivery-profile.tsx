@@ -14,14 +14,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
-  Animated,
-  Image,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Image,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -50,7 +50,9 @@ const DeliveryProfile = () => {
     if (!params.id) return;
     try {
       setLoading(true);
-      const stats = await FeedbackComplaintService.getProviderRatingStats(params.id as string);
+      const stats = await FeedbackComplaintService.getProviderRatingStats(
+        params.id as string,
+      );
       setRatingStats(stats);
     } catch (error) {
       console.error("Error loading delivery rating:", error);
@@ -80,27 +82,35 @@ const DeliveryProfile = () => {
       if (params.openBooking === "true") {
         setShowBookingModal(true);
       }
-    }, [loadRatingStats, params.openBooking])
+    }, [loadRatingStats, params.openBooking]),
   );
 
   // Parse the delivery person data from params
   const delivery = {
-    id: params.id as string || "",
-    name: params.name as string || "Delivery Person",
-    avatar: params.avatar as string || "",
+    id: (params.id as string) || "",
+    name: (params.name as string) || "Delivery Person",
+    avatar: (params.avatar as string) || "",
     totalDeliveries: parseInt(params.totalDeliveries as string) || 0,
     isAvailable: params.isAvailable === "true",
-    deliveryTime: params.deliveryTime as string || "30 mins",
-    distance: params.distance as string || "N/A",
-    phone: params.phone as string || "",
-    vehicleType: params.vehicleType as string || "Motorcycle",
+    deliveryTime: (params.deliveryTime as string) || "30 mins",
+    distance: (params.distance as string) || "N/A",
+    phone: (params.phone as string) || "",
+    vehicleType: (params.vehicleType as string) || "Motorcycle",
+    deliveryType: (params.deliveryType as string) || "medicine",
+    qualification: (params.qualification as string) || "",
   };
 
   // Dynamic features based on delivery person
+  const deliveryTypeLabel =
+    delivery.deliveryType === "lab" ? "Lab Delivery" : "Medicine Delivery";
   const deliveryFeatures: FeatureItem[] = [
-    { icon: "medkit", label: "Medicine Delivery", iconColor: colors.primary },
+    { icon: "medkit", label: deliveryTypeLabel, iconColor: colors.primary },
     { icon: "flash", label: "Fast Service", iconColor: "#FF9800" },
-    { icon: "shield-checkmark", label: "Safe Handling", iconColor: colors.success },
+    {
+      icon: "shield-checkmark",
+      label: "Safe Handling",
+      iconColor: colors.success,
+    },
     { icon: "location", label: "Live Tracking", iconColor: "#9C27B0" },
   ];
 
@@ -110,12 +120,20 @@ const DeliveryProfile = () => {
 
   const handleChat = async () => {
     if (!user) {
-      toast.show({ type: "error", text1: "Login Required", text2: "Please login to chat" });
+      toast.show({
+        type: "error",
+        text1: "Login Required",
+        text2: "Please login to chat",
+      });
       return;
     }
 
     try {
-      const hasAccepted = await AppointmentService.checkAcceptedAppointmentForDelivery(user.uid, delivery.id);
+      const hasAccepted =
+        await AppointmentService.checkAcceptedAppointmentForDelivery(
+          user.uid,
+          delivery.id,
+        );
       if (hasAccepted) {
         router.push({
           pathname: "/(protected)/delivery-chat-detail",
@@ -126,29 +144,56 @@ const DeliveryProfile = () => {
           },
         });
       } else {
-        toast.show({ type: "error", text1: "Chat Unavailable", text2: "You can only chat with this delivery person after your request is accepted." });
+        toast.show({
+          type: "error",
+          text1: "Chat Unavailable",
+          text2:
+            "You can only chat with this delivery person after your request is accepted.",
+        });
       }
     } catch (error) {
       console.error("Error checking chat permission:", error);
-      toast.show({ type: "error", text1: "Error", text2: "Failed to verify chat permission" });
+      toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to verify chat permission",
+      });
     }
   };
 
   const handleBookNow = () => {
     if (!user) {
-      toast.show({ type: "error", text1: "Login Required", text2: "Please login to request delivery" });
+      toast.show({
+        type: "error",
+        text1: "Login Required",
+        text2: "Please login to request delivery",
+      });
       return;
     }
     setShowBookingModal(true);
   };
 
-  const handleConfirmBooking = async (appointmentData: { date: string; time: string; serviceType: string; notes: string; address: string; }) => {
+  const handleConfirmBooking = async (appointmentData: {
+    date: string;
+    time: string;
+    serviceType: string;
+    notes: string;
+    address: string;
+  }) => {
     try {
       setIsBooking(true);
-      const isAvailable = await AppointmentService.checkDeliveryAvailability(delivery.id, appointmentData.date, appointmentData.time);
+      const isAvailable = await AppointmentService.checkDeliveryAvailability(
+        delivery.id,
+        appointmentData.date,
+        appointmentData.time,
+      );
 
       if (!isAvailable) {
-        toast.show({ type: "error", text1: "Time Slot Unavailable", text2: "Delivery person is already booked for this time." });
+        toast.show({
+          type: "error",
+          text1: "Time Slot Unavailable",
+          text2: "Delivery person is already booked for this time.",
+        });
         setIsBooking(false);
         return;
       }
@@ -237,7 +282,7 @@ const DeliveryProfile = () => {
               </View>
 
               <Text style={styles.name}>{delivery.name}</Text>
-              
+
               <View style={styles.availabilityBadge}>
                 <View
                   style={[
@@ -258,20 +303,24 @@ const DeliveryProfile = () => {
               {/* Stats Row - Dynamic */}
               <StatsRow
                 stats={[
-                  { 
+                  {
                     type: "number",
-                    value: loading ? "..." : (ratingStats?.averageRating?.toFixed(1) || "New"), 
-                    label: "Rating"
+                    value: loading
+                      ? "..."
+                      : ratingStats?.averageRating?.toFixed(1) || "New",
+                    label: "Rating",
                   },
-                  { 
+                  {
                     type: "number",
-                    value: loading ? "..." : `${ratingStats?.totalReviews || 0}+`, 
-                    label: "Deliveries"
+                    value: loading
+                      ? "..."
+                      : `${ratingStats?.totalReviews || 0}+`,
+                    label: "Deliveries",
                   },
-                  { 
+                  {
                     type: "number",
-                    value: delivery.distance || "N/A", 
-                    label: "Location"
+                    value: delivery.distance || "N/A",
+                    label: "Location",
                   },
                 ]}
               />
@@ -280,9 +329,14 @@ const DeliveryProfile = () => {
             {/* Info Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Information</Text>
-              
+
               <View style={styles.infoRow}>
-                <View style={[styles.infoIcon, { backgroundColor: colors.primary + "15" }]}>
+                <View
+                  style={[
+                    styles.infoIcon,
+                    { backgroundColor: colors.primary + "15" },
+                  ]}
+                >
                   <Ionicons name="location" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.infoContent}>
@@ -293,7 +347,12 @@ const DeliveryProfile = () => {
 
               {delivery.vehicleType && (
                 <View style={styles.infoRow}>
-                  <View style={[styles.infoIcon, { backgroundColor: "#9C27B0" + "15" }]}>
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: "#9C27B0" + "15" },
+                    ]}
+                  >
                     <Ionicons name="car" size={20} color="#9C27B0" />
                   </View>
                   <View style={styles.infoContent}>
@@ -304,14 +363,42 @@ const DeliveryProfile = () => {
               )}
 
               <View style={styles.infoRow}>
-                <View style={[styles.infoIcon, { backgroundColor: colors.success + "15" }]}>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <View
+                  style={[
+                    styles.infoIcon,
+                    { backgroundColor: colors.success + "15" },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={colors.success}
+                  />
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Verified</Text>
                   <Text style={styles.infoValue}>Identity Verified</Text>
                 </View>
               </View>
+
+              {delivery.deliveryType === "lab" && delivery.qualification ? (
+                <View style={styles.infoRow}>
+                  <View
+                    style={[
+                      styles.infoIcon,
+                      { backgroundColor: "#4A90E2" + "15" },
+                    ]}
+                  >
+                    <Ionicons name="school" size={20} color="#4A90E2" />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Qualification</Text>
+                    <Text style={styles.infoValue}>
+                      {delivery.qualification}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
             </View>
 
             {/* Features - Using reusable component */}
@@ -332,7 +419,7 @@ const DeliveryProfile = () => {
               onClose={() => setShowBookingModal(false)}
               providerName={delivery.name}
               providerType="delivery"
-              providerSpecialization="Medicine Delivery"
+              providerSpecialization={deliveryTypeLabel}
               onBook={handleConfirmBooking}
             />
 
@@ -351,7 +438,13 @@ const DeliveryProfile = () => {
             />
 
             <AppButton
-              title={isBooking ? "Requesting..." : (delivery.isAvailable ? "Request Delivery" : "Currently Unavailable")}
+              title={
+                isBooking
+                  ? "Requesting..."
+                  : delivery.isAvailable
+                    ? "Request Delivery"
+                    : "Currently Unavailable"
+              }
               onPress={handleBookNow}
               containerStyle={styles.bookButton}
               disabled={!delivery.isAvailable || isBooking}

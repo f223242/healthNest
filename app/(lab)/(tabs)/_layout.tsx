@@ -7,6 +7,7 @@ export default function LabTabsLayout() {
   const tabs = [
     { name: "index", label: "Home", icon: "home-outline" as const, iconFilled: "home" as const },
     { name: "test-requests", label: "Requests", icon: "flask-outline" as const, iconFilled: "flask" as const },
+    { name: "chats", label: "Chats", icon: "chatbubbles-outline" as const, iconFilled: "chatbubbles" as const },
     { name: "reports", label: "Reports", icon: "document-text-outline" as const, iconFilled: "document-text" as const },
     { name: "profile", label: "Profile", icon: "person-outline" as const, iconFilled: "person" as const },
   ];
