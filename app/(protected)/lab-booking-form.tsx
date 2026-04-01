@@ -4,10 +4,12 @@ import FormInput from "@/component/FormInput";
 import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
 
-import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
+import DeliveryPersonCard, {
+    DeliveryPerson,
+} from "@/component/DeliveryPersonCard";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
-import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 import AppointmentService from "@/services/AppointmentService";
+import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 import LabTestService from "@/services/LabTestService";
 import PaymentService from "@/services/PaymentService";
 
@@ -26,12 +28,11 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
-
 
 const bookingSchema = Yup.object().shape({
   fullName: Yup.string()
@@ -47,8 +48,10 @@ const bookingSchema = Yup.object().shape({
     .min(1, "Age must be greater than 0")
     .max(120, "Invalid age")
     .required("Age is required"),
-  referringDoctor: Yup.string()
-    .min(2, "Doctor name must be at least 2 characters"),
+  referringDoctor: Yup.string().min(
+    2,
+    "Doctor name must be at least 2 characters",
+  ),
   preferredDate: Yup.string().required("Preferred date is required"),
   preferredTime: Yup.string().required("Preferred time is required"),
   notes: Yup.string(),
@@ -64,7 +67,7 @@ const homeSamplingSchema = bookingSchema.concat(
     zipCode: Yup.string()
       .matches(/^[0-9]{5,6}$/, "Invalid zip code")
       .required("Zip code is required"),
-  })
+  }),
 );
 
 const LabBookingForm = () => {
@@ -72,20 +75,29 @@ const LabBookingForm = () => {
   const params = useLocalSearchParams();
   const { labId, labName, selectedServices } = params;
 
-  const services = selectedServices ? JSON.parse(selectedServices as string) : [];
-  const [selectedTestType, setSelectedTestType] = useState<"Home" | "Lab">("Lab");
+  const services = selectedServices
+    ? JSON.parse(selectedServices as string)
+    : [];
+  const [selectedTestType, setSelectedTestType] = useState<"Home" | "Lab">(
+    "Lab",
+  );
   const { user, getAllUsers } = useAuthContext();
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loadingDelivery, setLoadingDelivery] = useState(false);
-  const [activeAppointments, setActiveAppointments] = useState<Set<string>>(new Set());
-  const [selectedDeliveryPerson, setSelectedDeliveryPerson] = useState<DeliveryPerson | null>(null);
+  const [activeAppointments, setActiveAppointments] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedDeliveryPerson, setSelectedDeliveryPerson] =
+    useState<DeliveryPerson | null>(null);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    string | null
+  >(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -120,10 +132,11 @@ const LabBookingForm = () => {
   }, []);
 
   // Calculate total amount
-  const totalAmount = services.reduce(
-    (sum: number, s: any) => sum + parseInt(s.price.replace("$", "")),
-    0
-  ) + (selectedTestType === "Home" ? 15 : 0);
+  const totalAmount =
+    services.reduce(
+      (sum: number, s: any) => sum + parseInt(s.price.replace("$", "")),
+      0,
+    ) + (selectedTestType === "Home" ? 15 : 0);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {
@@ -167,7 +180,8 @@ const LabBookingForm = () => {
       preferredTime: "",
       notes: "",
     },
-    validationSchema: selectedTestType === "Home" ? homeSamplingSchema : bookingSchema,
+    validationSchema:
+      selectedTestType === "Home" ? homeSamplingSchema : bookingSchema,
     onSubmit: () => {
       // Show payment method modal instead of directly confirming
       setShowPaymentModal(true);
@@ -199,17 +213,30 @@ const LabBookingForm = () => {
   }, [user]);
 
   // Fetch lab delivery boys from Firebase with dynamic ratings
+  // ONLY for lab technicians - patients should NOT see delivery boys
   const fetchLabDeliveryPersons = React.useCallback(async () => {
-    if (selectedTestType !== "Home") return;
+    console.log(
+      "🔍 fetchLabDeliveryPersons called - selectedTestType:",
+      selectedTestType,
+      "user role:",
+      user?.role,
+    );
+    if (selectedTestType !== "Home" || user?.role !== "lab") {
+      console.log("🚫 Skipping delivery fetch - not home test or not lab user");
+      return;
+    }
+    console.log("✅ Fetching delivery persons for lab technician");
     setLoadingDelivery(true);
     try {
       const users = await getAllUsers("Lab Delivery");
       const deliveryData: DeliveryPerson[] = await Promise.all(
         users
-          .filter((u: User) => u.profileCompleted && u.additionalInfo)
+          .filter((u: User) => u.profileCompleted && u.additionalInfo && u.isApproved === true)
           .map(async (u: User, index: number) => {
             const info = u.additionalInfo as DeliveryInfo;
-            const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Lab Delivery Person";
+            const fullName =
+              `${u.firstname || ""} ${u.lastname || ""}`.trim() ||
+              "Lab Delivery Person";
 
             const isAvailable =
               !info.availability ||
@@ -219,7 +246,8 @@ const LabBookingForm = () => {
             let rating = 0;
             let totalDeliveries = 0;
             try {
-              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(u.uid);
+              const ratingStats =
+                await FeedbackComplaintService.getProviderRatingStats(u.uid);
               rating = ratingStats.averageRating || 0;
               totalDeliveries = ratingStats.totalReviews || 0;
             } catch (err) {
@@ -249,18 +277,14 @@ const LabBookingForm = () => {
     } finally {
       setLoadingDelivery(false);
     }
-  }, [getAllUsers, selectedTestType]);
+  }, [getAllUsers, selectedTestType, user?.role]);
 
   useEffect(() => {
-    if (selectedTestType === "Home") {
-      fetchLabDeliveryPersons();
-    } else {
-      setSelectedDeliveryPerson(null);
-    }
-  }, [selectedTestType, fetchLabDeliveryPersons]);
+    setSelectedDeliveryPerson(null);
+  }, [selectedTestType, user?.role]);
 
   const availableDeliveryPersons = deliveryPersons.filter(
-    (p) => p.isAvailable && !activeAppointments.has(p.uid)
+    (p) => p.isAvailable && !activeAppointments.has(p.uid),
   );
 
   // Get current location for home sampling
@@ -269,14 +293,18 @@ const LabBookingForm = () => {
       setIsLocationLoading(true);
 
       // Check existing permission first
-      const { status: existingStatus } = await ExpoLocation.getForegroundPermissionsAsync();
-      
+      const { status: existingStatus } =
+        await ExpoLocation.getForegroundPermissionsAsync();
+
       if (existingStatus !== "granted") {
         // Request permission
-        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        const { status } =
+          await ExpoLocation.requestForegroundPermissionsAsync();
         if (status !== "granted") {
           setIsLocationLoading(false);
-          alert("Location permission is required for home sampling. Please enable it in settings.");
+          alert(
+            "Location permission is required for home sampling. Please enable it in settings.",
+          );
           return;
         }
       }
@@ -333,16 +361,15 @@ const LabBookingForm = () => {
       formik.values.preferredTime !== "";
 
     if (selectedTestType === "Home") {
-      const addressFieldsFilled = 
+      const addressFieldsFilled =
         formik.values.address.trim().length >= 10 &&
         formik.values.city.trim() !== "" &&
         formik.values.zipCode.trim().length >= 5;
 
       if (currentStep === 1) {
         return baseFieldsFilled && addressFieldsFilled;
-      } else {
-        return baseFieldsFilled && addressFieldsFilled && selectedDeliveryPerson !== null;
       }
+      return baseFieldsFilled && addressFieldsFilled;
     }
 
     return baseFieldsFilled;
@@ -351,12 +378,8 @@ const LabBookingForm = () => {
   const handleNextStep = async () => {
     const errors = await formik.validateForm();
     if (Object.keys(errors).length === 0) {
-      if (selectedTestType === "Home" && currentStep === 1) {
-        setCurrentStep(2);
-      } else {
-        // Validation passed, show payment modal
-        setShowPaymentModal(true);
-      }
+      // Everyone goes directly to payment after filling info
+      setShowPaymentModal(true);
     } else {
       // Mark all as touched to show errors
       formik.setTouched({
@@ -368,23 +391,29 @@ const LabBookingForm = () => {
         preferredTime: true,
         address: true,
         city: true,
-        zipCode: true
+        zipCode: true,
       });
     }
   };
 
-  const handlePaymentConfirm = async (paymentMethod: string, paymentDetails?: any) => {
+  const handlePaymentConfirm = async (
+    paymentMethod: string,
+    paymentDetails?: any,
+  ) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     setSelectedPaymentMethod(paymentMethod);
     setShowPaymentModal(false);
 
     try {
-      const fullName = `${user?.firstname || ""} ${user?.lastname || ""}`.trim() || formik.values.fullName;
+      const fullName =
+        `${user?.firstname || ""} ${user?.lastname || ""}`.trim() ||
+        formik.values.fullName;
       const testNames = services.map((s: any) => s.name || s.title || s.id);
       const totalAmount = services.reduce(
-        (sum: number, s: any) => sum + parseInt((s.price || "0").toString().replace(/[^0-9]/g, "")),
-        0
+        (sum: number, s: any) =>
+          sum + parseInt((s.price || "0").toString().replace(/[^0-9]/g, "")),
+        0,
       );
 
       // Build clean lab test request data
@@ -397,7 +426,8 @@ const LabBookingForm = () => {
         testType: testNames.join(", "),
         tests: testNames,
         sampleType: "blood",
-        collectionType: selectedTestType === "Home" ? "home_sampling" : "lab_visit",
+        collectionType:
+          selectedTestType === "Home" ? "home_sampling" : "lab_visit",
         scheduledDate: formik.values.preferredDate,
         scheduledTime: formik.values.preferredTime,
         priority: "normal",
@@ -409,10 +439,7 @@ const LabBookingForm = () => {
 
       if (selectedTestType === "Home") {
         labTestData.address = `${formik.values.address}, ${formik.values.city} ${formik.values.zipCode}`;
-        if (selectedDeliveryPerson) {
-          labTestData.deliveryId = selectedDeliveryPerson.uid;
-          labTestData.deliveryName = selectedDeliveryPerson.name;
-        }
+        // Delivery person will be assigned by lab later
       }
 
       // Sanitize before any operations
@@ -428,14 +455,14 @@ const LabBookingForm = () => {
           "lab_test",
           "pending_ref_" + Date.now(), // Temporary ref
           `Lab test booking: ${testNames.join(", ")}`,
-          paymentDetails
+          paymentDetails,
         );
       }
 
       // 2. Create the order in Firestore ONLY after payment succeeds
       const testRequestId = await LabTestService.createTestRequest({
         ...labTestData,
-        status: "pending"
+        status: "pending",
       } as any);
 
       // 3. Track in Admin Wallet (Escrow)
@@ -446,27 +473,11 @@ const LabBookingForm = () => {
         user?.uid || "",
         fullName,
         (labId as string) || "",
-        paymentMethod as any
+        paymentMethod as any,
       );
 
-      // 4. Create appointment for delivery boy if home collection
-      if (selectedTestType === "Home" && selectedDeliveryPerson) {
-        await AppointmentService.createAppointment(sanitizePayload({
-          userId: user?.uid || "",
-          userName: fullName,
-          deliveryId: selectedDeliveryPerson.uid,
-          deliveryName: selectedDeliveryPerson.name,
-          providerType: "delivery",
-          appointmentDate: formik.values.preferredDate,
-          appointmentTime: formik.values.preferredTime,
-          status: "pending",
-          serviceType: "Lab Home Sampling",
-          notes: `Lab: ${labName}. Tests: ${testNames.join(", ")}. Order ID: ${testRequestId}`,
-          address: labTestData.address || "",
-          paymentMethod: paymentMethod as any,
-          labTestRequestId: testRequestId,
-        }));
-      }
+      // 4. Delivery boy will be assigned by lab technician later from their dashboard
+
 
       setShowSuccessModal(true);
     } catch (error: any) {
@@ -515,7 +526,7 @@ const LabBookingForm = () => {
           style={{
             flex: 1,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
+            transform: [{ translateY: slideAnim }],
           }}
         >
           <ScrollView
@@ -542,9 +553,7 @@ const LabBookingForm = () => {
                 )}
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Amount:</Text>
-                  <Text style={styles.totalAmount}>
-                    ${totalAmount}
-                  </Text>
+                  <Text style={styles.totalAmount}>${totalAmount}</Text>
                 </View>
               </View>
             </View>
@@ -593,25 +602,33 @@ const LabBookingForm = () => {
               </View>
             </View>
 
-            {/* Conditional Rendering based on Steps */}
-            {currentStep === 1 ? (
-              <>
+
+
+            <View>
                 {/* Personal Information */}
                 <View style={{ ...styles.section, gap: 8 }}>
-                  <Text style={appStyles.sectionTitle}>Personal Information</Text>
+                  <Text style={appStyles.sectionTitle}>
+                    Personal Information
+                  </Text>
                   <FormInput
                     placeholder="Full Name"
                     value={formik.values.fullName}
                     onChangeText={formik.handleChange("fullName")}
                     onBlur={formik.handleBlur("fullName")}
-                    error={formik.touched.fullName ? formik.errors.fullName : undefined}
+                    error={
+                      formik.touched.fullName
+                        ? formik.errors.fullName
+                        : undefined
+                    }
                   />
                   <FormInput
                     placeholder="Email Address"
                     value={formik.values.email}
                     onChangeText={formik.handleChange("email")}
                     onBlur={formik.handleBlur("email")}
-                    error={formik.touched.email ? formik.errors.email : undefined}
+                    error={
+                      formik.touched.email ? formik.errors.email : undefined
+                    }
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
@@ -620,7 +637,9 @@ const LabBookingForm = () => {
                     value={formik.values.phone}
                     onChangeText={formik.handleChange("phone")}
                     onBlur={formik.handleBlur("phone")}
-                    error={formik.touched.phone ? formik.errors.phone : undefined}
+                    error={
+                      formik.touched.phone ? formik.errors.phone : undefined
+                    }
                     keyboardType="phone-pad"
                     maxLength={11}
                   />
@@ -637,13 +656,19 @@ const LabBookingForm = () => {
 
                 {/* Referring Doctor */}
                 <View style={{ ...styles.section, gap: 8 }}>
-                  <Text style={appStyles.sectionTitle}>Referring Doctor (Optional)</Text>
+                  <Text style={appStyles.sectionTitle}>
+                    Referring Doctor (Optional)
+                  </Text>
                   <FormInput
                     placeholder="Enter doctor's name who referred you"
                     value={formik.values.referringDoctor}
                     onChangeText={formik.handleChange("referringDoctor")}
                     onBlur={formik.handleBlur("referringDoctor")}
-                    error={formik.touched.referringDoctor ? formik.errors.referringDoctor : undefined}
+                    error={
+                      formik.touched.referringDoctor
+                        ? formik.errors.referringDoctor
+                        : undefined
+                    }
                   />
                 </View>
 
@@ -652,17 +677,26 @@ const LabBookingForm = () => {
                   <View style={styles.section}>
                     <View style={styles.addressHeader}>
                       <Text style={appStyles.sectionTitle}>Home Address</Text>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.locationButton}
                         onPress={handleGetCurrentLocation}
                         disabled={isLocationLoading}
                       >
                         {isLocationLoading ? (
-                          <ActivityIndicator size="small" color={colors.primary} />
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary}
+                          />
                         ) : (
                           <>
-                            <Ionicons name="location" size={16} color={colors.primary} />
-                            <Text style={styles.locationButtonText}>Use Current Location</Text>
+                            <Ionicons
+                              name="location"
+                              size={16}
+                              color={colors.primary}
+                            />
+                            <Text style={styles.locationButtonText}>
+                              Use Current Location
+                            </Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -672,7 +706,11 @@ const LabBookingForm = () => {
                       value={formik.values.address}
                       onChangeText={formik.handleChange("address")}
                       onBlur={formik.handleBlur("address")}
-                      error={formik.touched.address ? formik.errors.address : undefined}
+                      error={
+                        formik.touched.address
+                          ? formik.errors.address
+                          : undefined
+                      }
                       multiline
                     />
                     <View style={styles.row}>
@@ -681,7 +719,9 @@ const LabBookingForm = () => {
                         value={formik.values.city}
                         onChangeText={formik.handleChange("city")}
                         onBlur={formik.handleBlur("city")}
-                        error={formik.touched.city ? formik.errors.city : undefined}
+                        error={
+                          formik.touched.city ? formik.errors.city : undefined
+                        }
                         containerStyle={styles.halfInput}
                       />
                       <FormInput
@@ -689,7 +729,11 @@ const LabBookingForm = () => {
                         value={formik.values.zipCode}
                         onChangeText={formik.handleChange("zipCode")}
                         onBlur={formik.handleBlur("zipCode")}
-                        error={formik.touched.zipCode ? formik.errors.zipCode : undefined}
+                        error={
+                          formik.touched.zipCode
+                            ? formik.errors.zipCode
+                            : undefined
+                        }
                         keyboardType="number-pad"
                         containerStyle={styles.halfInput}
                         maxLength={6}
@@ -700,14 +744,20 @@ const LabBookingForm = () => {
 
                 {/* Appointment Schedule */}
                 <View style={[styles.section, { gap: 8 }]}>
-                  <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
+                  <Text style={appStyles.sectionTitle}>
+                    Schedule Appointment
+                  </Text>
                   <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
                     <FormInput
                       placeholder="Preferred Date (MM/DD/YYYY)"
                       value={formik.values.preferredDate}
                       editable={false}
                       pointerEvents="none"
-                      error={formik.touched.preferredDate ? formik.errors.preferredDate : undefined}
+                      error={
+                        formik.touched.preferredDate
+                          ? formik.errors.preferredDate
+                          : undefined
+                      }
                       RightIcon={CalendarIcon}
                     />
                   </TouchableOpacity>
@@ -717,7 +767,11 @@ const LabBookingForm = () => {
                       value={formik.values.preferredTime}
                       editable={false}
                       pointerEvents="none"
-                      error={formik.touched.preferredTime ? formik.errors.preferredTime : undefined}
+                      error={
+                        formik.touched.preferredTime
+                          ? formik.errors.preferredTime
+                          : undefined
+                      }
                       RightIcon={ClockIcon}
                     />
                   </TouchableOpacity>
@@ -725,7 +779,9 @@ const LabBookingForm = () => {
 
                 {/* Additional Notes */}
                 <View style={styles.section}>
-                  <Text style={appStyles.sectionTitle}>Additional Notes (Optional)</Text>
+                  <Text style={appStyles.sectionTitle}>
+                    Additional Notes (Optional)
+                  </Text>
                   <FormInput
                     placeholder="Any special instructions or medical conditions..."
                     value={formik.values.notes}
@@ -736,38 +792,7 @@ const LabBookingForm = () => {
                     containerStyle={styles.notesInput}
                   />
                 </View>
-              </>
-            ) : (
-              /* Step 2: Delivery Person Selection */
-              <View style={styles.section}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                  <TouchableOpacity onPress={() => setCurrentStep(1)} style={{ marginRight: 12 }}>
-                    <Ionicons name="arrow-back-circle" size={28} color={colors.primary} />
-                  </TouchableOpacity>
-                  <Text style={appStyles.sectionTitle}>Select Delivery Person</Text>
-                </View>
-                
-                {loadingDelivery ? (
-                  <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
-                ) : availableDeliveryPersons.length === 0 ? (
-                  <Text style={{ textAlign: "center", color: colors.grayText, marginTop: 16 }}>
-                    No delivery persons available at the moment.
-                  </Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {availableDeliveryPersons.map((person) => (
-                      <DeliveryPersonCard
-                        key={person.uid}
-                        {...person}
-                        mode="booking"
-                        isSelected={selectedDeliveryPerson?.uid === person.uid}
-                        onPress={() => setSelectedDeliveryPerson(person)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
+            </View>
 
             {/* Important Information */}
             <View style={styles.infoBox}>
@@ -790,7 +815,7 @@ const LabBookingForm = () => {
           {/* Bottom Button */}
           <View style={styles.bottomContainer}>
             <AppButton
-              title={selectedTestType === "Home" && currentStep === 1 ? "Next: Select Delivery" : "Confirm Booking"}
+              title="Confirm Booking"
               onPress={handleNextStep}
               disabled={!isFormValid() || isSubmitting}
               loading={isSubmitting}

@@ -352,6 +352,70 @@ class LabTestService {
       throw error;
     }
   }
+
+  // Assign delivery boy to a home sampling request
+  async assignDeliveryToRequest(
+    requestId: string,
+    request: LabTestRequest,
+    deliveryId: string,
+    deliveryName: string
+  ): Promise<void> {
+    try {
+      const updateData: any = {
+        deliveryId,
+        deliveryName,
+        updatedAt: Timestamp.now(),
+      };
+
+      // If it's pending, automatically mark as accepted when assigned
+      if (request.status === "pending") {
+        updateData.status = "accepted";
+      }
+
+      await updateDoc(doc(db, this.collectionName, requestId), updateData);
+
+      // Create appointment for the delivery boy
+      const appointmentData = {
+        userId: request.userId,
+        userName: request.userName,
+        deliveryId: deliveryId,
+        deliveryName: deliveryName,
+        providerType: "delivery" as const,
+        appointmentDate: request.scheduledDate,
+        appointmentTime: request.scheduledTime,
+        status: "pending" as const,
+        serviceType: "Lab Home Sampling",
+        notes: `Lab: ${request.labName}. Tests: ${request.testType}. Order ID: ${requestId}`,
+        address: request.address || "",
+        paymentMethod: (request.paymentMethod as any) || "cash",
+        labTestRequestId: requestId,
+      };
+
+      // We use a dynamic import or just call addDoc here to avoid circular dependency if AppointmentService imports LabTestService
+      await addDoc(collection(db, "appointments"), {
+        ...appointmentData,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notify the delivery boy
+      await NotificationService.createNotification(
+        deliveryId,
+        "appointment",
+        "New Lab Sampling Assignment",
+        `You have been assigned to collect samples for ${request.userName} (${request.testType})`,
+        {
+          testRequestId: requestId,
+          userId: request.userId,
+          userName: request.userName,
+          labName: request.labName,
+        }
+      );
+    } catch (error) {
+      console.error("Error assigning delivery boy:", error);
+      throw error;
+    }
+  }
 }
 
 export default new LabTestService();

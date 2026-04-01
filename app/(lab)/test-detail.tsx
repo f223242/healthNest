@@ -14,37 +14,39 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator, 
+  Modal, 
+  FlatList
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type TestStatus = "New" | "Accepted" | "Sample Collected" | "Processing" | "Report Ready" | "Sent";
-
-interface TestDetail {
-  id: string;
-  patientName: string;
-  patientPhone: string;
-  patientEmail: string;
-  testType: string;
-  sampleType: string;
-  collectionType: "Home Sampling" | "Lab Visit";
-  scheduledDate: string;
-  scheduledTime: string;
-  priority: "Normal" | "Urgent" | "Critical";
-  status: TestStatus;
-  address?: string;
-  doctor?: string;
-  notes?: string;
-  reportId?: string;
-}
+import LabTestService, { LabTestRequest, TestRequestStatus } from "@/services/LabTestService";
+import { useAuthContext, User, DeliveryInfo } from "@/hooks/useFirebaseAuth";
+import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
+import ChatService from "@/services/ChatService";
+import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 
 const TestDetailScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { user: currentUser, getAllUsers } = useAuthContext();
+  const toast = useToast();
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  // State
+  const [loading, setLoading] = useState(true);
+  const [testDetail, setTestDetail] = useState<LabTestRequest | null>(null);
+  const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
+  const [loadingDelivery, setLoadingDelivery] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     Animated.parallel([
@@ -59,53 +61,137 @@ const TestDetailScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
 
-  // Modal state
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+    if (id) {
+      fetchTestDetail();
+    }
+  }, [id]);
 
-  // Mock data - in real app, fetch based on id
-  const [testDetail, setTestDetail] = useState<TestDetail>({
-    id: id as string,
-    patientName: "Ahmed Hassan",
-    patientPhone: "+92 300 1234567",
-    patientEmail: "ahmed@example.com",
-    testType: "Complete Blood Count (CBC)",
-    sampleType: "Blood",
-    collectionType: "Home Sampling",
-    scheduledDate: "Today",
-    scheduledTime: "10:30 AM",
-    priority: "Urgent",
-    status: "New",
-    address: "House 123, Block B, DHA Phase 5, Karachi",
-    doctor: "Dr. Amir Khan",
-    notes: "Patient is diabetic, fasting sample required",
-  });
+  const fetchTestDetail = async () => {
+    try {
+      setLoading(true);
+      const data = await LabTestService.getTestRequestById(id as string);
+      setTestDetail(data);
+    } catch (error) {
+      console.error("Error fetching test detail:", error);
+      toast.error("Failed to fetch test details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const statusFlow: TestStatus[] = [
-    "New",
-    "Accepted",
-    "Sample Collected",
-    "Processing",
-    "Report Ready",
-    "Sent",
+  const fetchAvailableDelivery = async () => {
+    setLoadingDelivery(true);
+    try {
+      const users = await getAllUsers("Lab Delivery");
+      const deliveryData: DeliveryPerson[] = await Promise.all(
+        users
+          .filter((u: User) => u.profileCompleted && u.isApproved)
+          .map(async (u: User, index: number) => {
+            const info = u.additionalInfo as DeliveryInfo;
+            const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Lab Delivery Person";
+            
+            let rating = 0;
+            let totalDeliveries = 0;
+            try {
+              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(u.uid);
+              rating = ratingStats.averageRating || 0;
+              totalDeliveries = ratingStats.totalReviews || 0;
+            } catch (err) {}
+
+            return {
+              id: index + 1,
+              name: fullName,
+              avatar: info?.profileImage || "https://via.placeholder.com/100",
+              rating,
+              totalDeliveries,
+              isAvailable: true,
+              uid: u.uid,
+              vehicleType: info?.vehicleType || "Bike",
+              deliveryTime: "20-30 min",
+              distance: info?.city || "Nearby",
+              vehicleNumber: info?.vehicleNumber || ""
+            } as DeliveryPerson;
+          })
+      );
+      setDeliveryPersons(deliveryData);
+    } catch (error) {
+      console.error("Error fetching delivery boys:", error);
+    } finally {
+      setLoadingDelivery(false);
+    }
+  };
+
+  const handleAssignDelivery = async (person: DeliveryPerson) => {
+    if (!testDetail) return;
+    setIsAssigning(true);
+    try {
+      await LabTestService.assignDeliveryToRequest(
+        testDetail.id,
+        testDetail,
+        person.uid,
+        person.name
+      );
+      toast.success(`Assigned ${person.name} successfully!`);
+      setShowAssignModal(false);
+      fetchTestDetail();
+    } catch (error) {
+      console.error("Error assigning delivery:", error);
+      toast.error("Failed to assign delivery person");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleChatWithDelivery = async () => {
+    if (!testDetail?.deliveryId || !currentUser) return;
+    router.push({
+      pathname: "/(protected)/delivery-chat-detail",
+      params: {
+        deliveryId: testDetail.deliveryId,
+        deliveryName: testDetail.deliveryName,
+        deliveryAvatar: "https://via.placeholder.com/100"
+      }
+    });
+  };
+
+  const statusFlow: TestRequestStatus[] = [
+    "pending",
+    "accepted",
+    "sample_collected",
+    "processing",
+    "report_ready",
+    "completed",
   ];
 
-  const getStatusColor = (status: TestStatus) => {
+  const getStatusDisplay = (status: TestRequestStatus) => {
     switch (status) {
-      case "New": return colors.primary;
-      case "Accepted": return "#00BCD4";
-      case "Sample Collected": return "#FF9800";
-      case "Processing": return "#9C27B0";
-      case "Report Ready": return colors.primary;
-      case "Sent": return colors.gray;
+      case "pending": return "New";
+      case "accepted": return "Accepted";
+      case "sample_collected": return "Sample Collected";
+      case "processing": return "Processing";
+      case "report_ready": return "Report Ready";
+      case "completed": return "Completed";
+      case "cancelled": return "Cancelled";
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return colors.primary;
+      case "accepted": return "#00BCD4";
+      case "sample_collected": return "#FF9800";
+      case "processing": return "#9C27B0";
+      case "report_ready": return colors.primary;
+      case "completed": return "#4CAF50";
+      case "cancelled": return "#F44336";
       default: return colors.gray;
     }
   };
 
-  const getNextStatus = (): TestStatus | null => {
+  const getNextStatus = (): TestRequestStatus | null => {
+    if (!testDetail) return null;
     const currentIndex = statusFlow.indexOf(testDetail.status);
     if (currentIndex < statusFlow.length - 1) {
       return statusFlow[currentIndex + 1];
@@ -114,12 +200,13 @@ const TestDetailScreen = () => {
   };
 
   const getNextActionLabel = () => {
+    if (!testDetail) return null;
     switch (testDetail.status) {
-      case "New": return "Accept Request";
-      case "Accepted": return "Mark Sample Collected";
-      case "Sample Collected": return "Start Processing";
-      case "Processing": return "Mark Report Ready";
-      case "Report Ready": return "Send to Patient";
+      case "pending": return "Accept Request";
+      case "accepted": return "Mark Sample Collected";
+      case "sample_collected": return "Start Processing";
+      case "processing": return "Mark Report Ready";
+      case "report_ready": return "Complete Order";
       default: return null;
     }
   };
@@ -128,33 +215,54 @@ const TestDetailScreen = () => {
     setShowConfirmModal(true);
   };
 
-  const confirmStatusUpdate = () => {
+  const confirmStatusUpdate = async () => {
     const nextStatus = getNextStatus();
-    if (!nextStatus) return;
+    if (!nextStatus || !testDetail) return;
 
-    const actionMessages: Record<string, string> = {
-      Accepted: "Request accepted. Patient will be notified.",
-      "Sample Collected": "Sample marked as collected.",
-      Processing: "Test is now being processed.",
-      "Report Ready": "Report is ready for review.",
-      Sent: "Report sent to patient successfully!",
-    };
+    try {
+      await LabTestService.updateTestRequestStatus(testDetail.id, nextStatus, testDetail);
+      const actionMessages: Record<string, string> = {
+        accepted: "Request accepted. Patient will be notified.",
+        sample_collected: "Sample marked as collected.",
+        processing: "Test is now being processed.",
+        report_ready: "Report is ready for review.",
+        completed: "Order completed successfully!",
+      };
 
-    setTestDetail({ ...testDetail, status: nextStatus });
-    setShowConfirmModal(false);
-    setSuccessMessage(actionMessages[nextStatus]);
-    setShowSuccessModal(true);
+      setSuccessMessage(actionMessages[nextStatus] || "Status updated!");
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
+      fetchTestDetail();
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
   };
-
-  const toast = useToast();
 
   const handleCall = () => {
-    toast.info(`Calling ${testDetail.patientPhone}`);
+    if (testDetail) {
+      toast.info(`Calling ${testDetail.userPhone}`);
+    }
   };
 
-  const handleNavigate = () => {
-    toast.info("Opening maps for navigation...");
-  };
+  if (loading) {
+    return (
+      <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.white} />
+        <Text style={{ color: colors.white, marginTop: 10 }}>Loading details...</Text>
+      </View>
+    );
+  }
+
+  if (!testDetail) {
+    return (
+      <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.white }}>Request not found</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
+          <Text style={{ color: colors.white, textDecorationLine: 'underline' }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.mainContainer}>
@@ -176,7 +284,7 @@ const TestDetailScreen = () => {
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Test Details</Text>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(testDetail.status) }]}>
-              <Text style={styles.statusBadgeText}>{testDetail.status}</Text>
+              <Text style={styles.statusBadgeText}>{getStatusDisplay(testDetail.status)}</Text>
             </View>
           </View>
           <View style={styles.headerIcon}>
@@ -224,7 +332,7 @@ const TestDetailScreen = () => {
                           isCurrent && { fontFamily: Fonts.bold },
                         ]}
                       >
-                        {status}
+                        {getStatusDisplay(status)}
                       </Text>
                       {index < statusFlow.length - 1 && (
                         <View
@@ -247,16 +355,16 @@ const TestDetailScreen = () => {
                 <View
                   style={[
                     styles.priorityBadge,
-                    { backgroundColor: testDetail.priority === "Urgent" ? "#F44336" + "15" : colors.primary + "15" },
+                    { backgroundColor: testDetail.priority === "urgent" || testDetail.priority === "critical" ? "#F44336" + "15" : colors.primary + "15" },
                   ]}
                 >
                   <Text
                     style={[
                       styles.priorityText,
-                      { color: testDetail.priority === "Urgent" ? "#F44336" : colors.primary },
+                      { color: testDetail.priority === "urgent" || testDetail.priority === "critical" ? "#F44336" : colors.primary },
                     ]}
                   >
-                    {testDetail.priority}
+                    {testDetail.priority.toUpperCase()}
                   </Text>
                 </View>
               </View>
@@ -266,9 +374,8 @@ const TestDetailScreen = () => {
                   <Ionicons name="person" size={28} color={colors.white} />
                 </View>
                 <View style={styles.patientDetails}>
-                  <Text style={styles.patientName}>{testDetail.patientName}</Text>
-                  <Text style={styles.patientContact}>{testDetail.patientPhone}</Text>
-                  <Text style={styles.patientContact}>{testDetail.patientEmail}</Text>
+                  <Text style={styles.patientName}>{testDetail.userName}</Text>
+                  <Text style={styles.patientContact}>{testDetail.userPhone}</Text>
                 </View>
               </View>
 
@@ -282,15 +389,8 @@ const TestDetailScreen = () => {
                 <QuickActionButton
                   icon="chatbubble"
                   label="Message"
-                  onPress={() => toast.info("Opening messaging...")}
+                  onPress={() => toast.info("Messaging feature coming soon...")}
                 />
-                {testDetail.collectionType === "Home Sampling" && (
-                  <QuickActionButton
-                    icon="navigate"
-                    label="Navigate"
-                    onPress={handleNavigate}
-                  />
-                )}
               </View>
             </View>
 
@@ -304,18 +404,18 @@ const TestDetailScreen = () => {
                     styles.collectionBadge,
                     {
                       backgroundColor:
-                        testDetail.collectionType === "Home Sampling" ? colors.primary : "#9C27B0",
+                        testDetail.collectionType === "home_sampling" ? colors.primary : "#9C27B0",
                     },
                   ]}
                 >
                   <Ionicons
-                    name={testDetail.collectionType === "Home Sampling" ? "home" : "business"}
+                    name={testDetail.collectionType === "home_sampling" ? "home" : "business"}
                     size={20}
                     color={colors.white}
                   />
                 </View>
                 <View>
-                  <Text style={styles.collectionType}>{testDetail.collectionType}</Text>
+                  <Text style={styles.collectionType}>{testDetail.collectionType === "home_sampling" ? "Home Sampling" : "Lab Visit"}</Text>
                   <Text style={styles.scheduleText}>
                     {testDetail.scheduledDate} at {testDetail.scheduledTime}
                   </Text>
@@ -346,11 +446,11 @@ const TestDetailScreen = () => {
                 <Text style={styles.detailValue}>{testDetail.sampleType}</Text>
               </View>
 
-              {testDetail.doctor && (
+              {testDetail.doctorName && (
                 <View style={styles.detailRow}>
                   <Ionicons name="medkit" size={18} color={colors.gray} />
                   <Text style={styles.detailLabel}>Doctor:</Text>
-                  <Text style={styles.detailValue}>{testDetail.doctor}</Text>
+                  <Text style={styles.detailValue}>{testDetail.doctorName}</Text>
                 </View>
               )}
 
@@ -361,6 +461,51 @@ const TestDetailScreen = () => {
                 </View>
               )}
             </View>
+
+            {/* Lab Delivery Boy Section */}
+            {testDetail.collectionType === "home_sampling" && (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.sectionTitle}>Lab Delivery Boy</Text>
+                  {!testDetail.deliveryId && (
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setShowAssignModal(true);
+                        fetchAvailableDelivery();
+                      }}
+                      style={styles.assignLink}
+                    >
+                      <Text style={styles.assignLinkText}>Assign Now</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {testDetail.deliveryId ? (
+                  <View>
+                    <View style={styles.deliveryRow}>
+                      <View style={styles.avatarSmall}>
+                        <Ionicons name="bicycle" size={20} color={colors.white} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.deliveryName}>{testDetail.deliveryName}</Text>
+                        <Text style={styles.deliveryStatus}>Assigned Provider</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.chatIconBtn}
+                        onPress={handleChatWithDelivery}
+                      >
+                        <Ionicons name="chatbubbles" size={24} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.unassignedBox}>
+                    <Ionicons name="alert-circle-outline" size={20} color={colors.gray} />
+                    <Text style={styles.unassignedText}>No delivery person assigned yet.</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </ScrollView>
         </Animated.View>
 
@@ -379,6 +524,47 @@ const TestDetailScreen = () => {
         )}
       </SafeAreaView>
 
+      {/* Assignment Modal */}
+      <Modal
+        visible={showAssignModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAssignModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.assignModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Assign Delivery Boy</Text>
+              <TouchableOpacity onPress={() => setShowAssignModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {loadingDelivery ? (
+              <ActivityIndicator size="large" color={colors.primary} style={{ margin: 40 }} />
+            ) : deliveryPersons.length > 0 ? (
+              <FlatList
+                data={deliveryPersons}
+                keyExtractor={(item) => item.uid}
+                renderItem={({ item }) => (
+                  <DeliveryPersonCard
+                    {...item}
+                    mode="booking"
+                    onPress={() => handleAssignDelivery(item)}
+                  />
+                )}
+                contentContainerStyle={{ padding: 16 }}
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+              />
+            ) : (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <Text style={{ color: colors.gray, textAlign: 'center' }}>No approved delivery boys found.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         visible={showConfirmModal}
@@ -386,7 +572,7 @@ const TestDetailScreen = () => {
         onConfirm={confirmStatusUpdate}
         onCancel={() => setShowConfirmModal(false)}
         title="Update Status"
-        message={`Are you sure you want to update status to "${getNextStatus()}"?`}
+        message={`Are you sure you want to update status to "${getStatusDisplay(getNextStatus() || 'pending')}"?`}
         icon="swap-horizontal-outline"
         type="info"
         confirmText="Confirm"
@@ -476,7 +662,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: sizes.paddingHorizontal,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   statusCard: {
     backgroundColor: colors.white,
@@ -684,5 +870,87 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingVertical: 14,
     borderRadius: 14,
+  },
+  assignLink: {
+    backgroundColor: colors.lightGreen,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  assignLinkText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: colors.primary,
+  },
+  unassignedBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 10,
+  },
+  unassignedText: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: colors.gray,
+  },
+  deliveryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    gap: 12,
+  },
+  avatarSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deliveryName: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: colors.text,
+  },
+  deliveryStatus: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: colors.gray,
+  },
+  chatIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.lightGreen,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  assignModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: colors.text,
   },
 });

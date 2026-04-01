@@ -41,12 +41,6 @@ const _layout = () => {
         }}
       />
       <Stack.Screen
-        name="education"
-        options={{
-          headerTitle: "Education Verification",
-        }}
-      />
-      <Stack.Screen
         name="reset-password"
         options={{
           headerTitle: "Reset Password",

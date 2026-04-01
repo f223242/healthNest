@@ -1,31 +1,33 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import {
-    createUserWithEmailAndPassword,
-    EmailAuthProvider,
-    updatePassword as firebaseUpdatePassword,
-    onAuthStateChanged,
-    reauthenticateWithCredential,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signInWithEmailAndPassword,
-    signOut,
+  createUserWithEmailAndPassword,
+  EmailAuthProvider,
+  updatePassword as firebaseUpdatePassword,
+  onAuthStateChanged,
+  reauthenticateWithCredential,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    setDoc,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { useToast } from "@/component/Toast/ToastProvider";
 import { auth, db } from "@/config/firebase";
 import { firebaseMessages } from "@/constant/messages";
+import NotificationService from "@/services/NotificationService";
 
 // -------------------------------
 // User Type
@@ -47,6 +49,8 @@ export interface UserProfile {
   isApproved?: boolean;
   educationSubmitted?: boolean;
   verificationStatus?: string;
+  status?: string;
+  rejectionReason?: string;
 }
 
 // Additional role-specific info (lightweight definitions used across the app)
@@ -132,6 +136,8 @@ interface AuthContextType {
 
   getUserProfile: () => Promise<UserProfile | null>;
 
+  refreshUser: () => Promise<void>;
+
   getAllUsers: (filter?: string) => Promise<UserProfile[]>;
   findUserByPhone: (phone: string) => Promise<any>;
 
@@ -162,8 +168,9 @@ interface AuthContextType {
   submitEducationDetails: (values: {
     uid?: string;
     matricType: string;
-    certificateUrl: string;
+    certificateBase64: string;
     certificateName: string;
+    userName?: string;
   }) => Promise<{ success: boolean }>;
 
   isLoading?: boolean;
@@ -233,14 +240,50 @@ export const AuthProvider = ({ children }: any) => {
       const ref = doc(db, "users", auth.currentUser.uid);
       const snap = await getDoc(ref);
 
-      if (!snap.exists()) return null;
+      if (!snap.exists()) {
+        console.warn("⚠️ User authenticated but NO Firestore document found for:", auth.currentUser.uid);
+
+        // SECURE ADMIN FALLBACK: Only allow EXACT matches for known admin emails
+        // Replace these with your actual admin email address(es)
+        const allowedAdminEmails = ["admin@healthnest.com", "admin@gmail.com"];
+
+        if (auth.currentUser.email && allowedAdminEmails.includes(auth.currentUser.email.toLowerCase())) {
+          console.log("🛠️ Admin Fallback triggered securely for:", auth.currentUser.email);
+          return {
+            uid: auth.currentUser.uid,
+            email: auth.currentUser.email,
+            role: "admin",
+            profileCompleted: true,
+            firstname: "System",
+            lastname: "Admin"
+          } as UserProfile;
+        }
+
+        return null;
+      }
+
+      const data = snap.data();
+      console.log("✅ User profile loaded successfully. Role:", data.role);
 
       return {
         uid: auth.currentUser.uid,
-        ...snap.data(),
+        ...data,
       } as UserProfile;
     } catch (e) {
+      console.error("getUserProfile error:", e);
       return null;
+    }
+  };
+
+  // ---------------------------------------------------
+  // REFRESH USER PROFILE
+  // ---------------------------------------------------
+  const refreshUser = async () => {
+    try {
+      const profile = await getUserProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error("Error refreshing user profile:", error);
     }
   };
 
@@ -359,12 +402,16 @@ export const AuthProvider = ({ children }: any) => {
 
     // Normalize display role to internal role value
     const mapRoleToInternal = (r: string, deliveryType?: string) => {
+      // If delivery type is 'lab', it's always a lab delivery boy
       if (deliveryType === "lab") return "lab-delivery-boy";
+      
       const lookup: { [k: string]: string } = {
         User: "user",
         user: "user",
+        // 'Lab' as a primary role usually refers to Technician
         Lab: "lab",
         lab: "lab",
+        "Lab Technician": "lab",
         Nurse: "nurse",
         nurse: "nurse",
         "Medicine Delivery": "delivery",
@@ -375,8 +422,12 @@ export const AuthProvider = ({ children }: any) => {
         delivery: "delivery",
         "Lab Delivery": "lab-delivery-boy",
         "Lab delivery": "lab-delivery-boy",
+        "Lab Delivery Boy": "lab-delivery-boy",
       };
-      return lookup[r] || r.toLowerCase();
+      
+      const mapped = lookup[r] || r.toLowerCase().trim().replace(/\s+/g, '-');
+      console.log(`[mapRoleToInternal] Input: "${r}", DeliveryType: "${deliveryType}" -> Mapped: "${mapped}"`);
+      return mapped;
     };
     try {
       setLoading(true);
@@ -407,6 +458,12 @@ export const AuthProvider = ({ children }: any) => {
         verified: false,
         verificationStatus:
           values.deliveryType === "lab" ? "pending_education" : "pending",
+        // Initialize approval fields for lab-delivery-boy
+        ...(values.deliveryType === "lab" && {
+          educationSubmitted: false,
+          isApproved: false,
+          status: "pending_verification",
+        }),
       };
 
       const cleanPendingUserPayload = Object.fromEntries(
@@ -509,8 +566,9 @@ export const AuthProvider = ({ children }: any) => {
   const submitEducationDetails = async (values: {
     uid?: string;
     matricType: string;
-    certificateUrl: string;
+    certificateBase64: string;
     certificateName: string;
+    userName?: string;
   }) => {
     try {
       const uid = values.uid || auth.currentUser?.uid;
@@ -523,13 +581,35 @@ export const AuthProvider = ({ children }: any) => {
         doc(db, "users", uid),
         {
           matricType: values.matricType,
-          certificateUrl: values.certificateUrl,
+          matricCertificate: values.certificateBase64, // Base64 string directly in Firestore
           certificateName: values.certificateName,
           educationSubmitted: true,
-          verificationStatus: "pending_admin_review",
-          updatedAt: new Date().toISOString(),
+          isApproved: false,
+          profileCompleted: true, // Mark profile as completed once education is submitted
+          status: "pending_verification",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
         },
         { merge: true },
+      );
+
+      // Add to pending_verifications collection for admin
+      await setDoc(doc(db, "pending_verifications", uid), {
+        uid,
+        matricType: values.matricType,
+        matricCertificate: values.certificateBase64,
+        certificateName: values.certificateName,
+        userName: values.userName || "Unknown User",
+        submittedAt: serverTimestamp(),
+        status: "pending",
+      });
+
+      // Notify admin
+      await NotificationService.notifyAllAdmins(
+        "status",
+        "New Lab Delivery Application",
+        `A new lab delivery boy application has been submitted by ${values.userName || "User"}`,
+        { type: "lab_delivery_onboarding", userId: uid },
       );
 
       return { success: true };
@@ -709,11 +789,11 @@ export const AuthProvider = ({ children }: any) => {
       setUser((prev) =>
         prev
           ? {
-              ...prev,
-              firstname: data.firstname || prev.firstname,
-              lastname: data.lastname || prev.lastname,
-              phoneNumber: data.phoneNumber || prev.phoneNumber,
-            }
+            ...prev,
+            firstname: data.firstname || prev.firstname,
+            lastname: data.lastname || prev.lastname,
+            phoneNumber: data.phoneNumber || prev.phoneNumber,
+          }
           : prev,
       );
     } catch (e) {
@@ -752,6 +832,7 @@ export const AuthProvider = ({ children }: any) => {
         logout,
         resetPassword,
         getUserProfile,
+        refreshUser,
         getAllUsers,
         findUserByPhone,
         saveAdditionalInfo,
@@ -810,7 +891,8 @@ export const AuthProvider = ({ children }: any) => {
 
               if (isVerified) {
                 // 1. Move to users collection
-                const normalizedRole = normalizeRole(pendingUser.role) || "user";
+                const normalizedRole =
+                  normalizeRole(pendingUser.role) || "user";
                 const userPayload: Record<string, any> = {
                   uid: userCredential.user.uid,
                   email: pendingUser.email,
@@ -822,37 +904,51 @@ export const AuthProvider = ({ children }: any) => {
                   emailVerified: true,
                   profileCompleted: false,
                   createdAt: new Date().toISOString(),
-                  isApproved: normalizedRole === "lab-delivery-boy" ? false : true,
-                  educationSubmitted: normalizedRole === "lab-delivery-boy" ? false : true,
-                  status: normalizedRole === "lab-delivery-boy" ? "pending" : "active",
+                  isApproved:
+                    normalizedRole === "lab-delivery-boy" ? false : true,
+                  educationSubmitted:
+                    normalizedRole === "lab-delivery-boy" ? false : true,
+                  status:
+                    normalizedRole === "lab-delivery-boy"
+                      ? "pending_verification"
+                      : "active",
                 };
 
                 // Only add delivery-specific fields if applicable
                 if (normalizedRole === "delivery") {
-                  userPayload.deliveryType = pendingUser.deliveryType || "medicine";
+                  userPayload.deliveryType =
+                    pendingUser.deliveryType || "medicine";
                 }
                 if (pendingUser.qualification) {
                   userPayload.qualification = pendingUser.qualification;
                 }
 
-                await setDoc(doc(db, "users", userCredential.user.uid), userPayload);
+                await setDoc(
+                  doc(db, "users", userCredential.user.uid),
+                  userPayload,
+                );
 
                 // 2. Clear pending records
-                await deleteDoc(doc(db, "pendingUsers", userCredential.user.uid));
+                await deleteDoc(
+                  doc(db, "pendingUsers", userCredential.user.uid),
+                );
                 await AsyncStorage.removeItem(PENDING_USER_KEY);
-                await AsyncStorage.setItem("@healthnest_verification_complete", "true");
-                
+                await AsyncStorage.setItem(
+                  "@healthnest_verification_complete",
+                  "true",
+                );
+
                 // 3. Clear transient skip flag and manually trigger user fetch to update state
                 // We DON'T signOut here anymore to allow "Auto-Login"
                 skipAuthHandlingRef.current = false;
-                
+
                 // Manually record that we are verified and profile is not completed
                 const fullUser = {
                   ...userPayload,
                   emailVerified: true,
                 };
                 setUser(fullUser as any);
-                
+
                 // Mark verification complete and remove pending flag
                 await AsyncStorage.setItem(VERIFICATION_COMPLETE_KEY, "true");
                 await AsyncStorage.removeItem(PENDING_USER_KEY);
@@ -871,7 +967,7 @@ export const AuthProvider = ({ children }: any) => {
                 }
 
                 // Navigate will be handled by UI or Auth listener, but we can do a push if needed
-                // router.replace("/(auth)") is usually Login, but since we are LOGGED IN now, 
+                // router.replace("/(auth)") is usually Login, but since we are LOGGED IN now,
                 // the _layout will see user and redirect out of (auth).
 
                 return true;
@@ -883,7 +979,8 @@ export const AuthProvider = ({ children }: any) => {
               // If verified, we stay signed in to provide Auto-Login
               try {
                 // Fetch latest state to be sure
-                const isVerifiedAfterCheck = userCredential?.user?.emailVerified;
+                const isVerifiedAfterCheck =
+                  userCredential?.user?.emailVerified;
                 if (userCredential && !isVerifiedAfterCheck) {
                   await signOut(auth);
                 }
@@ -896,7 +993,7 @@ export const AuthProvider = ({ children }: any) => {
             console.error("checkEmailVerification error:", e);
             try {
               if (userCredential) await signOut(auth);
-            } catch (_) {}
+            } catch (_) { }
             skipAuthHandlingRef.current = false;
             return false;
           }

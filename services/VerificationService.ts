@@ -7,6 +7,7 @@ import {
     getDocs,
     onSnapshot,
     query,
+    setDoc,
     Timestamp,
     updateDoc,
     where,
@@ -15,8 +16,18 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import NotificationService from "./NotificationService";
 
 // Verification Types
-export type VerificationStatus = "pending" | "under_review" | "approved" | "rejected" | "expired";
-export type DocumentType = "cnic_front" | "cnic_back" | "selfie" | "passport" | "driving_license";
+export type VerificationStatus =
+  | "pending"
+  | "under_review"
+  | "approved"
+  | "rejected"
+  | "expired";
+export type DocumentType =
+  | "cnic_front"
+  | "cnic_back"
+  | "selfie"
+  | "passport"
+  | "driving_license";
 
 // Verification Request Interface
 export interface VerificationRequest {
@@ -80,7 +91,7 @@ interface VerificationResult {
 
 class VerificationService {
   private collectionName = "verificationRequests";
-  
+
   // Test mode flag
   private isTestMode = true;
 
@@ -90,7 +101,7 @@ class VerificationService {
   async uploadDocument(
     userId: string,
     documentType: DocumentType,
-    imageUri: string
+    imageUri: string,
   ): Promise<string> {
     try {
       // Convert URI to blob
@@ -124,7 +135,7 @@ class VerificationService {
     userPhone: string,
     cnicFrontUri: string,
     cnicBackUri: string,
-    selfieUri: string
+    selfieUri: string,
   ): Promise<string> {
     try {
       // Upload all documents
@@ -136,8 +147,16 @@ class VerificationService {
 
       // Create verification request
       const documents: VerificationDocument[] = [
-        { type: "cnic_front", imageUrl: cnicFrontUrl, uploadedAt: Timestamp.now() },
-        { type: "cnic_back", imageUrl: cnicBackUrl, uploadedAt: Timestamp.now() },
+        {
+          type: "cnic_front",
+          imageUrl: cnicFrontUrl,
+          uploadedAt: Timestamp.now(),
+        },
+        {
+          type: "cnic_back",
+          imageUrl: cnicBackUrl,
+          uploadedAt: Timestamp.now(),
+        },
         { type: "selfie", imageUrl: selfieUrl, uploadedAt: Timestamp.now() },
       ];
 
@@ -163,7 +182,7 @@ class VerificationService {
         "status",
         "New Verification Request",
         `${userName} has submitted identity verification documents.`,
-        { requestId: docRef.id }
+        { requestId: docRef.id },
       );
 
       return docRef.id;
@@ -176,7 +195,7 @@ class VerificationService {
   // Simulate third-party verification (Test Mode)
   private async runAutomaticVerification(
     requestId: string,
-    documents: VerificationDocument[]
+    documents: VerificationDocument[],
   ): Promise<void> {
     try {
       // Simulate API call delay
@@ -204,7 +223,9 @@ class VerificationService {
   private simulateVerification(): VerificationResult {
     // Random success rate for testing (80% success)
     const isSuccess = Math.random() > 0.2;
-    const faceMatchScore = isSuccess ? 85 + Math.random() * 15 : 40 + Math.random() * 30;
+    const faceMatchScore = isSuccess
+      ? 85 + Math.random() * 15
+      : 40 + Math.random() * 30;
 
     return {
       success: isSuccess && faceMatchScore > 70,
@@ -217,7 +238,9 @@ class VerificationService {
         address: "House 123, Street 45, Lahore",
         expiryDate: "2030-12-31",
       },
-      message: isSuccess ? "Verification successful" : "Face match failed or document unclear",
+      message: isSuccess
+        ? "Verification successful"
+        : "Face match failed or document unclear",
     };
   }
 
@@ -227,7 +250,7 @@ class VerificationService {
   async approveVerification(
     requestId: string,
     adminId: string,
-    notes?: string
+    notes?: string,
   ): Promise<void> {
     try {
       const requestRef = doc(db, this.collectionName, requestId);
@@ -246,7 +269,7 @@ class VerificationService {
         updatedAt: Timestamp.now(),
         // Set expiry to 2 years from now
         expiresAt: Timestamp.fromDate(
-          new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000)
+          new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000),
         ),
       });
 
@@ -263,7 +286,7 @@ class VerificationService {
         "status",
         "Identity Verified!",
         "Your identity has been verified successfully. You now have access to all features.",
-        { requestId }
+        { requestId },
       );
     } catch (error) {
       console.error("Error approving verification:", error);
@@ -275,7 +298,7 @@ class VerificationService {
   async rejectVerification(
     requestId: string,
     adminId: string,
-    reason: string
+    reason: string,
   ): Promise<void> {
     try {
       const requestRef = doc(db, this.collectionName, requestId);
@@ -299,7 +322,7 @@ class VerificationService {
         "status",
         "Verification Update",
         `Your identity verification was not successful. Reason: ${reason}`,
-        { requestId }
+        { requestId },
       );
     } catch (error) {
       console.error("Error rejecting verification:", error);
@@ -310,11 +333,13 @@ class VerificationService {
   // ==================== QUERY METHODS ====================
 
   // Get user's verification status
-  async getUserVerificationStatus(userId: string): Promise<VerificationRequest | null> {
+  async getUserVerificationStatus(
+    userId: string,
+  ): Promise<VerificationRequest | null> {
     try {
       const q = query(
         collection(db, this.collectionName),
-        where("userId", "==", userId)
+        where("userId", "==", userId),
       );
 
       const snapshot = await getDocs(q);
@@ -349,14 +374,14 @@ class VerificationService {
   // Admin: Listen to all verification requests
   listenToVerificationRequests(
     callback: (requests: VerificationRequest[]) => void,
-    statusFilter?: VerificationStatus
+    statusFilter?: VerificationStatus,
   ) {
     let q = query(collection(db, this.collectionName));
 
     if (statusFilter) {
       q = query(
         collection(db, this.collectionName),
-        where("status", "==", statusFilter)
+        where("status", "==", statusFilter),
       );
     }
 
@@ -372,7 +397,9 @@ class VerificationService {
   }
 
   // Get verification by ID
-  async getVerificationById(requestId: string): Promise<VerificationRequest | null> {
+  async getVerificationById(
+    requestId: string,
+  ): Promise<VerificationRequest | null> {
     try {
       const docSnap = await getDoc(doc(db, this.collectionName, requestId));
       if (!docSnap.exists()) return null;
@@ -392,7 +419,7 @@ class VerificationService {
     try {
       const q = query(
         collection(db, this.collectionName),
-        where("status", "in", ["pending", "under_review"])
+        where("status", "in", ["pending", "under_review"]),
       );
 
       const snapshot = await getDocs(q);
@@ -406,11 +433,11 @@ class VerificationService {
   // Listen to a single user's verification
   listenToUserVerification(
     userId: string,
-    callback: (verification: VerificationRequest | null) => void
+    callback: (verification: VerificationRequest | null) => void,
   ) {
     const q = query(
       collection(db, this.collectionName),
-      where("userId", "==", userId)
+      where("userId", "==", userId),
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -418,7 +445,7 @@ class VerificationService {
         callback(null);
         return;
       }
-      
+
       // Get the most recent verification
       const verifications = snapshot.docs
         .map((doc) => ({
@@ -426,14 +453,14 @@ class VerificationService {
           ...(doc.data() as Omit<VerificationRequest, "id">),
         }))
         .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-      
+
       callback(verifications[0]);
     });
   }
 
   // Alias for admin verifications screen
   listenToAllVerifications(
-    callback: (requests: VerificationRequest[]) => void
+    callback: (requests: VerificationRequest[]) => void,
   ) {
     return this.listenToVerificationRequests(callback);
   }
@@ -441,55 +468,89 @@ class VerificationService {
   // ==================== LAB DELIVERY ONBOARDING ====================
 
   // Admin: Listen to all lab delivery onboarding requests
-  listenToLabDeliveryOnboarding(
-    callback: (users: any[]) => void
-  ) {
-    // Query users with role lab-delivery-boy and educationSubmitted true
-    const q = query(
-      collection(db, "users"),
-      where("role", "==", "lab-delivery-boy"),
-      where("educationSubmitted", "==", true)
-    );
+  listenToLabDeliveryOnboarding(callback: (users: any[]) => void) {
+    // Query pending_verifications collection
+    const q = query(collection(db, "pending_verifications"));
 
-    return onSnapshot(q, (snapshot) => {
-      const users = snapshot.docs.map((doc) => ({
+    return onSnapshot(q, async (snapshot) => {
+      const pendingVerifications = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      callback(users);
+
+      // Get user details for each pending verification
+      const usersWithDetails = await Promise.all(
+        pendingVerifications.map(async (pv) => {
+          try {
+            const userDoc = await getDoc(doc(db, "users", pv.id));
+            if (userDoc.exists()) {
+              return {
+                ...pv,
+                ...userDoc.data(),
+              };
+            }
+            return pv;
+          } catch (error) {
+            console.error("Error fetching user details:", error);
+            return pv;
+          }
+        }),
+      );
+
+      callback(usersWithDetails);
     });
   }
 
   // Admin: Approve lab delivery boy
   async approveLabDelivery(userId: string, adminId: string): Promise<void> {
+    console.log(`🚀 [VerificationService] Attempting to APPROVE user: ${userId} by Admin: ${adminId}`);
     try {
-      await updateDoc(doc(db, "users", userId), {
+      // Update users collection
+      const userRef = doc(db, "users", userId);
+      await setDoc(userRef, {
         isApproved: true,
         status: "approved",
         verificationStatus: "approved",
         reviewedBy: adminId,
         reviewedAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-      });
+      }, { merge: true });
+      console.log(`✅ [VerificationService] User ${userId} marked as approved in 'users' collection`);
+
+      // Update pending_verifications
+      const pvRef = doc(db, "pending_verifications", userId);
+      await setDoc(pvRef, {
+        status: "approved",
+        reviewedBy: adminId,
+        reviewedAt: Timestamp.now(),
+      }, { merge: true });
+      console.log(`✅ [VerificationService] User ${userId} marked as approved in 'pending_verifications' collection`);
 
       // Notify user
       await NotificationService.createNotification(
         userId,
         "status",
         "Account Approved!",
-        "Your Lab Delivery Boy account has been approved. You can now start receiving orders.",
-        { type: "onboarding_approval" }
+        "Your Lab Delivery account has been approved. You can now start receiving orders.",
+        { type: "onboarding_approval" },
       );
     } catch (error) {
-      console.error("Error approving lab delivery:", error);
+      console.error("❌ [VerificationService] Error approving lab delivery:", error);
       throw error;
     }
   }
 
   // Admin: Reject lab delivery boy
-  async rejectLabDelivery(userId: string, adminId: string, reason: string): Promise<void> {
+  async rejectLabDelivery(
+    userId: string,
+    adminId: string,
+    reason: string,
+  ): Promise<void> {
+    console.log(`🚀 [VerificationService] Attempting to REJECT user: ${userId} by Admin: ${adminId}. Reason: ${reason}`);
     try {
-      await updateDoc(doc(db, "users", userId), {
+      // Update users collection
+      const userRef = doc(db, "users", userId);
+      await setDoc(userRef, {
         isApproved: false,
         status: "rejected",
         verificationStatus: "rejected",
@@ -497,20 +558,61 @@ class VerificationService {
         reviewedBy: adminId,
         reviewedAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
-      });
+      }, { merge: true });
+      console.log(`✅ [VerificationService] User ${userId} marked as rejected in 'users' collection`);
+
+      // Update pending_verifications
+      const pvRef = doc(db, "pending_verifications", userId);
+      await setDoc(pvRef, {
+        status: "rejected",
+        rejectionReason: reason,
+        reviewedBy: adminId,
+        reviewedAt: Timestamp.now(),
+      }, { merge: true });
+      console.log(`✅ [VerificationService] User ${userId} marked as rejected in 'pending_verifications' collection`);
 
       // Notify user
       await NotificationService.createNotification(
         userId,
         "status",
         "Onboarding Update",
-        `Your Lab Delivery Boy application was not approved. Reason: ${reason}`,
-        { type: "onboarding_rejection" }
+        `Your Lab Delivery application was not approved. Reason: ${reason}`,
+        { type: "onboarding_rejection" },
       );
     } catch (error) {
-      console.error("Error rejecting lab delivery:", error);
+      console.error("❌ [VerificationService] Error rejecting lab delivery:", error);
       throw error;
     }
+  }
+  
+  // Admin: Listen to count of all pending verifications (Identity + Lab)
+  listenToPendingVerificationsCount(callback: (count: number) => void) {
+    const vq = query(
+      collection(db, this.collectionName),
+      where("status", "in", ["pending", "under_review"]),
+    );
+    const pq = query(
+      collection(db, "pending_verifications"),
+      where("status", "==", "pending"),
+    );
+
+    let vCount = 0;
+    let pCount = 0;
+
+    const unsubV = onSnapshot(vq, (snap) => {
+      vCount = snap.size;
+      callback(vCount + pCount);
+    });
+
+    const unsubP = onSnapshot(pq, (snap) => {
+      pCount = snap.size;
+      callback(vCount + pCount);
+    });
+
+    return () => {
+      unsubV();
+      unsubP();
+    };
   }
 }
 

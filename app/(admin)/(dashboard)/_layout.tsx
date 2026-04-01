@@ -2,6 +2,8 @@ import CustomTabBar from "@/component/CustomTabBar";
 import { useAuthContext } from "@/hooks/useFirebaseAuth";
 import FeedbackComplaintService, { Complaint } from "@/services/FeedbackComplaintService";
 import { Ionicons } from "@expo/vector-icons";
+import PaymentService from "@/services/PaymentService";
+import VerificationService from "@/services/VerificationService";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
 
@@ -24,23 +26,25 @@ export default function DashboardLayout() {
     return () => unsubscribe();
   }, []);
 
-  // Listen for pending verifications (BNPL + Identity)
+  // Listen for pending verifications (BNPL + Identity + Lab)
   useEffect(() => {
-    // This would need VerificationService listener - for now use complaints as indicator
-    // The badge on Dashboard will show pending complaints that need attention
-    const unsubscribe = FeedbackComplaintService.listenToComplaints(
-      (complaints: Complaint[]) => {
-        // Count new complaints (last 24 hours) that are pending
-        const now = Date.now();
-        const oneDayAgo = now - (24 * 60 * 60 * 1000);
-        const newPendingCount = complaints.filter(
-          (c) => c.status === "pending" && c.createdAt.toMillis() > oneDayAgo
-        ).length;
-        setPendingVerificationsBadge(newPendingCount);
-      }
-    );
+    let verificationCount = 0;
+    let bnplCount = 0;
 
-    return () => unsubscribe();
+    const unsubVerifications = VerificationService.listenToPendingVerificationsCount((count) => {
+      verificationCount = count;
+      setPendingVerificationsBadge(verificationCount + bnplCount);
+    });
+
+    const unsubBNPL = PaymentService.listenToPendingBNPLCount((count) => {
+      bnplCount = count;
+      setPendingVerificationsBadge(verificationCount + bnplCount);
+    });
+
+    return () => {
+      unsubVerifications();
+      unsubBNPL();
+    };
   }, []);
 
   // Define tabs for CustomTabBar
