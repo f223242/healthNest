@@ -21,6 +21,7 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  onSnapshot,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
@@ -291,21 +292,59 @@ export const AuthProvider = ({ children }: any) => {
   // AUTH LISTENER
   // ---------------------------------------------------
   useEffect(() => {
+    let profileUnsub: (() => void) | null = null;
+
     const unsub = onAuthStateChanged(auth, async (current) => {
+      // Clear existing listener if any
+      if (profileUnsub) {
+        profileUnsub();
+        profileUnsub = null;
+      }
+
       // If we're performing a temporary sign-in (e.g. to check verification), skip handling
       if (skipAuthHandlingRef.current) return;
 
       if (current) {
-        const profile = await getUserProfile();
-        setUser(profile);
+        // Set up real-time listener for the user profile
+        const ref = doc(db, "users", current.uid);
+        profileUnsub = onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            setUser({
+              uid: current.uid,
+              ...data,
+            } as UserProfile);
+          } else {
+            // ADMIN SECURE FALLBACK: Check if this is a known admin email
+            const allowedAdminEmails = ["admin@healthnest.com", "admin@gmail.com"];
+            if (current.email && allowedAdminEmails.includes(current.email.toLowerCase())) {
+              setUser({
+                uid: current.uid,
+                email: current.email,
+                role: "admin",
+                profileCompleted: true,
+                firstname: "System",
+                lastname: "Admin"
+              } as UserProfile);
+            } else {
+              setUser(null);
+            }
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Profile onSnapshot error:", error);
+          setLoading(false);
+        });
       } else {
         setUser(null);
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
-    return unsub;
+    return () => {
+      unsub();
+      if (profileUnsub) profileUnsub();
+    };
   }, []);
 
   // ---------------------------------------------------
