@@ -265,10 +265,16 @@ function InnerLayout() {
         return;
       }
 
-      // 2. Force Pending Verification if profile is completed but not approved (or isApproved is still undefined during load)
-      if (user.isApproved === false || user.isApproved === undefined) {
+      // 🔥 STEP 1: Wait until isApproved is loaded (VERY IMPORTANT)
+      if (typeof user.isApproved === "undefined") {
+        console.log("⏳ Waiting for isApproved...");
+        return;
+      }
+
+      // 🔥 STEP 2: If NOT approved → ALWAYS block access
+      if (user.isApproved === false) {
         if (!isOnPendingVerification) {
-          console.log("🔄 Redirecting to pending-verification (Not Approved)");
+          console.log(`🔄 Redirecting unapproved ${role} to pending-verification`);
           safeNavigate("/(delivery)/pending-verification");
         }
         return;
