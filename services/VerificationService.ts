@@ -503,28 +503,42 @@ class VerificationService {
 
   // Admin: Approve lab delivery boy
   async approveLabDelivery(userId: string, adminId: string): Promise<void> {
-    console.log(`🚀 [VerificationService] Attempting to APPROVE user: ${userId} by Admin: ${adminId}`);
+    console.log(
+      `🚀 [VerificationService] Attempting to APPROVE user: ${userId} by Admin: ${adminId}`,
+    );
     try {
       // Update users collection
       const userRef = doc(db, "users", userId);
-      await setDoc(userRef, {
-        isApproved: true,
-        status: "approved",
-        verificationStatus: "approved",
-        reviewedBy: adminId,
-        reviewedAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      }, { merge: true });
-      console.log(`✅ [VerificationService] User ${userId} marked as approved in 'users' collection`);
+      await setDoc(
+        userRef,
+        {
+          isApproved: true,
+          status: "approved",
+          verificationStatus: "approved",
+          reviewedBy: adminId,
+          reviewedAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+      console.log(
+        `✅ [VerificationService] User ${userId} marked as approved in 'users' collection`,
+      );
 
       // Update pending_verifications
       const pvRef = doc(db, "pending_verifications", userId);
-      await setDoc(pvRef, {
-        status: "approved",
-        reviewedBy: adminId,
-        reviewedAt: Timestamp.now(),
-      }, { merge: true });
-      console.log(`✅ [VerificationService] User ${userId} marked as approved in 'pending_verifications' collection`);
+      await setDoc(
+        pvRef,
+        {
+          status: "approved",
+          reviewedBy: adminId,
+          reviewedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+      console.log(
+        `✅ [VerificationService] User ${userId} marked as approved in 'pending_verifications' collection`,
+      );
 
       // Notify user
       await NotificationService.createNotification(
@@ -535,7 +549,10 @@ class VerificationService {
         { type: "onboarding_approval" },
       );
     } catch (error) {
-      console.error("❌ [VerificationService] Error approving lab delivery:", error);
+      console.error(
+        "❌ [VerificationService] Error approving lab delivery:",
+        error,
+      );
       throw error;
     }
   }
@@ -546,30 +563,44 @@ class VerificationService {
     adminId: string,
     reason: string,
   ): Promise<void> {
-    console.log(`🚀 [VerificationService] Attempting to REJECT user: ${userId} by Admin: ${adminId}. Reason: ${reason}`);
+    console.log(
+      `🚀 [VerificationService] Attempting to REJECT user: ${userId} by Admin: ${adminId}. Reason: ${reason}`,
+    );
     try {
       // Update users collection
       const userRef = doc(db, "users", userId);
-      await setDoc(userRef, {
-        isApproved: false,
-        status: "rejected",
-        verificationStatus: "rejected",
-        rejectionReason: reason,
-        reviewedBy: adminId,
-        reviewedAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      }, { merge: true });
-      console.log(`✅ [VerificationService] User ${userId} marked as rejected in 'users' collection`);
+      await setDoc(
+        userRef,
+        {
+          isApproved: false,
+          status: "rejected",
+          verificationStatus: "rejected",
+          rejectionReason: reason,
+          reviewedBy: adminId,
+          reviewedAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+      console.log(
+        `✅ [VerificationService] User ${userId} marked as rejected in 'users' collection`,
+      );
 
       // Update pending_verifications
       const pvRef = doc(db, "pending_verifications", userId);
-      await setDoc(pvRef, {
-        status: "rejected",
-        rejectionReason: reason,
-        reviewedBy: adminId,
-        reviewedAt: Timestamp.now(),
-      }, { merge: true });
-      console.log(`✅ [VerificationService] User ${userId} marked as rejected in 'pending_verifications' collection`);
+      await setDoc(
+        pvRef,
+        {
+          status: "rejected",
+          rejectionReason: reason,
+          reviewedBy: adminId,
+          reviewedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+      console.log(
+        `✅ [VerificationService] User ${userId} marked as rejected in 'pending_verifications' collection`,
+      );
 
       // Notify user
       await NotificationService.createNotification(
@@ -580,11 +611,33 @@ class VerificationService {
         { type: "onboarding_rejection" },
       );
     } catch (error) {
-      console.error("❌ [VerificationService] Error rejecting lab delivery:", error);
+      console.error(
+        "❌ [VerificationService] Error rejecting lab delivery:",
+        error,
+      );
       throw error;
     }
   }
-  
+
+  // Get approved lab delivery boys
+  async getApprovedLabDeliveryBoys(): Promise<any[]> {
+    try {
+      const q = query(
+        collection(db, "users"),
+        where("role", "==", "lab-delivery-boy"),
+        where("isApproved", "==", true),
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+    } catch (error) {
+      console.error("Error fetching approved lab delivery boys:", error);
+      throw error;
+    }
+  }
+
   // Admin: Listen to count of all pending verifications (Identity + Lab)
   listenToPendingVerificationsCount(callback: (count: number) => void) {
     const vq = query(

@@ -1,14 +1,18 @@
 import { db } from "@/config/firebase";
 import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  onSnapshot,
-  query,
-  setDoc,
-  Timestamp,
-  where
+    addDoc,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    onSnapshot,
+    orderBy,
+    query,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
 } from "firebase/firestore";
 
 export interface ChatMessage {
@@ -37,6 +41,21 @@ export interface Conversation {
   createdAt: Timestamp;
 }
 
+export interface LabDeliveryConversation {
+  id: string;
+  labId: string;
+  labName: string;
+  labAvatar: string;
+  deliveryId: string;
+  deliveryName: string;
+  deliveryAvatar: string;
+  lastMessage: string;
+  lastMessageTime: Timestamp;
+  unreadCount: number;
+  lastMessageSenderId?: string;
+  createdAt: Timestamp;
+}
+
 class ChatService {
   // Create or get conversation
   async getOrCreateConversation(
@@ -45,7 +64,7 @@ class ChatService {
     patientAvatar: string,
     deliveryPersonId: string,
     deliveryPersonName: string,
-    deliveryPersonAvatar: string
+    deliveryPersonAvatar: string,
   ): Promise<string> {
     try {
       const conversationId = `${patientId}_${deliveryPersonId}`;
@@ -81,7 +100,7 @@ class ChatService {
     senderName: string,
     senderAvatar: string,
     message: string,
-    recipientId?: string
+    recipientId?: string,
   ): Promise<void> {
     try {
       // Add message to messages collection
@@ -104,10 +123,16 @@ class ChatService {
         {
           lastMessage: message,
           lastMessageTime: Timestamp.now(),
-          unreadCount: unreadIncrement > 0 ? Math.max(0, (await getDoc(conversationRef)).data()?.unreadCount || 0) + 1 : 0,
+          unreadCount:
+            unreadIncrement > 0
+              ? Math.max(
+                  0,
+                  (await getDoc(conversationRef)).data()?.unreadCount || 0,
+                ) + 1
+              : 0,
           lastMessageSenderId: senderId,
         },
-        { merge: true }
+        { merge: true },
       );
     } catch (error) {
       console.error("Error sending message:", error);
@@ -124,7 +149,7 @@ class ChatService {
         {
           unreadCount: 0,
         },
-        { merge: true }
+        { merge: true },
       );
 
       // Mark all messages in conversation as read
@@ -133,7 +158,7 @@ class ChatService {
         const q = query(
           collection(db, "messages"),
           where("conversationId", "==", conversationId),
-          where("read", "==", false)
+          where("read", "==", false),
         );
 
         const snapshot = await getDoc(conversationRef);
@@ -148,12 +173,12 @@ class ChatService {
   // Listen to messages in real-time (sort client-side to avoid index requirement)
   listenToMessages(
     conversationId: string,
-    callback: (messages: ChatMessage[]) => void
+    callback: (messages: ChatMessage[]) => void,
   ) {
     try {
       const q = query(
         collection(db, "messages"),
-        where("conversationId", "==", conversationId)
+        where("conversationId", "==", conversationId),
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -162,7 +187,10 @@ class ChatService {
             id: doc.id,
             ...(doc.data() as Omit<ChatMessage, "id">),
           }))
-          .sort((a, b) => a.timestamp.toDate().getTime() - b.timestamp.toDate().getTime());
+          .sort(
+            (a, b) =>
+              a.timestamp.toDate().getTime() - b.timestamp.toDate().getTime(),
+          );
         callback(messages);
       });
 
@@ -179,14 +207,14 @@ class ChatService {
   listenToConversations(
     userId: string,
     callback: (conversations: Conversation[]) => void,
-    isDeliveryPerson: boolean = false
+    isDeliveryPerson: boolean = false,
   ) {
     try {
       const filterField = isDeliveryPerson ? "deliveryPersonId" : "patientId";
 
       const q = query(
         collection(db, "conversations"),
-        where(filterField, "==", userId)
+        where(filterField, "==", userId),
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -195,13 +223,182 @@ class ChatService {
             id: doc.id,
             ...(doc.data() as Omit<Conversation, "id">),
           }))
-          .sort((a, b) => b.lastMessageTime.toDate().getTime() - a.lastMessageTime.toDate().getTime());
+          .sort(
+            (a, b) =>
+              b.lastMessageTime.toDate().getTime() -
+              a.lastMessageTime.toDate().getTime(),
+          );
         callback(conversations);
       });
 
       return unsubscribe;
     } catch (error) {
       console.error("Error listening to conversations:", error);
+      throw error;
+    }
+  }
+
+  // Lab-Delivery Chat Functions
+  // Create or get lab-delivery conversation
+  async getOrCreateLabDeliveryConversation(
+    labId: string,
+    labName: string,
+    labAvatar: string,
+    deliveryId: string,
+    deliveryName: string,
+    deliveryAvatar: string,
+  ): Promise<string> {
+    try {
+      // Check if conversation already exists
+      const q = query(
+        collection(db, "labDeliveryConversations"),
+        where("labId", "==", labId),
+        where("deliveryId", "==", deliveryId),
+      );
+      const existing = await getDocs(q);
+      if (!existing.empty) {
+        return existing.docs[0].id;
+      }
+
+      // Create new conversation
+      const conversationData = {
+        labId,
+        labName,
+        labAvatar,
+        deliveryId,
+        deliveryName,
+        deliveryAvatar,
+        lastMessage: "",
+        lastMessageTime: Timestamp.now(),
+        unreadCount: 0,
+        createdAt: Timestamp.now(),
+      };
+
+      const docRef = await addDoc(
+        collection(db, "labDeliveryConversations"),
+        conversationData,
+      );
+      return docRef.id;
+    } catch (error) {
+      console.error("Error creating lab-delivery conversation:", error);
+      throw error;
+    }
+  }
+
+  // Send message in lab-delivery conversation
+  async sendLabDeliveryMessage(
+    conversationId: string,
+    senderId: string,
+    senderName: string,
+    senderAvatar: string,
+    message: string,
+  ): Promise<void> {
+    try {
+      const messageData = {
+        conversationId,
+        senderId,
+        senderName,
+        senderAvatar,
+        message,
+        timestamp: Timestamp.now(),
+        read: false,
+      };
+
+      await addDoc(collection(db, "labDeliveryMessages"), messageData);
+
+      // Update conversation last message
+      await updateDoc(doc(db, "labDeliveryConversations", conversationId), {
+        lastMessage: message,
+        lastMessageTime: Timestamp.now(),
+        lastMessageSenderId: senderId,
+        unreadCount: increment(1),
+      });
+    } catch (error) {
+      console.error("Error sending lab-delivery message:", error);
+      throw error;
+    }
+  }
+
+  // Listen to lab-delivery conversations for a user
+  listenToLabDeliveryConversations(
+    userId: string,
+    userRole: "lab" | "delivery",
+    callback: (conversations: LabDeliveryConversation[]) => void,
+  ) {
+    try {
+      const field = userRole === "lab" ? "labId" : "deliveryId";
+      const q = query(
+        collection(db, "labDeliveryConversations"),
+        where(field, "==", userId),
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const conversations: LabDeliveryConversation[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<LabDeliveryConversation, "id">),
+          }))
+          .sort(
+            (a, b) =>
+              b.lastMessageTime.toMillis() - a.lastMessageTime.toMillis(),
+          );
+        callback(conversations);
+      });
+    } catch (error) {
+      console.error("Error listening to lab-delivery conversations:", error);
+      throw error;
+    }
+  }
+
+  // Listen to messages in lab-delivery conversation
+  listenToLabDeliveryMessages(
+    conversationId: string,
+    callback: (messages: ChatMessage[]) => void,
+  ) {
+    try {
+      const q = query(
+        collection(db, "labDeliveryMessages"),
+        where("conversationId", "==", conversationId),
+        orderBy("timestamp", "asc"),
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const messages: ChatMessage[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<ChatMessage, "id">),
+        }));
+        callback(messages);
+      });
+    } catch (error) {
+      console.error("Error listening to lab-delivery messages:", error);
+      throw error;
+    }
+  }
+
+  // Mark lab-delivery messages as read
+  async markLabDeliveryMessagesAsRead(
+    conversationId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      const q = query(
+        collection(db, "labDeliveryMessages"),
+        where("conversationId", "==", conversationId),
+        where("senderId", "!=", userId),
+        where("read", "==", false),
+      );
+      const snapshot = await getDocs(q);
+      const promises = snapshot.docs.map((doc) =>
+        updateDoc(doc.ref, { read: true }),
+      );
+      await Promise.all(promises);
+
+      // Reset unread count
+      await updateDoc(doc(db, "labDeliveryConversations", conversationId), {
+        unreadCount: 0,
+      });
+    } catch (error) {
+      console.error("Error marking lab-delivery messages as read:", error);
       throw error;
     }
   }

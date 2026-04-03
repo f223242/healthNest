@@ -18,8 +18,8 @@ service cloud.firestore {
       // Allow create during registration (user creates their own document)
       allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Allow update if authenticated and updating own document
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // Allow update if authenticated and updating own document or admin
+      allow update: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
 
       // Don't allow delete
       allow delete: if false;
@@ -197,6 +197,21 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Pending Verifications collection
+    match /pending_verifications/{userId} {
+      // Allow read if user is the owner or admin
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null;
+      
+      // Allow update (for admin approval/rejection)
+      allow update: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
+      
+      // Don't allow delete
+      allow delete: if false;
+    }
+
     // Feedbacks collection
     match /feedbacks/{feedbackId} {
       // Allow read for authenticated users (public feedback visible to all)
@@ -230,6 +245,18 @@ service cloud.firestore {
     // Scheduled Reminders collection
     match /scheduledReminders/{reminderId} {
       // Allow read/write for authenticated users
+      allow read, write: if request.auth != null;
+    }
+
+    // Lab Delivery Conversations collection
+    match /labDeliveryConversations/{conversationId} {
+      // Allow read/write if authenticated (lab or delivery)
+      allow read, write: if request.auth != null;
+    }
+
+    // Lab Delivery Messages collection
+    match /labDeliveryMessages/{messageId} {
+      // Allow read/write if authenticated (lab or delivery)
       allow read, write: if request.auth != null;
     }
   }

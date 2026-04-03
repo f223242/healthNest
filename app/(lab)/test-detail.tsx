@@ -1,30 +1,35 @@
 import AppButton from "@/component/AppButton";
+import DeliveryPersonCard, {
+    DeliveryPerson,
+} from "@/component/DeliveryPersonCard";
 import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import QuickActionButton from "@/component/QuickActionButton";
 import { useToast } from "@/component/Toast/ToastProvider";
 import { colors, Fonts, sizes } from "@/constant/theme";
+import { useAuthContext } from "@/hooks/useFirebaseAuth";
+import FeedbackComplaintService from "@/services/FeedbackComplaintService";
+import LabTestService, {
+    LabTestRequest,
+    TestRequestStatus,
+} from "@/services/LabTestService";
+import VerificationService from "@/services/VerificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ActivityIndicator, 
-  Modal, 
-  FlatList
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import LabTestService, { LabTestRequest, TestRequestStatus } from "@/services/LabTestService";
-import { useAuthContext, User, DeliveryInfo } from "@/hooks/useFirebaseAuth";
-import DeliveryPersonCard, { DeliveryPerson } from "@/component/DeliveryPersonCard";
-import ChatService from "@/services/ChatService";
-import FeedbackComplaintService from "@/services/FeedbackComplaintService";
 
 const TestDetailScreen = () => {
   const router = useRouter();
@@ -43,7 +48,7 @@ const TestDetailScreen = () => {
   const [loadingDelivery, setLoadingDelivery] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
-  
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -83,36 +88,40 @@ const TestDetailScreen = () => {
   const fetchAvailableDelivery = async () => {
     setLoadingDelivery(true);
     try {
-      const users = await getAllUsers("Lab Delivery");
+      const approvedBoys =
+        await VerificationService.getApprovedLabDeliveryBoys();
       const deliveryData: DeliveryPerson[] = await Promise.all(
-        users
-          .filter((u: User) => u.profileCompleted && u.isApproved)
-          .map(async (u: User, index: number) => {
-            const info = u.additionalInfo as DeliveryInfo;
-            const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Lab Delivery Person";
-            
-            let rating = 0;
-            let totalDeliveries = 0;
-            try {
-              const ratingStats = await FeedbackComplaintService.getProviderRatingStats(u.uid);
-              rating = ratingStats.averageRating || 0;
-              totalDeliveries = ratingStats.totalReviews || 0;
-            } catch (err) {}
+        approvedBoys.map(async (u: any, index: number) => {
+          const fullName =
+            `${u.firstname || ""} ${u.lastname || ""}`.trim() ||
+            "Lab Delivery Person";
 
-            return {
-              id: index + 1,
-              name: fullName,
-              avatar: info?.profileImage || "https://via.placeholder.com/100",
-              rating,
-              totalDeliveries,
-              isAvailable: true,
-              uid: u.uid,
-              vehicleType: info?.vehicleType || "Bike",
-              deliveryTime: "20-30 min",
-              distance: info?.city || "Nearby",
-              vehicleNumber: info?.vehicleNumber || ""
-            } as DeliveryPerson;
-          })
+          let rating = 0;
+          let totalDeliveries = 0;
+          try {
+            const ratingStats =
+              await FeedbackComplaintService.getProviderRatingStats(u.id);
+            rating = ratingStats.averageRating || 0;
+            totalDeliveries = ratingStats.totalReviews || 0;
+          } catch (err) {}
+
+          return {
+            id: index + 1,
+            name: fullName,
+            avatar:
+              u.profileImage ||
+              u.additionalInfo?.profileImage ||
+              "https://via.placeholder.com/100",
+            rating,
+            totalDeliveries,
+            isAvailable: true,
+            uid: u.id,
+            vehicleType: u.additionalInfo?.vehicleType || "Bike",
+            deliveryTime: "20-30 min",
+            distance: u.additionalInfo?.city || "Nearby",
+            vehicleNumber: u.additionalInfo?.vehicleNumber || "",
+          } as DeliveryPerson;
+        }),
       );
       setDeliveryPersons(deliveryData);
     } catch (error) {
@@ -130,7 +139,7 @@ const TestDetailScreen = () => {
         testDetail.id,
         testDetail,
         person.uid,
-        person.name
+        person.name,
       );
       toast.success(`Assigned ${person.name} successfully!`);
       setShowAssignModal(false);
@@ -146,12 +155,12 @@ const TestDetailScreen = () => {
   const handleChatWithDelivery = async () => {
     if (!testDetail?.deliveryId || !currentUser) return;
     router.push({
-      pathname: "/(protected)/delivery-chat-detail",
+      pathname: "/(lab)/lab-delivery-chat-detail",
       params: {
         deliveryId: testDetail.deliveryId,
         deliveryName: testDetail.deliveryName,
-        deliveryAvatar: "https://via.placeholder.com/100"
-      }
+        deliveryAvatar: "https://via.placeholder.com/100",
+      },
     });
   };
 
@@ -166,27 +175,43 @@ const TestDetailScreen = () => {
 
   const getStatusDisplay = (status: TestRequestStatus) => {
     switch (status) {
-      case "pending": return "New";
-      case "accepted": return "Accepted";
-      case "sample_collected": return "Sample Collected";
-      case "processing": return "Processing";
-      case "report_ready": return "Report Ready";
-      case "completed": return "Completed";
-      case "cancelled": return "Cancelled";
-      default: return status;
+      case "pending":
+        return "New";
+      case "accepted":
+        return "Accepted";
+      case "sample_collected":
+        return "Sample Collected";
+      case "processing":
+        return "Processing";
+      case "report_ready":
+        return "Report Ready";
+      case "completed":
+        return "Completed";
+      case "cancelled":
+        return "Cancelled";
+      default:
+        return status;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return colors.primary;
-      case "accepted": return "#00BCD4";
-      case "sample_collected": return "#FF9800";
-      case "processing": return "#9C27B0";
-      case "report_ready": return colors.primary;
-      case "completed": return "#4CAF50";
-      case "cancelled": return "#F44336";
-      default: return colors.gray;
+      case "pending":
+        return colors.primary;
+      case "accepted":
+        return "#00BCD4";
+      case "sample_collected":
+        return "#FF9800";
+      case "processing":
+        return "#9C27B0";
+      case "report_ready":
+        return colors.primary;
+      case "completed":
+        return "#4CAF50";
+      case "cancelled":
+        return "#F44336";
+      default:
+        return colors.gray;
     }
   };
 
@@ -202,12 +227,18 @@ const TestDetailScreen = () => {
   const getNextActionLabel = () => {
     if (!testDetail) return null;
     switch (testDetail.status) {
-      case "pending": return "Accept Request";
-      case "accepted": return "Mark Sample Collected";
-      case "sample_collected": return "Start Processing";
-      case "processing": return "Mark Report Ready";
-      case "report_ready": return "Complete Order";
-      default: return null;
+      case "pending":
+        return "Accept Request";
+      case "accepted":
+        return "Mark Sample Collected";
+      case "sample_collected":
+        return "Start Processing";
+      case "processing":
+        return "Mark Report Ready";
+      case "report_ready":
+        return "Complete Order";
+      default:
+        return null;
     }
   };
 
@@ -220,7 +251,11 @@ const TestDetailScreen = () => {
     if (!nextStatus || !testDetail) return;
 
     try {
-      await LabTestService.updateTestRequestStatus(testDetail.id, nextStatus, testDetail);
+      await LabTestService.updateTestRequestStatus(
+        testDetail.id,
+        nextStatus,
+        testDetail,
+      );
       const actionMessages: Record<string, string> = {
         accepted: "Request accepted. Patient will be notified.",
         sample_collected: "Sample marked as collected.",
@@ -246,19 +281,38 @@ const TestDetailScreen = () => {
 
   if (loading) {
     return (
-      <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View
+        style={[
+          styles.mainContainer,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.white} />
-        <Text style={{ color: colors.white, marginTop: 10 }}>Loading details...</Text>
+        <Text style={{ color: colors.white, marginTop: 10 }}>
+          Loading details...
+        </Text>
       </View>
     );
   }
 
   if (!testDetail) {
     return (
-      <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View
+        style={[
+          styles.mainContainer,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
         <Text style={{ color: colors.white }}>Request not found</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <Text style={{ color: colors.white, textDecorationLine: 'underline' }}>Go Back</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginTop: 20 }}
+        >
+          <Text
+            style={{ color: colors.white, textDecorationLine: "underline" }}
+          >
+            Go Back
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -269,7 +323,7 @@ const TestDetailScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <LinearGradient
-        colors={[colors.primary, '#00D68F']}
+        colors={[colors.primary, "#00D68F"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -283,8 +337,15 @@ const TestDetailScreen = () => {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Test Details</Text>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(testDetail.status) }]}>
-              <Text style={styles.statusBadgeText}>{getStatusDisplay(testDetail.status)}</Text>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(testDetail.status) },
+              ]}
+            >
+              <Text style={styles.statusBadgeText}>
+                {getStatusDisplay(testDetail.status)}
+              </Text>
             </View>
           </View>
           <View style={styles.headerIcon}>
@@ -298,7 +359,7 @@ const TestDetailScreen = () => {
           style={{
             flex: 1,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
+            transform: [{ translateY: slideAnim }],
           }}
         >
           <ScrollView
@@ -310,7 +371,8 @@ const TestDetailScreen = () => {
               <Text style={styles.sectionTitle}>Status Progress</Text>
               <View style={styles.statusFlow}>
                 {statusFlow.map((status, index) => {
-                  const isCompleted = statusFlow.indexOf(testDetail.status) >= index;
+                  const isCompleted =
+                    statusFlow.indexOf(testDetail.status) >= index;
                   const isCurrent = testDetail.status === status;
                   return (
                     <View key={status} style={styles.statusStep}>
@@ -322,7 +384,11 @@ const TestDetailScreen = () => {
                         ]}
                       >
                         {isCompleted && !isCurrent && (
-                          <Ionicons name="checkmark" size={12} color={colors.white} />
+                          <Ionicons
+                            name="checkmark"
+                            size={12}
+                            color={colors.white}
+                          />
                         )}
                       </View>
                       <Text
@@ -355,13 +421,25 @@ const TestDetailScreen = () => {
                 <View
                   style={[
                     styles.priorityBadge,
-                    { backgroundColor: testDetail.priority === "urgent" || testDetail.priority === "critical" ? "#F44336" + "15" : colors.primary + "15" },
+                    {
+                      backgroundColor:
+                        testDetail.priority === "urgent" ||
+                        testDetail.priority === "critical"
+                          ? "#F44336" + "15"
+                          : colors.primary + "15",
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.priorityText,
-                      { color: testDetail.priority === "urgent" || testDetail.priority === "critical" ? "#F44336" : colors.primary },
+                      {
+                        color:
+                          testDetail.priority === "urgent" ||
+                          testDetail.priority === "critical"
+                            ? "#F44336"
+                            : colors.primary,
+                      },
                     ]}
                   >
                     {testDetail.priority.toUpperCase()}
@@ -375,7 +453,9 @@ const TestDetailScreen = () => {
                 </View>
                 <View style={styles.patientDetails}>
                   <Text style={styles.patientName}>{testDetail.userName}</Text>
-                  <Text style={styles.patientContact}>{testDetail.userPhone}</Text>
+                  <Text style={styles.patientContact}>
+                    {testDetail.userPhone}
+                  </Text>
                 </View>
               </View>
 
@@ -404,18 +484,28 @@ const TestDetailScreen = () => {
                     styles.collectionBadge,
                     {
                       backgroundColor:
-                        testDetail.collectionType === "home_sampling" ? colors.primary : "#9C27B0",
+                        testDetail.collectionType === "home_sampling"
+                          ? colors.primary
+                          : "#9C27B0",
                     },
                   ]}
                 >
                   <Ionicons
-                    name={testDetail.collectionType === "home_sampling" ? "home" : "business"}
+                    name={
+                      testDetail.collectionType === "home_sampling"
+                        ? "home"
+                        : "business"
+                    }
                     size={20}
                     color={colors.white}
                   />
                 </View>
                 <View>
-                  <Text style={styles.collectionType}>{testDetail.collectionType === "home_sampling" ? "Home Sampling" : "Lab Visit"}</Text>
+                  <Text style={styles.collectionType}>
+                    {testDetail.collectionType === "home_sampling"
+                      ? "Home Sampling"
+                      : "Lab Visit"}
+                  </Text>
                   <Text style={styles.scheduleText}>
                     {testDetail.scheduledDate} at {testDetail.scheduledTime}
                   </Text>
@@ -450,7 +540,9 @@ const TestDetailScreen = () => {
                 <View style={styles.detailRow}>
                   <Ionicons name="medkit" size={18} color={colors.gray} />
                   <Text style={styles.detailLabel}>Doctor:</Text>
-                  <Text style={styles.detailValue}>{testDetail.doctorName}</Text>
+                  <Text style={styles.detailValue}>
+                    {testDetail.doctorName}
+                  </Text>
                 </View>
               )}
 
@@ -468,7 +560,7 @@ const TestDetailScreen = () => {
                 <View style={styles.cardHeader}>
                   <Text style={styles.sectionTitle}>Lab Delivery Boy</Text>
                   {!testDetail.deliveryId && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => {
                         setShowAssignModal(true);
                         fetchAvailableDelivery();
@@ -484,24 +576,42 @@ const TestDetailScreen = () => {
                   <View>
                     <View style={styles.deliveryRow}>
                       <View style={styles.avatarSmall}>
-                        <Ionicons name="bicycle" size={20} color={colors.white} />
+                        <Ionicons
+                          name="bicycle"
+                          size={20}
+                          color={colors.white}
+                        />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.deliveryName}>{testDetail.deliveryName}</Text>
-                        <Text style={styles.deliveryStatus}>Assigned Provider</Text>
+                        <Text style={styles.deliveryName}>
+                          {testDetail.deliveryName}
+                        </Text>
+                        <Text style={styles.deliveryStatus}>
+                          Assigned Provider
+                        </Text>
                       </View>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.chatIconBtn}
                         onPress={handleChatWithDelivery}
                       >
-                        <Ionicons name="chatbubbles" size={24} color={colors.primary} />
+                        <Ionicons
+                          name="chatbubbles"
+                          size={24}
+                          color={colors.primary}
+                        />
                       </TouchableOpacity>
                     </View>
                   </View>
                 ) : (
                   <View style={styles.unassignedBox}>
-                    <Ionicons name="alert-circle-outline" size={20} color={colors.gray} />
-                    <Text style={styles.unassignedText}>No delivery person assigned yet.</Text>
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={20}
+                      color={colors.gray}
+                    />
+                    <Text style={styles.unassignedText}>
+                      No delivery person assigned yet.
+                    </Text>
                   </View>
                 )}
               </View>
@@ -541,7 +651,11 @@ const TestDetailScreen = () => {
             </View>
 
             {loadingDelivery ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ margin: 40 }} />
+              <ActivityIndicator
+                size="large"
+                color={colors.primary}
+                style={{ margin: 40 }}
+              />
             ) : deliveryPersons.length > 0 ? (
               <FlatList
                 data={deliveryPersons}
@@ -557,8 +671,10 @@ const TestDetailScreen = () => {
                 ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
               />
             ) : (
-              <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: colors.gray, textAlign: 'center' }}>No approved delivery boys found.</Text>
+              <View style={{ padding: 40, alignItems: "center" }}>
+                <Text style={{ color: colors.gray, textAlign: "center" }}>
+                  No approved delivery boys found.
+                </Text>
               </View>
             )}
           </View>
@@ -572,7 +688,7 @@ const TestDetailScreen = () => {
         onConfirm={confirmStatusUpdate}
         onCancel={() => setShowConfirmModal(false)}
         title="Update Status"
-        message={`Are you sure you want to update status to "${getStatusDisplay(getNextStatus() || 'pending')}"?`}
+        message={`Are you sure you want to update status to "${getStatusDisplay(getNextStatus() || "pending")}"?`}
         icon="swap-horizontal-outline"
         type="info"
         confirmText="Confirm"
@@ -930,20 +1046,20 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   assignModalContent: {
     backgroundColor: colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: "80%",
     paddingBottom: 40,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.background,

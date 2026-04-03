@@ -12,7 +12,6 @@ import {
     where,
 } from "firebase/firestore";
 import NotificationService from "./NotificationService";
-import PaymentService from "./PaymentService";
 
 export type TestRequestStatus =
   | "pending"
@@ -51,7 +50,11 @@ export interface LabTestRequest {
   deliveryName?: string;
   // Payment info
   paymentMethod?: string; // card | cash | wallet | bnpl
-  paymentStatus?: "pending" | "paid_to_admin" | "cash_collected" | "released_to_provider";
+  paymentStatus?:
+    | "pending"
+    | "paid_to_admin"
+    | "cash_collected"
+    | "released_to_provider";
   // Additional info
   address?: string;
   notes?: string;
@@ -70,7 +73,7 @@ class LabTestService {
 
   // Create a new test request (Patient booking a test)
   async createTestRequest(
-    data: Omit<LabTestRequest, "id" | "createdAt" | "updatedAt" | "status">
+    data: Omit<LabTestRequest, "id" | "createdAt" | "updatedAt" | "status">,
   ): Promise<string> {
     try {
       const docRef = await addDoc(collection(db, this.collectionName), {
@@ -92,7 +95,7 @@ class LabTestService {
           userName: data.userName,
           testType: data.testType,
           collectionType: data.collectionType,
-        }
+        },
       );
 
       return docRef.id;
@@ -107,7 +110,7 @@ class LabTestService {
     requestId: string,
     status: TestRequestStatus,
     request: LabTestRequest,
-    additionalData?: Partial<LabTestRequest>
+    additionalData?: Partial<LabTestRequest>,
   ): Promise<void> {
     try {
       const updateData: any = {
@@ -124,14 +127,16 @@ class LabTestService {
           const q = query(
             collection(db, "adminWallet"),
             where("entityId", "==", requestId),
-            where("status", "in", ["held_in_escrow", "cash_collected"])
+            where("status", "in", ["held_in_escrow", "cash_collected"]),
           );
           const walletSnap = await getDocs(q);
           for (const walletDoc of walletSnap.docs) {
             await updateDoc(walletDoc.ref, {
               status: "pending_auto_release",
               completedAt: Timestamp.now(),
-              autoReleaseAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+              autoReleaseAt: Timestamp.fromDate(
+                new Date(Date.now() + 24 * 60 * 60 * 1000),
+              ),
               updatedAt: Timestamp.now(),
             });
           }
@@ -182,11 +187,60 @@ class LabTestService {
             labId: request.labId,
             labName: request.labName,
             status,
-          }
+          },
         );
       }
     } catch (error) {
       console.error("Error updating test request status:", error);
+      throw error;
+    }
+  }
+
+  // Assign delivery boy to test request
+  async assignDeliveryBoy(
+    requestId: string,
+    deliveryId: string,
+    deliveryName: string,
+    labId: string,
+    labName: string,
+  ): Promise<void> {
+    try {
+      await updateDoc(doc(db, this.collectionName, requestId), {
+        deliveryId,
+        deliveryName,
+        updatedAt: Timestamp.now(),
+      });
+
+      // Notify the delivery boy
+      await NotificationService.createNotification(
+        deliveryId,
+        "order",
+        "New Delivery Assignment",
+        `${labName} has assigned you to collect a sample for a lab test.`,
+        {
+          testRequestId: requestId,
+          labId,
+          labName,
+        },
+      );
+
+      // Notify the patient
+      const request = await this.getTestRequestById(requestId);
+      if (request) {
+        await NotificationService.createNotification(
+          request.userId,
+          "order",
+          "Delivery Assigned",
+          `A delivery person has been assigned for your home sampling.`,
+          {
+            testRequestId: requestId,
+            deliveryId,
+            deliveryName,
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Error assigning delivery boy:", error);
       throw error;
     }
   }
@@ -211,12 +265,12 @@ class LabTestService {
   // Listen to patient's test requests
   listenToUserTestRequests(
     userId: string,
-    callback: (requests: LabTestRequest[]) => void
+    callback: (requests: LabTestRequest[]) => void,
   ) {
     try {
       const q = query(
         collection(db, this.collectionName),
-        where("userId", "==", userId)
+        where("userId", "==", userId),
       );
 
       return onSnapshot(q, (snapshot) => {
@@ -237,12 +291,12 @@ class LabTestService {
   // Listen to lab's test requests
   listenToLabTestRequests(
     labId: string,
-    callback: (requests: LabTestRequest[]) => void
+    callback: (requests: LabTestRequest[]) => void,
   ) {
     try {
       const q = query(
         collection(db, this.collectionName),
-        where("labId", "==", labId)
+        where("labId", "==", labId),
       );
 
       return onSnapshot(q, (snapshot) => {
@@ -265,7 +319,7 @@ class LabTestService {
     try {
       const q = query(
         collection(db, this.collectionName),
-        where("labId", "==", labId)
+        where("labId", "==", labId),
       );
 
       const snapshot = await getDocs(q);
@@ -284,7 +338,7 @@ class LabTestService {
     requestId: string,
     request: LabTestRequest,
     reportUrl: string,
-    reportNotes?: string
+    reportNotes?: string,
   ): Promise<void> {
     try {
       await this.updateTestRequestStatus(requestId, "report_ready", request, {
@@ -300,7 +354,7 @@ class LabTestService {
   // Cancel test request
   async cancelTestRequest(
     requestId: string,
-    request: LabTestRequest
+    request: LabTestRequest,
   ): Promise<void> {
     try {
       await this.updateTestRequestStatus(requestId, "cancelled", request);
@@ -313,13 +367,13 @@ class LabTestService {
   // Listen to delivery boy's assigned lab test requests (home sampling)
   listenToDeliveryLabTestRequests(
     deliveryId: string,
-    callback: (requests: LabTestRequest[]) => void
+    callback: (requests: LabTestRequest[]) => void,
   ) {
     try {
       const q = query(
         collection(db, this.collectionName),
         where("deliveryId", "==", deliveryId),
-        where("collectionType", "==", "home_sampling")
+        where("collectionType", "==", "home_sampling"),
       );
 
       return onSnapshot(q, (snapshot) => {
@@ -340,7 +394,7 @@ class LabTestService {
   // Update payment status for a test request
   async updatePaymentStatus(
     requestId: string,
-    paymentStatus: LabTestRequest["paymentStatus"]
+    paymentStatus: LabTestRequest["paymentStatus"],
   ): Promise<void> {
     try {
       await updateDoc(doc(db, this.collectionName, requestId), {
@@ -358,7 +412,7 @@ class LabTestService {
     requestId: string,
     request: LabTestRequest,
     deliveryId: string,
-    deliveryName: string
+    deliveryName: string,
   ): Promise<void> {
     try {
       const updateData: any = {
@@ -409,7 +463,7 @@ class LabTestService {
           userId: request.userId,
           userName: request.userName,
           labName: request.labName,
-        }
+        },
       );
     } catch (error) {
       console.error("Error assigning delivery boy:", error);
