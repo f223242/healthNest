@@ -2,7 +2,12 @@ import { ToastProvider } from "@/component/Toast/ToastProvider";
 import { AuthProvider, useAuthContext } from "@/hooks/useFirebaseAuth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
+import {
+  Stack,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -11,6 +16,7 @@ const PENDING_USER_KEY = "@healthnest_pending_user";
 const VERIFICATION_COMPLETE_KEY = "@healthnest_verification_complete";
 
 export default function RootLayout() {
+  console.log("RootLayout is rendering!!");
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ToastProvider>
@@ -43,16 +49,21 @@ function InnerLayout() {
   const role = user?.role || "user";
 
   // State to differentiate between email verification and password reset
-  const [pendingUserType, setPendingUserType] = useState<"none" | "verification" | "passwordReset" | null>(null);
+  const [pendingUserType, setPendingUserType] = useState<
+    "none" | "verification" | "passwordReset" | null
+  >(null);
 
   // Track if verification was just completed to prevent redirect loop
-  const [verificationJustCompleted, setVerificationJustCompleted] = useState(false);
+  const [verificationJustCompleted, setVerificationJustCompleted] =
+    useState(false);
 
   // Check for pending user (during email verification or password reset)
   useEffect(() => {
     const checkPendingUser = async () => {
       // Check if verification was just completed - skip redirect to otp-screen
-      const verificationComplete = await AsyncStorage.getItem(VERIFICATION_COMPLETE_KEY);
+      const verificationComplete = await AsyncStorage.getItem(
+        VERIFICATION_COMPLETE_KEY,
+      );
       if (verificationComplete) {
         // Clear the flag after reading
         await AsyncStorage.removeItem(VERIFICATION_COMPLETE_KEY);
@@ -76,7 +87,8 @@ function InnerLayout() {
         if (pendingUser.createdAt) {
           const createdAt = new Date(pendingUser.createdAt);
           const now = new Date();
-          const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+          const diffMinutes =
+            (now.getTime() - createdAt.getTime()) / (1000 * 60);
 
           if (diffMinutes > 10) {
             // Expired - clear the data
@@ -117,28 +129,60 @@ function InnerLayout() {
   }, [user?.uid, user?.profileCompleted]);
 
   // Safe navigation helper
-  const safeNavigate = useCallback((route: string) => {
-    // Prevent duplicate navigations
-    if (lastNavigationRef.current === route) {
-      return;
-    }
-    lastNavigationRef.current = route;
+  const safeNavigate = useCallback(
+    (route: string) => {
+      // Prevent duplicate navigations
+      if (lastNavigationRef.current === route) {
+        return;
+      }
+      lastNavigationRef.current = route;
 
-    // Use setTimeout to ensure navigation happens after current render cycle
-    setTimeout(() => {
-      router.replace(route as any);
-    }, 0);
-  }, [router]);
+      // Use setTimeout to ensure navigation happens after current render cycle
+      setTimeout(() => {
+        router.replace(route as any);
+      }, 0);
+    },
+    [router],
+  );
 
   // Navigation logic
   useEffect(() => {
-    // Wait for navigation state to be ready
-    if (!rootNavigationState?.key) return;
-    if (!fontsLoaded || isLoading || hasPendingUser === null || pendingUserType === null) return;
+    console.log("[RootLayout] Checking navigation state", {
+      fontsLoaded,
+      isLoading,
+      hasPendingUser,
+      pendingUserType,
+      segments,
+      navReady: !!rootNavigationState?.key,
+    });
 
-    const currentGroup = segments[0] as string | undefined;
-    const currentScreen = segments[1] as string | undefined;
+    // Wait for navigation state to be ready
+    if (!rootNavigationState?.key) {
+      console.log("[RootLayout] Navigation not ready yet...");
+      return;
+    }
+
+    if (
+      !fontsLoaded ||
+      isLoading ||
+      hasPendingUser === null ||
+      pendingUserType === null
+    ) {
+      console.log("[RootLayout] Waiting for dependencies (auth/fonts)...");
+      return;
+    }
+
+    const currentGroup = (segments as string[])[0] as string | undefined;
+    const currentScreen = (
+      (segments as string[]).length > 1 ? (segments as string[])[1] : undefined
+    ) as string | undefined;
     const fullPath = segments.join("/");
+
+    console.log("[RootLayout] Current Route:", {
+      currentGroup,
+      currentScreen,
+      fullPath,
+    });
 
     // User is NOT logged in
     if (!user) {
@@ -166,7 +210,10 @@ function InnerLayout() {
       }
 
       // If password reset flow, allow them to stay on reset-password screen
-      if (pendingUserType === "passwordReset" && currentScreen !== "reset-password") {
+      if (
+        pendingUserType === "passwordReset" &&
+        currentScreen !== "reset-password"
+      ) {
         // Don't force redirect - they might be on forgot-password navigating to reset-password
         if (currentScreen !== "forgot-password") {
           safeNavigate("/(auth)/reset-password");
@@ -186,7 +233,8 @@ function InnerLayout() {
 
     // User IS logged in - check if profile is completed (skip for admin)
     // Check both segment positions for additional-info (could be at different positions)
-    const isOnAdditionalInfo = currentScreen === "additional-info" ||
+    const isOnAdditionalInfo =
+      currentScreen === "additional-info" ||
       fullPath.includes("additional-info");
 
     if (role !== "admin" && !user.profileCompleted && !isOnAdditionalInfo) {
@@ -216,6 +264,11 @@ function InnerLayout() {
       return;
     }
 
+    if (role === "home_sampling" && currentGroup !== "(delivery)") {
+      safeNavigate("/(delivery)/(tabs)");
+      return;
+    }
+
     if (role === "lab" && currentGroup !== "(lab)") {
       safeNavigate("/(lab)/(tabs)");
       return;
@@ -225,10 +278,25 @@ function InnerLayout() {
       safeNavigate("/(protected)/(tabs)");
       return;
     }
-  }, [user, isLoading, fontsLoaded, segments, hasPendingUser, pendingUserType, role, rootNavigationState?.key, safeNavigate]);
+  }, [
+    user,
+    isLoading,
+    fontsLoaded,
+    segments,
+    hasPendingUser,
+    pendingUserType,
+    role,
+    rootNavigationState?.key,
+    safeNavigate,
+  ]);
 
   // Show loading while initializing
-  if (!fontsLoaded || isLoading || hasPendingUser === null || pendingUserType === null) {
+  if (
+    !fontsLoaded ||
+    isLoading ||
+    hasPendingUser === null ||
+    pendingUserType === null
+  ) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#009963" />
@@ -239,6 +307,7 @@ function InnerLayout() {
   // Render all screen groups - navigation logic handles access
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(admin)" />
       <Stack.Screen name="(nurse)" />

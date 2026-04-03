@@ -1,11 +1,12 @@
-import { colors, Fonts } from "@/constant/theme";
 import { Image, StyleSheet, Text, View } from "react-native";
+import { colors, Fonts } from "../constant/theme";
 
 export default function SplashScreen() {
+  console.log("Index screen mounted!");
   return (
     <View style={styles.container}>
       <Image
-        source={require("@/assets/png/logo.png")}
+        source={require("../assets/png/logo.png")}
         style={styles.logo}
         resizeMode="contain"
       />
