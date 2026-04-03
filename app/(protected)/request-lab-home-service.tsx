@@ -35,6 +35,17 @@ const RequestLabHomeService = () => {
   const params = useLocalSearchParams();
   const { labId, labName } = params;
   const { getAllUsers, user } = useAuthContext();
+
+  const isLabTechnician = (role?: string) => {
+    if (!role) return false;
+    const normalized = role
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-");
+    return normalized === "lab" || normalized === "lab-technician";
+  };
+
   const [filter, setFilter] = useState<"all" | "available">("all");
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +105,7 @@ const RequestLabHomeService = () => {
       user?.role,
     );
     // Only lab technicians can see delivery boys for assignment
-    if (user?.role !== "lab") {
+    if (!isLabTechnician(user?.role)) {
       console.log(
         "🚫 Not a lab user, skipping delivery fetch and showing patient UI",
       );
@@ -106,50 +117,66 @@ const RequestLabHomeService = () => {
     try {
       // Get all users with delivery role and lab delivery type
       const users = await getAllUsers("Lab Delivery");
+      console.log(
+        "🔍 RequestLabHomeService - getAllUsers(Lab Delivery) returned",
+        users.length,
+        "records",
+      );
+
+      const eligibleUsers = users.filter(
+        (user: User) =>
+          user.profileCompleted &&
+          user.additionalInfo &&
+          user.isApproved === true,
+      );
+
+      console.log(
+        "🔍 RequestLabHomeService - eligible approved lab delivery users:",
+        eligibleUsers.length,
+      );
+
       const deliveryData: DeliveryPerson[] = await Promise.all(
-        users
-          .filter((user: User) => user.profileCompleted && user.additionalInfo && user.isApproved === true)
-          .map(async (user: User, index: number) => {
-            const info = user.additionalInfo as DeliveryInfo;
-            const fullName =
-              `${user.firstname || ""} ${user.lastname || ""}`.trim() ||
-              "Lab Delivery Person";
+        eligibleUsers.map(async (user: User, index: number) => {
+          const info = user.additionalInfo as DeliveryInfo;
+          const fullName =
+            `${user.firstname || ""} ${user.lastname || ""}`.trim() ||
+            "Lab Delivery Person";
 
-            // Default available UNLESS explicitly marked as unavailable
-            const isAvailable =
-              !info.availability ||
-              (info.availability.toLowerCase() !== "unavailable" &&
-                info.availability.toLowerCase() !== "part-time");
+          // Default available UNLESS explicitly marked as unavailable
+          const isAvailable =
+            !info.availability ||
+            (info.availability.toLowerCase() !== "unavailable" &&
+              info.availability.toLowerCase() !== "part-time");
 
-            // Fetch real ratings from Firebase
-            let rating = 0;
-            let totalDeliveries = 0;
-            try {
-              const ratingStats =
-                await FeedbackComplaintService.getProviderRatingStats(user.uid);
-              rating = ratingStats.averageRating || 0;
-              // Use reviews count as proxy for deliveries
-              totalDeliveries = ratingStats.totalReviews || 0;
-            } catch (err) {
-              console.log("No ratings for lab delivery person:", user.uid);
-            }
+          // Fetch real ratings from Firebase
+          let rating = 0;
+          let totalDeliveries = 0;
+          try {
+            const ratingStats =
+              await FeedbackComplaintService.getProviderRatingStats(user.uid);
+            rating = ratingStats.averageRating || 0;
+            // Use reviews count as proxy for deliveries
+            totalDeliveries = ratingStats.totalReviews || 0;
+          } catch (err) {
+            console.log("No ratings for lab delivery person:", user.uid);
+          }
 
-            return {
-              id: index + 1,
-              name: fullName,
-              avatar: info.profileImage || "https://via.placeholder.com/100",
-              rating,
-              totalDeliveries,
-              isAvailable,
-              deliveryTime: "15-25 min",
-              distance: info.city || "N/A",
-              vehicleType: info.vehicleType || "Bike",
-              vehicleNumber: info.vehicleNumber || "",
-              deliveryType: (user as any).deliveryType || "lab",
-              qualification: (user as any).qualification || "",
-              uid: user.uid,
-            };
-          }),
+          return {
+            id: index + 1,
+            name: fullName,
+            avatar: info.profileImage || "https://via.placeholder.com/100",
+            rating,
+            totalDeliveries,
+            isAvailable,
+            deliveryTime: "15-25 min",
+            distance: info.city || "N/A",
+            vehicleType: info.vehicleType || "Bike",
+            vehicleNumber: info.vehicleNumber || "",
+            deliveryType: (user as any).deliveryType || "lab",
+            qualification: (user as any).qualification || "",
+            uid: user.uid,
+          };
+        }),
       );
 
       setDeliveryPersons(deliveryData);
@@ -263,11 +290,15 @@ const RequestLabHomeService = () => {
             </Text>
           </View>
 
-          {user?.role === "lab" ? (
+          {isLabTechnician(user?.role) ? (
             /* For lab technicians - show delivery boy selection for assignment */
             filteredDeliveryPersons.length === 0 ? (
               <View style={styles.emptyStateContainer}>
-                <Ionicons name="sad-outline" size={60} color={colors.lightGray} />
+                <Ionicons
+                  name="sad-outline"
+                  size={60}
+                  color={colors.lightGray}
+                />
                 <Text style={styles.emptyStateTitle}>
                   No Lab Delivery Available
                 </Text>
@@ -322,22 +353,35 @@ const RequestLabHomeService = () => {
               </View>
               <Text style={styles.patientTitle}>Home Lab Sampling</Text>
               <Text style={styles.patientDescription}>
-                Book a professional lab collection service from the comfort of your home.
+                Book a professional lab collection service from the comfort of
+                your home.
               </Text>
 
               <View style={styles.processInfoCard}>
                 <Text style={styles.processInfoTitle}>How it works:</Text>
                 <View style={styles.processStep}>
-                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
-                  <Text style={styles.stepText}>Schedule your tests and collection time.</Text>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Schedule your tests and collection time.
+                  </Text>
                 </View>
                 <View style={styles.processStep}>
-                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
-                  <Text style={styles.stepText}>The lab assigns a nearby certified delivery boy.</Text>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    The lab assigns a nearby certified delivery boy.
+                  </Text>
                 </View>
                 <View style={styles.processStep}>
-                  <View style={styles.stepNumber}><Text style={styles.stepNumberText}>3</Text></View>
-                  <Text style={styles.stepText}>Track and chat with your assigned person instantly.</Text>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Track and chat with your assigned person instantly.
+                  </Text>
                 </View>
               </View>
 
@@ -354,7 +398,9 @@ const RequestLabHomeService = () => {
                   });
                 }}
               >
-                <Text style={styles.bookNowButtonText}>Continue to Booking</Text>
+                <Text style={styles.bookNowButtonText}>
+                  Continue to Booking
+                </Text>
                 <Ionicons name="arrow-forward" size={20} color={colors.white} />
               </TouchableOpacity>
             </View>

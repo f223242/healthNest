@@ -4,9 +4,7 @@ import FormInput from "@/component/FormInput";
 import ConfirmationModal from "@/component/ModalComponent/ConfirmationModal";
 import PaymentMethodModal from "@/component/ModalComponent/PaymentMethodModal";
 
-import DeliveryPersonCard, {
-    DeliveryPerson,
-} from "@/component/DeliveryPersonCard";
+import { DeliveryPerson } from "@/component/DeliveryPersonCard";
 import { DeliveryInfo, useAuthContext, User } from "@/hooks/useFirebaseAuth";
 import AppointmentService from "@/services/AppointmentService";
 import FeedbackComplaintService from "@/services/FeedbackComplaintService";
@@ -82,6 +80,17 @@ const LabBookingForm = () => {
     "Lab",
   );
   const { user, getAllUsers } = useAuthContext();
+
+  const isLabTechnician = (role?: string) => {
+    if (!role) return false;
+    const normalized = role
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-");
+    return normalized === "lab" || normalized === "lab-technician";
+  };
+
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>([]);
   const [loadingDelivery, setLoadingDelivery] = useState(false);
   const [activeAppointments, setActiveAppointments] = useState<Set<string>>(
@@ -221,7 +230,7 @@ const LabBookingForm = () => {
       "user role:",
       user?.role,
     );
-    if (selectedTestType !== "Home" || user?.role !== "lab") {
+    if (selectedTestType !== "Home" || !isLabTechnician(user?.role)) {
       console.log("🚫 Skipping delivery fetch - not home test or not lab user");
       return;
     }
@@ -229,47 +238,61 @@ const LabBookingForm = () => {
     setLoadingDelivery(true);
     try {
       const users = await getAllUsers("Lab Delivery");
+      console.log(
+        "🔍 LabBookingForm - getAllUsers(Lab Delivery) returned",
+        users.length,
+        "records",
+      );
+
+      const eligibleUsers = users.filter(
+        (u: User) =>
+          u.profileCompleted && u.additionalInfo && u.isApproved === true,
+      );
+
+      console.log(
+        "🔍 LabBookingForm - eligible approved lab delivery users:",
+        eligibleUsers.length,
+      );
+
       const deliveryData: DeliveryPerson[] = await Promise.all(
-        users
-          .filter((u: User) => u.profileCompleted && u.additionalInfo && u.isApproved === true)
-          .map(async (u: User, index: number) => {
-            const info = u.additionalInfo as DeliveryInfo;
-            const fullName =
-              `${u.firstname || ""} ${u.lastname || ""}`.trim() ||
-              "Lab Delivery Person";
+        eligibleUsers.map(async (u: User, index: number) => {
+          const info = u.additionalInfo as DeliveryInfo;
+          const fullName =
+            `${u.firstname || ""} ${u.lastname || ""}`.trim() ||
+            "Lab Delivery Person";
 
-            const isAvailable =
-              !info.availability ||
-              (info.availability.toLowerCase() !== "unavailable" &&
-                info.availability.toLowerCase() !== "part-time");
+          const isAvailable =
+            !info.availability ||
+            (info.availability.toLowerCase() !== "unavailable" &&
+              info.availability.toLowerCase() !== "part-time");
 
-            let rating = 0;
-            let totalDeliveries = 0;
-            try {
-              const ratingStats =
-                await FeedbackComplaintService.getProviderRatingStats(u.uid);
-              rating = ratingStats.averageRating || 0;
-              totalDeliveries = ratingStats.totalReviews || 0;
-            } catch (err) {
-              console.log("No ratings for lab delivery person:", u.uid);
-            }
+          let rating = 0;
+          let totalDeliveries = 0;
+          try {
+            const ratingStats =
+              await FeedbackComplaintService.getProviderRatingStats(u.uid);
+            rating = ratingStats.averageRating || 0;
+            totalDeliveries = ratingStats.totalReviews || 0;
+          } catch (err) {
+            console.log("No ratings for lab delivery person:", u.uid);
+          }
 
-            return {
-              id: index + 1,
-              name: fullName,
-              avatar: info.profileImage || "https://via.placeholder.com/100",
-              rating,
-              totalDeliveries,
-              isAvailable,
-              deliveryTime: "15-25 min",
-              distance: info.city || "N/A",
-              vehicleType: info.vehicleType || "Bike",
-              vehicleNumber: info.vehicleNumber || "",
-              deliveryType: (u as any).deliveryType || "lab",
-              qualification: (u as any).qualification || "",
-              uid: u.uid,
-            } as DeliveryPerson;
-          }),
+          return {
+            id: index + 1,
+            name: fullName,
+            avatar: info.profileImage || "https://via.placeholder.com/100",
+            rating,
+            totalDeliveries,
+            isAvailable,
+            deliveryTime: "15-25 min",
+            distance: info.city || "N/A",
+            vehicleType: info.vehicleType || "Bike",
+            vehicleNumber: info.vehicleNumber || "",
+            deliveryType: (u as any).deliveryType || "lab",
+            qualification: (u as any).qualification || "",
+            uid: u.uid,
+          } as DeliveryPerson;
+        }),
       );
       setDeliveryPersons(deliveryData);
     } catch (error) {
@@ -478,7 +501,6 @@ const LabBookingForm = () => {
 
       // 4. Delivery boy will be assigned by lab technician later from their dashboard
 
-
       setShowSuccessModal(true);
     } catch (error: any) {
       console.error("Error saving booking:", error);
@@ -602,196 +624,182 @@ const LabBookingForm = () => {
               </View>
             </View>
 
-
-
             <View>
-                {/* Personal Information */}
-                <View style={{ ...styles.section, gap: 8 }}>
-                  <Text style={appStyles.sectionTitle}>
-                    Personal Information
-                  </Text>
-                  <FormInput
-                    placeholder="Full Name"
-                    value={formik.values.fullName}
-                    onChangeText={formik.handleChange("fullName")}
-                    onBlur={formik.handleBlur("fullName")}
-                    error={
-                      formik.touched.fullName
-                        ? formik.errors.fullName
-                        : undefined
-                    }
-                  />
-                  <FormInput
-                    placeholder="Email Address"
-                    value={formik.values.email}
-                    onChangeText={formik.handleChange("email")}
-                    onBlur={formik.handleBlur("email")}
-                    error={
-                      formik.touched.email ? formik.errors.email : undefined
-                    }
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                  <FormInput
-                    placeholder="Phone Number"
-                    value={formik.values.phone}
-                    onChangeText={formik.handleChange("phone")}
-                    onBlur={formik.handleBlur("phone")}
-                    error={
-                      formik.touched.phone ? formik.errors.phone : undefined
-                    }
-                    keyboardType="phone-pad"
-                    maxLength={11}
-                  />
-                  <FormInput
-                    placeholder="Age"
-                    value={formik.values.age}
-                    onChangeText={formik.handleChange("age")}
-                    onBlur={formik.handleBlur("age")}
-                    error={formik.touched.age ? formik.errors.age : undefined}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                </View>
+              {/* Personal Information */}
+              <View style={{ ...styles.section, gap: 8 }}>
+                <Text style={appStyles.sectionTitle}>Personal Information</Text>
+                <FormInput
+                  placeholder="Full Name"
+                  value={formik.values.fullName}
+                  onChangeText={formik.handleChange("fullName")}
+                  onBlur={formik.handleBlur("fullName")}
+                  error={
+                    formik.touched.fullName ? formik.errors.fullName : undefined
+                  }
+                />
+                <FormInput
+                  placeholder="Email Address"
+                  value={formik.values.email}
+                  onChangeText={formik.handleChange("email")}
+                  onBlur={formik.handleBlur("email")}
+                  error={formik.touched.email ? formik.errors.email : undefined}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <FormInput
+                  placeholder="Phone Number"
+                  value={formik.values.phone}
+                  onChangeText={formik.handleChange("phone")}
+                  onBlur={formik.handleBlur("phone")}
+                  error={formik.touched.phone ? formik.errors.phone : undefined}
+                  keyboardType="phone-pad"
+                  maxLength={11}
+                />
+                <FormInput
+                  placeholder="Age"
+                  value={formik.values.age}
+                  onChangeText={formik.handleChange("age")}
+                  onBlur={formik.handleBlur("age")}
+                  error={formik.touched.age ? formik.errors.age : undefined}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
 
-                {/* Referring Doctor */}
-                <View style={{ ...styles.section, gap: 8 }}>
-                  <Text style={appStyles.sectionTitle}>
-                    Referring Doctor (Optional)
-                  </Text>
-                  <FormInput
-                    placeholder="Enter doctor's name who referred you"
-                    value={formik.values.referringDoctor}
-                    onChangeText={formik.handleChange("referringDoctor")}
-                    onBlur={formik.handleBlur("referringDoctor")}
-                    error={
-                      formik.touched.referringDoctor
-                        ? formik.errors.referringDoctor
-                        : undefined
-                    }
-                  />
-                </View>
+              {/* Referring Doctor */}
+              <View style={{ ...styles.section, gap: 8 }}>
+                <Text style={appStyles.sectionTitle}>
+                  Referring Doctor (Optional)
+                </Text>
+                <FormInput
+                  placeholder="Enter doctor's name who referred you"
+                  value={formik.values.referringDoctor}
+                  onChangeText={formik.handleChange("referringDoctor")}
+                  onBlur={formik.handleBlur("referringDoctor")}
+                  error={
+                    formik.touched.referringDoctor
+                      ? formik.errors.referringDoctor
+                      : undefined
+                  }
+                />
+              </View>
 
-                {/* Address Information */}
-                {selectedTestType === "Home" && (
-                  <View style={styles.section}>
-                    <View style={styles.addressHeader}>
-                      <Text style={appStyles.sectionTitle}>Home Address</Text>
-                      <TouchableOpacity
-                        style={styles.locationButton}
-                        onPress={handleGetCurrentLocation}
-                        disabled={isLocationLoading}
-                      >
-                        {isLocationLoading ? (
-                          <ActivityIndicator
-                            size="small"
+              {/* Address Information */}
+              {selectedTestType === "Home" && (
+                <View style={styles.section}>
+                  <View style={styles.addressHeader}>
+                    <Text style={appStyles.sectionTitle}>Home Address</Text>
+                    <TouchableOpacity
+                      style={styles.locationButton}
+                      onPress={handleGetCurrentLocation}
+                      disabled={isLocationLoading}
+                    >
+                      {isLocationLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.primary}
+                        />
+                      ) : (
+                        <>
+                          <Ionicons
+                            name="location"
+                            size={16}
                             color={colors.primary}
                           />
-                        ) : (
-                          <>
-                            <Ionicons
-                              name="location"
-                              size={16}
-                              color={colors.primary}
-                            />
-                            <Text style={styles.locationButtonText}>
-                              Use Current Location
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                    <FormInput
-                      placeholder="Street Address"
-                      value={formik.values.address}
-                      onChangeText={formik.handleChange("address")}
-                      onBlur={formik.handleBlur("address")}
-                      error={
-                        formik.touched.address
-                          ? formik.errors.address
-                          : undefined
-                      }
-                      multiline
-                    />
-                    <View style={styles.row}>
-                      <FormInput
-                        placeholder="City"
-                        value={formik.values.city}
-                        onChangeText={formik.handleChange("city")}
-                        onBlur={formik.handleBlur("city")}
-                        error={
-                          formik.touched.city ? formik.errors.city : undefined
-                        }
-                        containerStyle={styles.halfInput}
-                      />
-                      <FormInput
-                        placeholder="Zip Code"
-                        value={formik.values.zipCode}
-                        onChangeText={formik.handleChange("zipCode")}
-                        onBlur={formik.handleBlur("zipCode")}
-                        error={
-                          formik.touched.zipCode
-                            ? formik.errors.zipCode
-                            : undefined
-                        }
-                        keyboardType="number-pad"
-                        containerStyle={styles.halfInput}
-                        maxLength={6}
-                      />
-                    </View>
+                          <Text style={styles.locationButtonText}>
+                            Use Current Location
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
                   </View>
-                )}
-
-                {/* Appointment Schedule */}
-                <View style={[styles.section, { gap: 8 }]}>
-                  <Text style={appStyles.sectionTitle}>
-                    Schedule Appointment
-                  </Text>
-                  <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
-                    <FormInput
-                      placeholder="Preferred Date (MM/DD/YYYY)"
-                      value={formik.values.preferredDate}
-                      editable={false}
-                      pointerEvents="none"
-                      error={
-                        formik.touched.preferredDate
-                          ? formik.errors.preferredDate
-                          : undefined
-                      }
-                      RightIcon={CalendarIcon}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
-                    <FormInput
-                      placeholder="Preferred Time (HH:MM AM/PM)"
-                      value={formik.values.preferredTime}
-                      editable={false}
-                      pointerEvents="none"
-                      error={
-                        formik.touched.preferredTime
-                          ? formik.errors.preferredTime
-                          : undefined
-                      }
-                      RightIcon={ClockIcon}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Additional Notes */}
-                <View style={styles.section}>
-                  <Text style={appStyles.sectionTitle}>
-                    Additional Notes (Optional)
-                  </Text>
                   <FormInput
-                    placeholder="Any special instructions or medical conditions..."
-                    value={formik.values.notes}
-                    onChangeText={formik.handleChange("notes")}
-                    onBlur={formik.handleBlur("notes")}
+                    placeholder="Street Address"
+                    value={formik.values.address}
+                    onChangeText={formik.handleChange("address")}
+                    onBlur={formik.handleBlur("address")}
+                    error={
+                      formik.touched.address ? formik.errors.address : undefined
+                    }
                     multiline
-                    numberOfLines={10}
-                    containerStyle={styles.notesInput}
                   />
+                  <View style={styles.row}>
+                    <FormInput
+                      placeholder="City"
+                      value={formik.values.city}
+                      onChangeText={formik.handleChange("city")}
+                      onBlur={formik.handleBlur("city")}
+                      error={
+                        formik.touched.city ? formik.errors.city : undefined
+                      }
+                      containerStyle={styles.halfInput}
+                    />
+                    <FormInput
+                      placeholder="Zip Code"
+                      value={formik.values.zipCode}
+                      onChangeText={formik.handleChange("zipCode")}
+                      onBlur={formik.handleBlur("zipCode")}
+                      error={
+                        formik.touched.zipCode
+                          ? formik.errors.zipCode
+                          : undefined
+                      }
+                      keyboardType="number-pad"
+                      containerStyle={styles.halfInput}
+                      maxLength={6}
+                    />
+                  </View>
                 </View>
+              )}
+
+              {/* Appointment Schedule */}
+              <View style={[styles.section, { gap: 8 }]}>
+                <Text style={appStyles.sectionTitle}>Schedule Appointment</Text>
+                <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
+                  <FormInput
+                    placeholder="Preferred Date (MM/DD/YYYY)"
+                    value={formik.values.preferredDate}
+                    editable={false}
+                    pointerEvents="none"
+                    error={
+                      formik.touched.preferredDate
+                        ? formik.errors.preferredDate
+                        : undefined
+                    }
+                    RightIcon={CalendarIcon}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setTimePickerVisible(true)}>
+                  <FormInput
+                    placeholder="Preferred Time (HH:MM AM/PM)"
+                    value={formik.values.preferredTime}
+                    editable={false}
+                    pointerEvents="none"
+                    error={
+                      formik.touched.preferredTime
+                        ? formik.errors.preferredTime
+                        : undefined
+                    }
+                    RightIcon={ClockIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Additional Notes */}
+              <View style={styles.section}>
+                <Text style={appStyles.sectionTitle}>
+                  Additional Notes (Optional)
+                </Text>
+                <FormInput
+                  placeholder="Any special instructions or medical conditions..."
+                  value={formik.values.notes}
+                  onChangeText={formik.handleChange("notes")}
+                  onBlur={formik.handleBlur("notes")}
+                  multiline
+                  numberOfLines={10}
+                  containerStyle={styles.notesInput}
+                />
+              </View>
             </View>
 
             {/* Important Information */}

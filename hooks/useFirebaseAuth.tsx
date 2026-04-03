@@ -1,27 +1,27 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import {
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  updatePassword as firebaseUpdatePassword,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signOut,
+    createUserWithEmailAndPassword,
+    EmailAuthProvider,
+    updatePassword as firebaseUpdatePassword,
+    onAuthStateChanged,
+    reauthenticateWithCredential,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+    signOut,
 } from "firebase/auth";
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-  onSnapshot,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    query,
+    serverTimestamp,
+    setDoc,
+    where,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
@@ -203,6 +203,9 @@ const normalizeRole = (r?: string) => {
     user: "user",
     Lab: "lab",
     lab: "lab",
+    "Lab Technician": "lab",
+    "lab technician": "lab",
+    "lab-technician": "lab",
     Nurse: "nurse",
     nurse: "nurse",
     "Medicine Delivery": "delivery",
@@ -242,21 +245,30 @@ export const AuthProvider = ({ children }: any) => {
       const snap = await getDoc(ref);
 
       if (!snap.exists()) {
-        console.warn("⚠️ User authenticated but NO Firestore document found for:", auth.currentUser.uid);
+        console.warn(
+          "⚠️ User authenticated but NO Firestore document found for:",
+          auth.currentUser.uid,
+        );
 
         // SECURE ADMIN FALLBACK: Only allow EXACT matches for known admin emails
         // Replace these with your actual admin email address(es)
         const allowedAdminEmails = ["admin@healthnest.com", "admin@gmail.com"];
 
-        if (auth.currentUser.email && allowedAdminEmails.includes(auth.currentUser.email.toLowerCase())) {
-          console.log("🛠️ Admin Fallback triggered securely for:", auth.currentUser.email);
+        if (
+          auth.currentUser.email &&
+          allowedAdminEmails.includes(auth.currentUser.email.toLowerCase())
+        ) {
+          console.log(
+            "🛠️ Admin Fallback triggered securely for:",
+            auth.currentUser.email,
+          );
           return {
             uid: auth.currentUser.uid,
             email: auth.currentUser.email,
             role: "admin",
             profileCompleted: true,
             firstname: "System",
-            lastname: "Admin"
+            lastname: "Admin",
           } as UserProfile;
         }
 
@@ -307,34 +319,44 @@ export const AuthProvider = ({ children }: any) => {
       if (current) {
         // Set up real-time listener for the user profile
         const ref = doc(db, "users", current.uid);
-        profileUnsub = onSnapshot(ref, (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            setUser({
-              uid: current.uid,
-              ...data,
-            } as UserProfile);
-          } else {
-            // ADMIN SECURE FALLBACK: Check if this is a known admin email
-            const allowedAdminEmails = ["admin@healthnest.com", "admin@gmail.com"];
-            if (current.email && allowedAdminEmails.includes(current.email.toLowerCase())) {
+        profileUnsub = onSnapshot(
+          ref,
+          (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
               setUser({
                 uid: current.uid,
-                email: current.email,
-                role: "admin",
-                profileCompleted: true,
-                firstname: "System",
-                lastname: "Admin"
+                ...data,
               } as UserProfile);
             } else {
-              setUser(null);
+              // ADMIN SECURE FALLBACK: Check if this is a known admin email
+              const allowedAdminEmails = [
+                "admin@healthnest.com",
+                "admin@gmail.com",
+              ];
+              if (
+                current.email &&
+                allowedAdminEmails.includes(current.email.toLowerCase())
+              ) {
+                setUser({
+                  uid: current.uid,
+                  email: current.email,
+                  role: "admin",
+                  profileCompleted: true,
+                  firstname: "System",
+                  lastname: "Admin",
+                } as UserProfile);
+              } else {
+                setUser(null);
+              }
             }
-          }
-          setLoading(false);
-        }, (error) => {
-          console.error("Profile onSnapshot error:", error);
-          setLoading(false);
-        });
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Profile onSnapshot error:", error);
+            setLoading(false);
+          },
+        );
       } else {
         setUser(null);
         setLoading(false);
@@ -442,8 +464,13 @@ export const AuthProvider = ({ children }: any) => {
     // Normalize display role to internal role value
     const mapRoleToInternal = (r: string, deliveryType?: string) => {
       // If delivery type is 'lab', it's always a lab delivery boy
-      if (deliveryType === "lab") return "lab-delivery-boy";
-      
+      if (deliveryType === "lab") {
+        console.log(
+          `🔄 [mapRoleToInternal] deliveryType is "lab", returning "lab-delivery-boy"`,
+        );
+        return "lab-delivery-boy";
+      }
+
       const lookup: { [k: string]: string } = {
         User: "user",
         user: "user",
@@ -451,6 +478,8 @@ export const AuthProvider = ({ children }: any) => {
         Lab: "lab",
         lab: "lab",
         "Lab Technician": "lab",
+        "lab technician": "lab",
+        "lab-technician": "lab",
         Nurse: "nurse",
         nurse: "nurse",
         "Medicine Delivery": "delivery",
@@ -463,9 +492,11 @@ export const AuthProvider = ({ children }: any) => {
         "Lab delivery": "lab-delivery-boy",
         "Lab Delivery Boy": "lab-delivery-boy",
       };
-      
-      const mapped = lookup[r] || r.toLowerCase().trim().replace(/\s+/g, '-');
-      console.log(`[mapRoleToInternal] Input: "${r}", DeliveryType: "${deliveryType}" -> Mapped: "${mapped}"`);
+
+      const mapped = lookup[r] || r.toLowerCase().trim().replace(/\s+/g, "-");
+      console.log(
+        `[mapRoleToInternal] Input: "${r}", DeliveryType: "${deliveryType}" -> Mapped: "${mapped}"`,
+      );
       return mapped;
     };
     try {
@@ -760,7 +791,33 @@ export const AuthProvider = ({ children }: any) => {
             ...d.data(),
           }) as UserProfile,
       );
-    } catch {
+    } catch (error) {
+      console.error("getAllUsers error:", error);
+
+      if (filter) {
+        try {
+          const allSnap = await getDocs(query(usersRef));
+          const normalizedFilter = (normalizeRole(filter) || filter)
+            .toString()
+            .toLowerCase();
+          const result = allSnap.docs
+            .map((d) => ({ uid: d.id, ...d.data() }) as UserProfile)
+            .filter((u) => {
+              const role = (u.role || "").toString().toLowerCase();
+              return (
+                role === normalizedFilter ||
+                role.includes(normalizedFilter) ||
+                normalizedFilter.includes(role)
+              );
+            });
+          if (result.length > 0) {
+            return result;
+          }
+        } catch (fallbackError) {
+          console.error("getAllUsers fallback query error:", fallbackError);
+        }
+      }
+
       return [];
     }
   };
@@ -828,11 +885,11 @@ export const AuthProvider = ({ children }: any) => {
       setUser((prev) =>
         prev
           ? {
-            ...prev,
-            firstname: data.firstname || prev.firstname,
-            lastname: data.lastname || prev.lastname,
-            phoneNumber: data.phoneNumber || prev.phoneNumber,
-          }
+              ...prev,
+              firstname: data.firstname || prev.firstname,
+              lastname: data.lastname || prev.lastname,
+              phoneNumber: data.phoneNumber || prev.phoneNumber,
+            }
           : prev,
       );
     } catch (e) {
@@ -1032,7 +1089,7 @@ export const AuthProvider = ({ children }: any) => {
             console.error("checkEmailVerification error:", e);
             try {
               if (userCredential) await signOut(auth);
-            } catch (_) { }
+            } catch (_) {}
             skipAuthHandlingRef.current = false;
             return false;
           }

@@ -62,16 +62,29 @@ const UsersManagement = () => {
     role: string,
     deliveryType?: string,
   ): "User" | "Lab" | "Nurse" | "Medicine Delivery" | "Lab Delivery" => {
+    console.log(
+      `🔍 [mapRoleToType] Input: role="${role}", deliveryType="${deliveryType}"`,
+    );
     if (role === "delivery") {
-      if (deliveryType === "lab") return "Lab Delivery";
+      if (deliveryType === "lab") {
+        console.log(`✅ [mapRoleToType] Mapped to: "Lab Delivery"`);
+        return "Lab Delivery";
+      }
+      console.log(`✅ [mapRoleToType] Mapped to: "Medicine Delivery"`);
       return "Medicine Delivery";
     }
     switch (role) {
       case "lab":
+        console.log(`✅ [mapRoleToType] Mapped to: "Lab"`);
         return "Lab";
       case "nurse":
+        console.log(`✅ [mapRoleToType] Mapped to: "Nurse"`);
         return "Nurse";
+      case "lab-delivery-boy":
+        console.log(`✅ [mapRoleToType] Mapped to: "Lab Delivery"`);
+        return "Lab Delivery";
       default:
+        console.log(`✅ [mapRoleToType] Mapped to: "User"`);
         return "User";
     }
   };
@@ -260,9 +273,14 @@ const UsersManagement = () => {
       color: "#9C27B0",
     },
     {
-      label: "Delivery Persons",
+      label: "Medicine Delivery",
       value: users.filter((u) => u.type === "Medicine Delivery").length,
       color: "#FF5722",
+    },
+    {
+      label: "Lab Delivery",
+      value: users.filter((u) => u.type === "Lab Delivery").length,
+      color: "#4CAF50",
     },
   ];
 

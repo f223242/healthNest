@@ -86,10 +86,23 @@ const TestDetailScreen = () => {
   };
 
   const fetchAvailableDelivery = async () => {
+    console.log(
+      "🚚 [fetchAvailableDelivery] Starting to fetch delivery boys...",
+    );
     setLoadingDelivery(true);
     try {
       const approvedBoys =
         await VerificationService.getApprovedLabDeliveryBoys();
+      console.log(
+        `📦 [fetchAvailableDelivery] Received ${approvedBoys.length} approved boys:`,
+        approvedBoys.map((b) => ({
+          id: b.id,
+          firstname: b.firstname,
+          lastname: b.lastname,
+          role: b.role,
+          isApproved: b.isApproved,
+        })),
+      );
       const deliveryData: DeliveryPerson[] = await Promise.all(
         approvedBoys.map(async (u: any, index: number) => {
           const fullName =
@@ -123,9 +136,13 @@ const TestDetailScreen = () => {
           } as DeliveryPerson;
         }),
       );
+      console.log(
+        `✅ [fetchAvailableDelivery] Processed ${deliveryData.length} delivery persons:`,
+        deliveryData.map((d) => ({ name: d.name, uid: d.uid })),
+      );
       setDeliveryPersons(deliveryData);
     } catch (error) {
-      console.error("Error fetching delivery boys:", error);
+      console.error("❌ [fetchAvailableDelivery] Error:", error);
     } finally {
       setLoadingDelivery(false);
     }

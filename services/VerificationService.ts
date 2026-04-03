@@ -1,16 +1,16 @@
 import { db, storage } from "@/config/firebase";
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    query,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import NotificationService from "./NotificationService";
@@ -507,8 +507,19 @@ class VerificationService {
       `🚀 [VerificationService] Attempting to APPROVE user: ${userId} by Admin: ${adminId}`,
     );
     try {
-      // Update users collection
+      // First, get current user data to log it
       const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        console.log(`📋 [VerificationService] Current user data:`, {
+          role: userData.role,
+          isApproved: userData.isApproved,
+          deliveryType: userData.deliveryType,
+        });
+      }
+
+      // Update users collection
       await setDoc(
         userRef,
         {
@@ -524,6 +535,17 @@ class VerificationService {
       console.log(
         `✅ [VerificationService] User ${userId} marked as approved in 'users' collection`,
       );
+
+      // Verify the update
+      const updatedSnap = await getDoc(userRef);
+      if (updatedSnap.exists()) {
+        const updatedData = updatedSnap.data();
+        console.log(`🔍 [VerificationService] Updated user data:`, {
+          role: updatedData.role,
+          isApproved: updatedData.isApproved,
+          deliveryType: updatedData.deliveryType,
+        });
+      }
 
       // Update pending_verifications
       const pvRef = doc(db, "pending_verifications", userId);
@@ -622,18 +644,41 @@ class VerificationService {
   // Get approved lab delivery boys
   async getApprovedLabDeliveryBoys(): Promise<any[]> {
     try {
-      const q = query(
+      console.log("🔍 [getApprovedLabDeliveryBoys] Starting query...");
+
+      // Query all approved users and filter in code to avoid index issues
+      const allApproved = query(
         collection(db, "users"),
-        where("role", "==", "lab-delivery-boy"),
         where("isApproved", "==", true),
       );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const allSnap = await getDocs(allApproved);
+      console.log(
+        `📊 [getApprovedLabDeliveryBoys] Found ${allSnap.docs.length} approved users total`,
+      );
+
+      const labDeliveryBoys = allSnap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((u: any) => {
+          const role = (u.role || "").toString().toLowerCase().trim();
+          const isLabDelivery =
+            role === "lab-delivery-boy" ||
+            role === "lab delivery boy" ||
+            role.includes("lab-delivery");
+          if (isLabDelivery) {
+            console.log(
+              `🎯 [getApprovedLabDeliveryBoys] Found lab delivery boy: ${u.id} - ${u.firstname} ${u.lastname} - role: "${u.role}" - isApproved: ${u.isApproved}`,
+            );
+          }
+          return isLabDelivery;
+        });
+
+      console.log(
+        `✅ [getApprovedLabDeliveryBoys] Final result: ${labDeliveryBoys.length} lab delivery boys found`,
+      );
+
+      return labDeliveryBoys;
     } catch (error) {
-      console.error("Error fetching approved lab delivery boys:", error);
+      console.error("❌ [getApprovedLabDeliveryBoys] Error:", error);
       throw error;
     }
   }
