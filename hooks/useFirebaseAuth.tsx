@@ -1,27 +1,27 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import {
-    createUserWithEmailAndPassword,
-    EmailAuthProvider,
-    updatePassword as firebaseUpdatePassword,
-    onAuthStateChanged,
-    reauthenticateWithCredential,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signInWithEmailAndPassword,
-    signOut,
+  createUserWithEmailAndPassword,
+  EmailAuthProvider,
+  updatePassword as firebaseUpdatePassword,
+  onAuthStateChanged,
+  reauthenticateWithCredential,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    setDoc,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
@@ -731,11 +731,10 @@ export const AuthProvider = ({ children }: any) => {
             where("role", "==", "delivery"),
             where("deliveryType", "==", "medicine"),
           );
-        } else if (filter === "Lab Delivery") {
+        } else if (normalized === "lab-delivery-boy") {
           q = query(
             usersRef,
-            where("role", "==", "lab-delivery-boy"),
-            where("isApproved", "==", true),
+            where("role", "==", "lab-delivery-boy")
           );
         } else {
           q = query(usersRef, where("role", "==", normalized));
@@ -746,61 +745,57 @@ export const AuthProvider = ({ children }: any) => {
 
       const snap = await getDocs(q);
 
-      // If a filter was used but no docs were found, try a fallback:
-      // 1) query with the raw filter string
-      // 2) if still empty, fetch all and filter client-side using case-insensitive matching
-      if (filter && snap.empty) {
-        try {
-          console.warn(
-            "getAllUsers: normalized query returned 0 results for filter:",
-            filter,
-          );
-          // try raw filter
-          const rawQ = query(usersRef, where("role", "==", filter));
-          const rawSnap = await getDocs(rawQ);
-          if (!rawSnap.empty) {
-            return rawSnap.docs.map(
-              (d) => ({ uid: d.id, ...d.data() }) as UserProfile,
-            );
-          }
-
-          // final fallback: fetch all and filter client-side
-          console.warn(
-            "getAllUsers: trying client-side filtering fallback for filter:",
-            filter,
-          );
-          const allSnap = await getDocs(query(usersRef));
-          const lc = (filter || "").toLowerCase();
-          const filtered = allSnap.docs
-            .map((d) => ({ uid: d.id, ...d.data() }) as UserProfile)
-            .filter((u) => {
-              const role = (u.role || "").toString().toLowerCase();
-              return role === lc || role.includes(lc) || lc.includes(role);
-            });
-
-          return filtered;
-        } catch (e) {
-          console.warn("getAllUsers fallback failed:", e);
-        }
-      }
-
-      return snap.docs.map(
+      let users = snap.docs.map(
         (d) =>
           ({
             uid: d.id,
             ...d.data(),
           }) as UserProfile,
       );
+
+      if (filter) {
+        const normalized = (normalizeRole(filter) || filter).toLowerCase();
+        if (normalized === "lab-delivery-boy") {
+          users = users.filter((u) => u.isApproved === true);
+        }
+      }
+
+      // If a filter was used but no docs were found, try a fallback:
+      if (filter && users.length === 0) {
+        try {
+          console.warn(
+            "getAllUsers: normalized query returned 0 results for filter:",
+            filter,
+          );
+          const allSnap = await getDocs(query(usersRef));
+          const normalizedFilter = (normalizeRole(filter) || filter).toLowerCase();
+          users = allSnap.docs
+            .map((d) => ({ uid: d.id, ...d.data() }) as UserProfile)
+            .filter((u) => {
+              const role = (u.role || "").toString().toLowerCase();
+              return role === normalizedFilter || role.includes(normalizedFilter) || normalizedFilter.includes(role);
+            });
+
+          if (normalizedFilter === "lab-delivery-boy") {
+             users = users.filter((u) => u.isApproved === true);
+          }
+        } catch (e) {
+          console.warn("getAllUsers fallback failed:", e);
+        }
+      }
+
+      return users;
     } catch (error) {
       console.error("getAllUsers error:", error);
 
       if (filter) {
         try {
+          const usersRef = collection(db, "users");
           const allSnap = await getDocs(query(usersRef));
           const normalizedFilter = (normalizeRole(filter) || filter)
             .toString()
             .toLowerCase();
-          const result = allSnap.docs
+          let result = allSnap.docs
             .map((d) => ({ uid: d.id, ...d.data() }) as UserProfile)
             .filter((u) => {
               const role = (u.role || "").toString().toLowerCase();
@@ -810,6 +805,11 @@ export const AuthProvider = ({ children }: any) => {
                 normalizedFilter.includes(role)
               );
             });
+
+          if (normalizedFilter === "lab-delivery-boy") {
+             result = result.filter((u) => u.isApproved === true);
+          }
+
           if (result.length > 0) {
             return result;
           }
@@ -885,11 +885,11 @@ export const AuthProvider = ({ children }: any) => {
       setUser((prev) =>
         prev
           ? {
-              ...prev,
-              firstname: data.firstname || prev.firstname,
-              lastname: data.lastname || prev.lastname,
-              phoneNumber: data.phoneNumber || prev.phoneNumber,
-            }
+            ...prev,
+            firstname: data.firstname || prev.firstname,
+            lastname: data.lastname || prev.lastname,
+            phoneNumber: data.phoneNumber || prev.phoneNumber,
+          }
           : prev,
       );
     } catch (e) {
@@ -1089,7 +1089,7 @@ export const AuthProvider = ({ children }: any) => {
             console.error("checkEmailVerification error:", e);
             try {
               if (userCredential) await signOut(auth);
-            } catch (_) {}
+            } catch (_) { }
             skipAuthHandlingRef.current = false;
             return false;
           }

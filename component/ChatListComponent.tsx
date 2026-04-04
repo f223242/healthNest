@@ -22,7 +22,7 @@ interface ChatUser {
   time: string;
   unread?: number;
   online?: boolean;
-  type: 'person' | 'ai';
+  type: 'person' | 'ai' | 'lab';
 }
 
 interface ChatListComponentProps {

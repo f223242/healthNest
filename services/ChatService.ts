@@ -350,7 +350,7 @@ class ChatService {
     }
   }
 
-  // Listen to messages in lab-delivery conversation
+  // Listen to messages in lab-delivery conversation (sort client-side to avoid index requirement)
   listenToLabDeliveryMessages(
     conversationId: string,
     callback: (messages: ChatMessage[]) => void,
@@ -359,14 +359,18 @@ class ChatService {
       const q = query(
         collection(db, "labDeliveryMessages"),
         where("conversationId", "==", conversationId),
-        orderBy("timestamp", "asc"),
       );
 
       return onSnapshot(q, (snapshot) => {
-        const messages: ChatMessage[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<ChatMessage, "id">),
-        }));
+        const messages: ChatMessage[] = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<ChatMessage, "id">),
+          }))
+          .sort(
+            (a, b) =>
+              a.timestamp.toMillis() - b.timestamp.toMillis(),
+          );
         callback(messages);
       });
     } catch (error) {
