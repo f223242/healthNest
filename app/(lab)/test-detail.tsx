@@ -12,7 +12,6 @@ import LabTestService, {
     LabTestRequest,
     TestRequestStatus,
 } from "@/services/LabTestService";
-import VerificationService from "@/services/VerificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -91,12 +90,12 @@ const TestDetailScreen = () => {
     );
     setLoadingDelivery(true);
     try {
-      const approvedBoys =
-        await VerificationService.getApprovedLabDeliveryBoys();
+      // Use getAllUsers which already filters for approved lab delivery boys
+      const approvedBoys = await getAllUsers("Lab Delivery");
       console.log(
         `📦 [fetchAvailableDelivery] Received ${approvedBoys.length} approved boys:`,
         approvedBoys.map((b) => ({
-          id: b.id,
+          id: b.uid,
           firstname: b.firstname,
           lastname: b.lastname,
           role: b.role,
@@ -113,7 +112,7 @@ const TestDetailScreen = () => {
           let totalDeliveries = 0;
           try {
             const ratingStats =
-              await FeedbackComplaintService.getProviderRatingStats(u.id);
+              await FeedbackComplaintService.getProviderRatingStats(u.uid);
             rating = ratingStats.averageRating || 0;
             totalDeliveries = ratingStats.totalReviews || 0;
           } catch (err) {}
@@ -128,7 +127,7 @@ const TestDetailScreen = () => {
             rating,
             totalDeliveries,
             isAvailable: true,
-            uid: u.id,
+            uid: u.uid,
             vehicleType: u.additionalInfo?.vehicleType || "Bike",
             deliveryTime: "20-30 min",
             distance: u.additionalInfo?.city || "Nearby",
@@ -603,6 +602,11 @@ const TestDetailScreen = () => {
                         <Text style={styles.deliveryName}>
                           {testDetail.deliveryName}
                         </Text>
+                        {testDetail.deliveryPhone && (
+                          <Text style={styles.deliveryPhone}>
+                            {testDetail.deliveryPhone}
+                          </Text>
+                        )}
                         <Text style={styles.deliveryStatus}>
                           Assigned Provider
                         </Text>
@@ -1047,6 +1051,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.semiBold,
     color: colors.text,
+  },
+  deliveryPhone: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: colors.primary,
+    marginTop: 2,
   },
   deliveryStatus: {
     fontSize: 12,

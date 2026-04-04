@@ -48,6 +48,7 @@ export interface LabTestRequest {
   // Delivery info (for home sampling)
   deliveryId?: string;
   deliveryName?: string;
+  deliveryPhone?: string;
   // Payment info
   paymentMethod?: string; // card | cash | wallet | bnpl
   paymentStatus?:
@@ -415,9 +416,15 @@ class LabTestService {
     deliveryName: string,
   ): Promise<void> {
     try {
+      // Get delivery boy details
+      const deliveryDoc = await getDoc(doc(db, "users", deliveryId));
+      const deliveryData = deliveryDoc.data();
+      const deliveryPhone = deliveryData?.phone || "";
+
       const updateData: any = {
         deliveryId,
         deliveryName,
+        deliveryPhone,
         updatedAt: Timestamp.now(),
       };
 
@@ -462,6 +469,21 @@ class LabTestService {
           testRequestId: requestId,
           userId: request.userId,
           userName: request.userName,
+          labName: request.labName,
+        },
+      );
+
+      // Notify the patient
+      await NotificationService.createNotification(
+        request.userId,
+        "appointment",
+        "Delivery Boy Assigned",
+        `Your lab test delivery has been assigned to ${deliveryName}. Contact: ${deliveryPhone}`,
+        {
+          testRequestId: requestId,
+          deliveryId: deliveryId,
+          deliveryName: deliveryName,
+          deliveryPhone: deliveryPhone,
           labName: request.labName,
         },
       );
