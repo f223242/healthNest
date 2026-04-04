@@ -25,7 +25,7 @@ interface CustomerChat {
   time: string;
   unread?: number;
   online?: boolean;
-  type: "person" | "ai";
+  type: "person" | "ai" | "lab";
 }
 
 const DeliveryChats = () => {
@@ -167,24 +167,24 @@ const DeliveryChats = () => {
       </View>
 
       <ScrollView
-        scrollEnabled={conversations.length > 0}
+        scrollEnabled={customers.length > 0}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <View style={styles.listCard}>
-          {conversations.length === 0 ? (
+          {customers.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No conversations yet</Text>
               <Text style={styles.emptySubText}>
-                Messages from patients will appear here
+                Messages from patients or labs will appear here
               </Text>
             </View>
           ) : (
             <ChatListComponent
               users={customers}
               onChatPress={handleChatPress}
-              title="Customers"
+              title="Inbox"
               showAIOption={false}
             />
           )}

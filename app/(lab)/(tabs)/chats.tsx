@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     FlatList,
     Image,
+    ScrollView,
     StatusBar,
     StyleSheet,
     Text,
@@ -18,9 +19,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const LabChatsScreen = () => {
   const router = useRouter();
-  const { user } = useAuthContext();
+  const { user, getAllUsers } = useAuthContext();
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [availableBoys, setAvailableBoys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBoys = async () => {
+      try {
+        const boys = await getAllUsers("Lab Delivery");
+        setAvailableBoys(boys);
+      } catch (e) {
+        console.error("Error fetching delivery boys", e);
+      }
+    };
+    fetchBoys();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -52,7 +66,7 @@ const LabChatsScreen = () => {
         style={styles.conversationItem}
         onPress={() =>
           router.push({
-            pathname: "/(protected)/delivery-chat-detail",
+            pathname: "/(lab)/lab-delivery-chat-detail",
             params: {
               deliveryId: item.deliveryPersonId,
               deliveryName: item.deliveryPersonName,
@@ -103,28 +117,71 @@ const LabChatsScreen = () => {
         <Text style={styles.headerSubtitle}>Manage your sampling logistics</Text>
       </View>
 
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : conversations.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <View style={styles.emptyIconContainer}>
-            <Ionicons name="chatbubbles-outline" size={60} color={colors.gray} />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {availableBoys.length > 0 && (
+          <View style={styles.availableSection}>
+            <Text style={styles.sectionTitle}>Available Delivery Partners</Text>
+            <FlatList
+              data={availableBoys}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.uid}
+              contentContainerStyle={{ paddingHorizontal: 20 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.availablePartnerCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(lab)/lab-delivery-chat-detail",
+                      params: {
+                        deliveryId: item.uid,
+                        deliveryName: `${item.firstname || ""} ${item.lastname || ""}`.trim() || "Delivery Partner",
+                        deliveryAvatar: item.additionalInfo?.profileImage || item.profileImage || "https://via.placeholder.com/100",
+                      },
+                    })
+                  }
+                >
+                  <View>
+                    <Image
+                      source={{ uri: item.additionalInfo?.profileImage || item.profileImage || "https://via.placeholder.com/100" }}
+                      style={styles.partnerAvatar}
+                    />
+                    <View style={styles.onlineIndicator} />
+                  </View>
+                  <Text style={styles.partnerName} numberOfLines={1}>
+                    {item.firstname || "Partner"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
           </View>
-          <Text style={styles.emptyTitle}>No chats yet</Text>
-          <Text style={styles.emptySubtitle}>
-            When you assign a delivery boy and start coordination, your conversations will appear here.
-          </Text>
+        )}
+
+        <View style={styles.chatsSection}>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: 20 }]}>Active Chats</Text>
+          {loading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : conversations.length === 0 ? (
+            <View style={styles.centerContainer}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="chatbubbles-outline" size={60} color={colors.gray} />
+              </View>
+              <Text style={styles.emptyTitle}>No active chats</Text>
+              <Text style={styles.emptySubtitle}>
+                Select an available delivery partner above to start coordinating.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.listContent}>
+              {conversations.map((item) => (
+                <View key={item.id}>{renderConversationItem({ item })}</View>
+              ))}
+            </View>
+          )}
         </View>
-      ) : (
-        <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderConversationItem}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -247,5 +304,52 @@ const styles = StyleSheet.create({
     color: colors.gray,
     textAlign: "center",
     lineHeight: 22,
+  },
+  availableSection: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background,
+  },
+  chatsSection: {
+    paddingTop: 15,
+    paddingBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: colors.text,
+    marginLeft: 20,
+    marginBottom: 15,
+  },
+  availablePartnerCard: {
+    alignItems: "center",
+    marginRight: 20,
+    width: 70,
+  },
+  partnerAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  onlineIndicator: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#4CAF50",
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  partnerName: {
+    marginTop: 8,
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: colors.text,
+    textAlign: "center",
   },
 });
